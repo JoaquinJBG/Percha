@@ -2,7 +2,7 @@
 // Uso: con `pnpm dev` en marcha, `node scripts/medir.mjs [candidato:motor ...]`.
 // Deja en resultados/ (ignorada por git) las medidas, una captura por candidato y los recortes en PNG.
 import { chromium } from 'playwright-core';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,6 +82,8 @@ for (const prueba of pruebas) {
     console.log(prueba, 'ERROR', String(e).slice(0, 300));
   } finally {
     await ctx.close();
+    // Cada perfil guarda el modelo en caché (~100–200 MB): se borra al acabar.
+    await rm(perfil, { recursive: true, force: true });
     await writeFile(ficheroMedidas, JSON.stringify(medidas, null, 2));
   }
 }

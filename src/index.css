@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-tinta: #3f3a36;
+  --color-papel: #faf7f2;
+  --color-suave: #6f6760;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  background-color: var(--color-papel);
+  color: var(--color-tinta);
+  -webkit-tap-highlight-color: transparent;
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S3 · Compartir con Gemini</title>
+    <link rel="stylesheet" href="/src/estilos.css" />
+  </head>
+  <body>
+    <main>
+      <h1>S3 · Compartir con Gemini</h1>
+      <p class="nota">
+        Prueba de Web Share con ficheros. Las imágenes de serie son sintéticas; cámbialas por una foto tuya
+        y de tus prendas para ver si Gemini genera bien el <i>try-on</i>. Nada sale del móvil salvo lo que
+        compartas.
+      </p>
+
+      <section>
+        <h2>Imágenes</h2>
+        <div id="huecos" class="huecos"></div>
+        <label class="check"><input type="checkbox" id="usar-tres" checked /> Incluir la prenda 3</label>
+        <button type="button" id="restaurar" class="secundario">Volver a las sintéticas</button>
+      </section>
+
+      <section>
+        <h2>Variantes</h2>
+        <div class="variantes">
+          <button type="button" data-variante="A"><b>A</b> Varias imágenes + texto</button>
+          <button type="button" data-variante="B"><b>B</b> Varias imágenes, texto al portapapeles</button>
+          <button type="button" data-variante="C"><b>C</b> Una imagen compuesta + texto</button>
+          <button type="button" data-variante="D"><b>D</b> Una imagen compuesta, texto al portapapeles</button>
+        </div>
+        <p class="nota">En B y D, al elegir la app pega el texto (mantén pulsado el campo → Pegar).</p>
+      </section>
+
+      <section>
+        <h2>Imagen compuesta (C y D)</h2>
+        <img id="compuesta" alt="Persona y prendas en una sola imagen" />
+      </section>
+
+      <section>
+        <details>
+          <summary>Prompt v0 (varias imágenes)</summary>
+          <pre id="prompt-separadas"></pre>
+        </details>
+        <details>
+          <summary>Prompt v0 (imagen compuesta)</summary>
+          <pre id="prompt-compuesta"></pre>
+        </details>
+      </section>
+
+      <section>
+        <h2>Registro</h2>
+        <pre id="registro" class="registro"></pre>
+        <button type="button" id="copiar-registro" class="secundario">Copiar registro</button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

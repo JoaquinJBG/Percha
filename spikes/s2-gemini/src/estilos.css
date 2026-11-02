@@ -1,0 +1,173 @@
+:root {
+  color-scheme: light dark;
+  --fondo: #faf8f5;
+  --texto: #1f1d1a;
+  --suave: #6b665f;
+  --borde: #ddd6cc;
+  --acento: #7a4b2a;
+  --ok: #2f6b3a;
+  --mal: #a3322b;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #181614;
+    --texto: #eee9e2;
+    --suave: #a39c92;
+    --borde: #3a3530;
+    --acento: #d9a074;
+    --ok: #7cc28a;
+    --mal: #ec8b82;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+}
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+h1 {
+  font-size: 1.25rem;
+}
+h2 {
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+section {
+  border-top: 1px solid var(--borde);
+  padding: 12px 0;
+}
+label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--suave);
+  margin: 4px 0;
+}
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--texto);
+}
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+.fila label {
+  margin: 0;
+}
+input:not([type='checkbox']),
+select {
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  min-width: 0;
+}
+#clave,
+#modelo {
+  flex: 1;
+  width: 100%;
+}
+button {
+  font: inherit;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--acento);
+  background: var(--acento);
+  color: var(--fondo);
+  cursor: pointer;
+}
+button.secundario {
+  background: transparent;
+  color: var(--acento);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+#etiquetar {
+  width: 100%;
+  margin-top: 8px;
+}
+.nota {
+  font-size: 0.875rem;
+  color: var(--suave);
+}
+.miniaturas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.miniaturas figure {
+  margin: 0;
+  width: 96px;
+  font-size: 0.75rem;
+  color: var(--suave);
+}
+.miniaturas img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+.metricas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  font-size: 0.875rem;
+}
+.metricas dt {
+  color: var(--suave);
+}
+.metricas dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ok {
+  color: var(--ok);
+}
+.mal {
+  color: var(--mal);
+}
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  background: color-mix(in srgb, var(--borde) 35%, transparent);
+  padding: 8px;
+  border-radius: 8px;
+}
+pre:empty {
+  display: none;
+}
+.tabla {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+th,
+td {
+  border: 1px solid var(--borde);
+  padding: 4px 6px;
+  text-align: left;
+  white-space: nowrap;
+}

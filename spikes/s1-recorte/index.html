@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S1 · Recorte de fondo</title>
+    <link rel="stylesheet" href="/src/estilos.css" />
+  </head>
+  <body>
+    <header>
+      <h1>S1 · Recorte de fondo</h1>
+      <p class="nota">Percha · prueba técnica. Todo se hace en este dispositivo: las fotos no salen de aquí.</p>
+    </header>
+
+    <section class="panel">
+      <label>
+        Candidato
+        <select id="candidato"></select>
+      </label>
+      <label>
+        Motor
+        <select id="motor">
+          <option value="auto">Automático (WebGPU si hay)</option>
+          <option value="webgpu">Forzar WebGPU</option>
+          <option value="wasm">Forzar WASM (CPU)</option>
+        </select>
+      </label>
+      <p id="licencia" class="nota"></p>
+      <div class="botones">
+        <button id="cargar">1 · Cargar modelo</button>
+        <label class="boton">
+          📷 Cámara
+          <input id="camara" type="file" accept="image/*" capture="environment" hidden />
+        </label>
+        <label class="boton">
+          🖼️ Galería
+          <input id="galeria" type="file" accept="image/*" multiple hidden />
+        </label>
+        <button id="muestras">Probar las 5 muestras</button>
+      </div>
+      <div class="botones">
+        <button id="copiar">Copiar resultados</button>
+        <button id="borrar" class="secundario">Borrar modelos descargados</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Medidas</h2>
+      <dl id="medidas"></dl>
+      <p id="estado" class="nota">Elige un candidato y pulsa «Cargar modelo».</p>
+    </section>
+
+    <section id="resultados"></section>
+
+    <footer class="nota">
+      rembg-webgpu: «Background Removal Library provided by www.rembg.com».
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

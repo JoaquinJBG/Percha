@@ -1,8 +1,7 @@
-/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const colorTema = '#3f3a36'
 const colorFondo = '#faf7f2'
@@ -15,6 +14,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icono.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
+        id: '/',
         name: 'Percha',
         short_name: 'Percha',
         description: 'Tu armario en el móvil y outfits propuestos por IA.',
@@ -44,5 +44,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    exclude: [...configDefaults.exclude, 'spikes/**'],
   },
 })

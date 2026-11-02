@@ -66,24 +66,34 @@ export function BarraNavegacion() {
               to={ruta}
               end
               className={({ isActive }) =>
-                `flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium ${
-                  isActive ? 'text-tinta' : 'text-suave'
+                `flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs ${
+                  isActive ? 'font-semibold text-tinta' : 'font-medium text-suave'
                 }`
               }
             >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="size-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {icono}
-              </svg>
-              {etiqueta}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`flex h-7 w-14 items-center justify-center rounded-full ${
+                      isActive ? 'bg-tinta/12' : ''
+                    }`}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className="size-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {icono}
+                    </svg>
+                  </span>
+                  {etiqueta}
+                </>
+              )}
             </NavLink>
           </li>
         ))}

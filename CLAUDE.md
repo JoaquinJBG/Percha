@@ -34,7 +34,7 @@ Se sigue la skill global **`ticket-flow`**, con estos datos del proyecto:
 
 | Dato | Valor |
 |---|---|
-| Forja | ninguna por ahora (sin remoto). Si se crea el repo en GitHub, `gh` y PR en borrador. |
+| Forja | GitHub, repo **privado** `github.com/JoaquinJBG/Percha` (`gh`); PR en borrador |
 | Tracker | ninguno: las tareas y su estado están en `docs/plan.md` |
 | Rama base | `main` |
 | Ramas | `<tipo>/<id>-<slug>`: `chore/t0-1-esqueleto`, `feat/t1-2-alta-prenda`, `spike/s1-recorte`, `fix/<slug>` |
@@ -42,8 +42,9 @@ Se sigue la skill global **`ticket-flow`**, con estos datos del proyecto:
 | Checks | `pnpm verify` |
 | Revisor | nadie (proyecto personal) |
 
-- **Cada tarea, en su worktree y su rama.** Las trabajadoras hacen commits en su rama y, si hay remoto,
-  push de su rama. **Nunca merge, PR ni force push**: eso lo decide el usuario (o la sesión jefe con su OK).
+- **Cada tarea, en su worktree y su rama.** Las trabajadoras hacen commits en su rama y push de su rama
+  (`git push -u origin <rama>`) en cuanto la crean y tras cada commit. **Nunca merge, PR ni force push.**
+  La PR en borrador la abre la sesión jefe; el merge a `main` lo decide el usuario.
 - **Antes de decir «listo»:** `pnpm verify` en verde, **verlo funcionar** (`pnpm dev` en el navegador con
   viewport de 375 px, captura) y autorevisión con la lista de casos límite de `ticket-flow`. Lo que solo se
   puede probar en un Android real (cámara, recorte, compartir) va como pasos numerados para el usuario.

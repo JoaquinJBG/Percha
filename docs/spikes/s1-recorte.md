@@ -216,3 +216,19 @@ node scripts/captura-movil.mjs rmbg14
 
 `https://localhost:5173/comparar.html` enseña los recortes guardados lado a lado (`?vista=completa`,
 `?fondo=oscuro`, `?motor=wasm`).
+
+## Resultado en Android (2026-11-02)
+
+Prueba hecha por la sesión jefa de Percha manejando Chrome del móvil por adb (DevTools remoto), con las 5
+muestras de `muestras/`. Móvil: Honor FCP_N49, Android 16, Chrome 156, GPU Qualcomm Adreno 7xx (WebGPU con
+`shader-f16`).
+
+| Candidato | Motor | Descarga | Carga 1.ª vez | Carga en caché | 1.ª foto | Media resto | Borde |
+|---|---|---|---|---|---|---|---|
+| RMBG-1.4 | WebGPU · fp16 | 88,2 MB + 5,6 MB runtime | 7,34 s | 2,65 s | 2,43 s | 2,63 s | bueno (igual que en el PC) |
+| RMBG-1.4 | WASM · q8 (forzado) | 44,4 MB | 3,54 s | — | 7,28 s | 8,03 s | no revisado a fondo |
+
+**Conclusión:** se confirma la recomendación. Con WebGPU queda muy por debajo del umbral de ~5 s por foto, y
+el respaldo WASM (8 s) sigue siendo usable si se recorta en segundo plano mientras se etiqueta.
+
+No probado: fotos hechas con la cámara del usuario, MVANet y `rembg-webgpu` en el móvil.

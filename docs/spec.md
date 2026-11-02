@@ -1,6 +1,6 @@
 # Percha — Especificación v1
 
-Fecha: 2026-11-02. Estado: aprobada la idea; pendiente el OK al plan ([`plan.md`](plan.md)).
+Fecha: 2026-11-02. Estado: plan aprobado; fase 0 cerrada (esqueleto y *spikes* probados en Android).
 
 ## Qué es y para quién
 
@@ -65,6 +65,10 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
 | D7 | *Try-on* compartiendo con la app de Gemini | Cero coste y usa la cuenta que el usuario ya tiene. |
 | D8 | Reglas primero y la IA elige entre candidatos | Ahorra cupo gratis y evita outfits imposibles (sandalias con nieve). |
 | D9 | Varias prendas por petición al etiquetar | El cupo diario gratis de Gemini es bajo y cambia; hay que medirlo (S2). |
+| D10 | Recorte con Transformers.js + `briaai/RMBG-1.4` (WebGPU, con WASM de respaldo) | En Android: ~2,5 s por foto con WebGPU y 8 s con WASM ([S1](spikes/s1-recorte.md)). Licencia del modelo CC BY-NC 4.0: vale para uso personal y privado. |
+| D11 | Etiquetar con `gemini-3.5-flash-lite` y salida JSON con esquema, validada con Zod | 5 prendas en una petición en 38 s, con buena calidad y desde el navegador ([S2](spikes/s2-gemini.md)). |
+| D12 | Sin búsqueda en Google (*grounding*) en la v1 | Con la clave gratis da 429 a la primera ([S2](spikes/s2-gemini.md)). |
+| D13 | *Try-on*: una imagen compuesta (persona + prendas) compartida con Gemini y el texto copiado al portapapeles | Si el texto va dentro de `share()`, Gemini no lo recibe; pegado, genera la foto en ~30 s ([S3](spikes/s3-compartir.md)). |
 
 ## Modelo de datos (borrador)
 

@@ -14,4 +14,7 @@ clave gratuita de Gemini de cada usuario.
 - Fases y tareas: [`docs/plan.md`](docs/plan.md)
 - Cómo se trabaja en el repo: [`CLAUDE.md`](CLAUDE.md)
 
-Estado: **fase 0** (esqueleto y pruebas técnicas). Todavía no hay código.
+Estado: **fase 0 cerrada**. Hay esqueleto de la PWA y las pruebas técnicas están hechas en Android
+([`docs/spikes/`](docs/spikes/)). Siguiente: fase 1, el armario.
+
+Desarrollo: `npx -y pnpm@12.16.1 install`, `npx -y pnpm@12.16.1 dev` y `npx -y pnpm@12.16.1 verify`.

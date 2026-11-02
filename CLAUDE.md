@@ -26,7 +26,8 @@ Gemini del propio usuario. Lee [`docs/spec.md`](docs/spec.md) (alcance y decisio
 - `pnpm install` · `pnpm dev` (`pnpm dev --host` para abrirla desde el móvil)
 - **`pnpm verify`**: lint + typecheck + test + build. Es el check obligatorio.
 
-(Hasta que T0.1 esté en `main` no existen.)
+En este PC `pnpm` no está en el PATH y el de corepack está roto: usa `npx -y pnpm@<versión de packageManager>`
+(p. ej. `npx -y pnpm@12.16.1 verify`).
 
 ## Flujo de trabajo
 
@@ -34,7 +35,7 @@ Se sigue la skill global **`ticket-flow`**, con estos datos del proyecto:
 
 | Dato | Valor |
 |---|---|
-| Forja | GitHub, repo **privado** `github.com/JoaquinJBG/Percha` (`gh`); PR en borrador |
+| Forja | GitHub, repo **privado** `github.com/JoaquinJBG/Percha` (`gh`); por ahora **sin PR** |
 | Tracker | ninguno: las tareas y su estado están en `docs/plan.md` |
 | Rama base | `main` |
 | Ramas | `<tipo>/<id>-<slug>`: `chore/t0-1-esqueleto`, `feat/t1-2-alta-prenda`, `spike/s1-recorte`, `fix/<slug>` |
@@ -44,7 +45,8 @@ Se sigue la skill global **`ticket-flow`**, con estos datos del proyecto:
 
 - **Cada tarea, en su worktree y su rama.** Las trabajadoras hacen commits en su rama y push de su rama
   (`git push -u origin <rama>`) en cuanto la crean y tras cada commit. **Nunca merge, PR ni force push.**
-  La PR en borrador la abre la sesión jefe; el merge a `main` lo decide el usuario.
+  Por ahora no se abren PR: la sesión jefe revisa la rama y la integra en `main` (`merge --no-ff`) solo con
+  el OK del usuario.
 - **Antes de decir «listo»:** `pnpm verify` en verde, **verlo funcionar** (`pnpm dev` en el navegador con
   viewport de 375 px, captura) y autorevisión con la lista de casos límite de `ticket-flow`. Lo que solo se
   puede probar en un Android real (cámara, recorte, compartir) va como pasos numerados para el usuario.

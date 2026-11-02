@@ -204,3 +204,24 @@ Si una foto no muestra una prenda, etiquétala igualmente con lo más parecido y
 
 11. Con el PC y el móvil en la misma wifi: `npx pnpm@10 dev --host` y abre en Chrome la dirección
     `Network` que sale. Pega la clave y prueba 1 foto hecha con la cámara.
+
+## Resultado en Android con la clave del usuario (2026-11-02)
+
+Prueba hecha por la sesión jefa de Percha manejando Chrome del móvil por adb (Honor FCP_N49, Android 16,
+Chrome 156). La clave la pegó el usuario en el móvil; nadie más la vio ni se guardó fuera de su navegador.
+Fotos: las 5 muestras de S1, reducidas por la página a 768 px.
+
+- **CORS:** funciona. La página llama a Gemini directamente desde el navegador del móvil.
+- **Ver modelos de mi clave:** 46 modelos con `generateContent`, entre ellos `gemini-3.5-flash-lite`,
+  `gemini-3.8-flash` y `gemini-2.5-flash`.
+- **Etiquetar 5 prendas en una sola petición** con `gemini-3.5-flash-lite` (razonamiento y resolución por
+  defecto): **38,2 s**, 5.853 tokens de entrada (5.369 de imagen) y 990 de salida. **Zod OK**: 5 prendas con
+  todos los campos.
+- **Calidad de las etiquetas:** buena. Categoría, colores, formalidad y temporadas, correctas en las 5. Fallos
+  menores: la camisa de conejos sale como estampado «geométrico» y no como figurativo; la camiseta raglán, como
+  «manga larga».
+- **Búsqueda en Google (*grounding*):** `HTTP 429 RESOURCE_EXHAUSTED` («check your plan and billing») a la
+  primera petición, después de solo una petición de etiquetado. Lo más probable es que no entre en el nivel
+  gratis: **no contar con ella en la v1**.
+
+Pendiente: que el usuario mire en AI Studio sus límites reales (RPM y RPD) de `gemini-3.5-flash-lite`.

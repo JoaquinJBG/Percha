@@ -1,0 +1,8 @@
+dist
+dev-dist
+coverage
+pnpm-lock.yaml
+spikes
+docs
+CLAUDE.md
+README.md

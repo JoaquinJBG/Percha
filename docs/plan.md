@@ -14,7 +14,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 |---|---|---|---|
 | T0.1 | Esqueleto de la PWA | `chore/t0-1-esqueleto` | ⏳ |
 | S1 | Recorte de fondo en el navegador | `spike/s1-recorte` | ⏳ |
-| S2 | Gemini desde el navegador | `spike/s2-gemini` | ⏳ |
+| S2 | Gemini desde el navegador | `spike/s2-gemini` | 👀 |
 | S3 | Compartir con la app de Gemini | `spike/s3-compartir` | ⏳ |
 
 ### T0.1 — Esqueleto de la PWA

@@ -148,4 +148,19 @@ plano de cuerpo entero para que se vean todas las prendas. Ajustarlo con lo que 
 
 ## Resultado
 
-Pendiente de la prueba en Android. Con la tabla rellena se elige variante y prompt para T3.2.
+Probado el 2026-11-02 en un Android real (Honor FCP_N49, Android 16, Chrome 156, app de Gemini con plan
+Plus), con las imágenes sintéticas. Lo hizo la sesión jefa de Percha por adb junto al usuario.
+
+| Variante | ¿Sale Gemini? | ¿Llegan las imágenes? | ¿Llega el texto? | ¿Genera la imagen? |
+|---|---|---|---|---|
+| C · imagen compuesta + texto en `share()` | sí, como «Añadir a la conversación» | sí | **no** | no: solo describe la imagen |
+| D · imagen compuesta + texto en el portapapeles | sí | sí | sí, pegado con la sugerencia del portapapeles del teclado | **sí**, en unos 30 s |
+
+- `navigator.canShare({ files })` da `true` y la hoja de compartir del sistema se abre bien.
+- Con D, Gemini (modelo Flash de la app) devolvió una foto realista de cuerpo entero con la camiseta verde,
+  el vaquero azul y las zapatillas blancas, fondo liso y luz natural, como pide el prompt v0. Como la
+  persona era un dibujo, no se ha podido comprobar que mantenga la cara: falta probarlo con una foto real.
+- A y B no se probaron a fondo.
+
+**Decisión para T3.2: variante D** (una imagen compuesta y el texto al portapapeles), con un aviso en la app:
+«En Gemini, toca la sugerencia del teclado para pegar el texto y envía».

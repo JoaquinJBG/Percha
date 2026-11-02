@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+playwright-report/
+test-results/
+.vite/
+*.local
+.env
+.env.*
+
+# Fotos reales de prueba: nunca al repo
+muestras/
+
+.DS_Store
+Thumbs.db

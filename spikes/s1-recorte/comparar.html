@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S1 · Comparar bordes</title>
+    <link rel="stylesheet" href="/src/estilos.css" />
+    <style>
+      body {
+        max-width: none;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 4px;
+        font-size: 0.8rem;
+        vertical-align: top;
+      }
+      canvas {
+        display: block;
+        width: 240px;
+      }
+      .fondo-oscuro {
+        background: #1f2937;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>S1 · Comparar bordes</h1>
+    <p class="nota">
+      Recortes guardados por <code>scripts/medir.mjs</code> en <code>resultados/</code>. Parámetros:
+      <code>?vista=completa</code>, <code>?fondo=oscuro</code>, <code>?motor=wasm</code>, <code>?c=rmbg14:webgpu,rmbg14:wasm</code>.
+    </p>
+    <table id="tabla"></table>
+    <script type="module" src="/src/comparar.ts"></script>
+  </body>
+</html>

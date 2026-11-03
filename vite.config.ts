@@ -1,12 +1,36 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 const colorTema = '#3f3a36'
 const colorFondo = '#faf7f2'
 
+// Aislamiento entre orígenes: sin él, el recorte en WASM va con un solo hilo. En producción lo pone
+// `public/_headers`.
+const cabecerasAislamiento = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+}
+
+// Transformers.js baja el runtime WASM de ONNX de jsDelivr (y lo guarda en caché). La copia que Vite
+// empaqueta no se usa, pesa 27 MB y no cabe en un alojamiento gratis (Cloudflare Pages: 25 MiB por fichero).
+function sinRuntimeOnnxEmpaquetado(): Plugin {
+  return {
+    name: 'percha:sin-runtime-onnx',
+    generateBundle(_opciones, bundle) {
+      for (const nombre of Object.keys(bundle)) {
+        if (/ort-wasm.*\.wasm$/.test(nombre)) Reflect.deleteProperty(bundle, nombre)
+      }
+    },
+  }
+}
+
 export default defineConfig({
+  server: { headers: cabecerasAislamiento },
+  preview: { headers: cabecerasAislamiento },
+  worker: { format: 'es', plugins: () => [sinRuntimeOnnxEmpaquetado()] },
   plugins: [
     react(),
     tailwindcss(),

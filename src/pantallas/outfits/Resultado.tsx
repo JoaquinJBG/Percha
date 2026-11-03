@@ -169,11 +169,11 @@ export function Resultado({
 
   return (
     <section aria-labelledby="resultado-outfits" className="flex flex-col gap-3">
-      <h2 id="resultado-outfits" className="text-lg font-semibold">
+      <h2 id="resultado-outfits" className="font-titulo text-xl font-semibold">
         Tus outfits
       </h2>
 
-      <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl border border-black/10 bg-white">
+      <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl bg-white shadow-tarjeta">
         {collage.fase === 'listo' && (
           <img
             src={collage.url}
@@ -195,13 +195,10 @@ export function Resultado({
         {outfits.map((outfit, i) => {
           const favorito = guardados[i]?.favorito ?? false
           return (
-            <li
-              key={i}
-              className="flex items-center gap-3 rounded-xl border border-black/10 bg-white/60 p-3"
-            >
+            <li key={i} className="flex items-center gap-3 rounded-2xl bg-white shadow-tarjeta p-3">
               <span
                 aria-hidden="true"
-                className="grid size-7 shrink-0 place-items-center rounded-full bg-tinta text-sm font-semibold text-papel"
+                className="grid size-7 shrink-0 place-items-center rounded-full bg-oliva text-sm font-semibold text-papel"
               >
                 {i + 1}
               </span>
@@ -220,7 +217,9 @@ export function Resultado({
                 aria-label={`Favorito: outfit ${String(i + 1)}`}
                 className="grid size-11 shrink-0 place-items-center rounded-full text-2xl disabled:opacity-60"
               >
-                <span aria-hidden="true">{favorito ? '★' : '☆'}</span>
+                <span aria-hidden="true" className={favorito ? 'text-acento' : 'text-suave'}>
+                  {favorito ? '★' : '☆'}
+                </span>
               </button>
             </li>
           )
@@ -232,7 +231,7 @@ export function Resultado({
           type="button"
           onClick={() => void guardarTodos()}
           disabled={ocupado || todosGuardados}
-          className="col-span-2 min-h-11 rounded-xl bg-tinta px-4 font-medium text-papel disabled:opacity-60"
+          className="col-span-2 min-h-11 rounded-xl bg-oliva px-4 font-medium text-papel disabled:opacity-60"
         >
           {todosGuardados ? 'Guardados' : 'Guardar'}
         </button>

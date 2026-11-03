@@ -123,7 +123,7 @@ export function Outfits({
             onChange={(e) => {
               elegirValor({ estilo: e.target.value as Estilo })
             }}
-            className="min-h-11 w-full rounded-xl border border-black/15 bg-white px-3"
+            className="min-h-11 w-full rounded-xl border border-tinta/20 bg-white px-3"
           >
             {ESTILOS.map((estilo) => (
               <option key={estilo} value={estilo}>
@@ -139,7 +139,7 @@ export function Outfits({
             onChange={(e) => {
               elegirValor({ ocasion: e.target.value as Ocasion })
             }}
-            className="min-h-11 w-full rounded-xl border border-black/15 bg-white px-3"
+            className="min-h-11 w-full rounded-xl border border-tinta/20 bg-white px-3"
           >
             {OCASIONES.map((ocasion) => (
               <option key={ocasion} value={ocasion}>
@@ -158,7 +158,7 @@ export function Outfits({
             type="button"
             onClick={() => void generar()}
             disabled={generando || guardando}
-            className="min-h-12 min-w-0 flex-1 rounded-xl bg-tinta px-4 text-lg font-semibold text-papel disabled:opacity-60"
+            className="min-h-12 min-w-0 flex-1 rounded-xl bg-oliva px-4 text-lg font-semibold text-papel disabled:opacity-60"
           >
             {conIA
               ? 'Gemini está eligiendo…'
@@ -190,7 +190,7 @@ export function Outfits({
           <p role="alert">No se han podido generar los outfits. Prueba otra vez.</p>
         )}
         {listo?.resultado.avisoIA && (
-          <p className="rounded-2xl border border-black/10 bg-white/60 p-4">
+          <p className="rounded-2xl bg-white shadow-tarjeta p-4">
             {conMayuscula(listo.resultado.avisoIA)}
           </p>
         )}
@@ -218,7 +218,7 @@ export function Outfits({
 function Avisos({ avisos, armarioVacio }: { avisos: string[]; armarioVacio: boolean }) {
   if (!armarioVacio && avisos.length === 0) return null
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-black/10 bg-white/60 p-4">
+    <div className="flex flex-col gap-2 rounded-2xl bg-white shadow-tarjeta p-4">
       {armarioVacio ? (
         <p>Tu armario está vacío: añade prendas para que Percha te proponga outfits.</p>
       ) : (

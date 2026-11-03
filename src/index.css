@@ -1,9 +1,21 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/dm-sans/wght.css';
+@import '@fontsource-variable/fraunces/wght.css';
 
 @theme {
-  --color-tinta: #3f3a36;
-  --color-papel: #faf7f2;
-  --color-suave: #6f6760;
+  --font-sans: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-titulo: 'Fraunces Variable', ui-serif, Georgia, serif;
+
+  --color-oliva: #5b6b35;
+  --color-oliva-oscuro: #46542a;
+  --color-oliva-claro: #e8ecd9;
+  --color-tinta: #2b301f;
+  --color-suave: #6b7060;
+  --color-papel: #f8f6ef;
+  --color-arena: #efeadc;
+  --color-acento: #b8693a;
+
+  --shadow-tarjeta: 0 1px 2px rgb(43 48 31 / 0.06), 0 10px 24px -14px rgb(43 48 31 / 0.25);
 }
 
 html,
@@ -15,5 +27,11 @@ body,
 body {
   background-color: var(--color-papel);
   color: var(--color-tinta);
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2 {
+  text-wrap: balance;
 }

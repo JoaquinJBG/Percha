@@ -15,7 +15,7 @@ interface Props {
 type Fase = 'libre' | 'confirmando' | 'borrando' | 'error'
 
 const boton =
-  'min-h-12 flex-1 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'min-h-12 flex-1 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 const botonSecundario = `${boton} border border-tinta/25 text-tinta`
 const botonPeligro = `${boton} bg-red-800 text-white`
 const fecha = new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' })
@@ -75,7 +75,7 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
       <div className="mx-auto flex max-w-lg flex-col gap-4 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
-          className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-tinta"
+          className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-oliva"
           onClick={onVolver}
         >
           <svg
@@ -113,12 +113,12 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
                   blob={foto.recortada ?? foto.original}
                   alt={`Foto ${String(i + 1)} de ${nombrePrenda(prenda)}`}
                   loading="eager"
-                  className="aspect-[3/4] w-full rounded-2xl border border-tinta/10 bg-white object-contain"
+                  className="aspect-[3/4] w-full rounded-2xl bg-white shadow-tarjeta object-contain"
                 />
               ))}
             </div>
 
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl border border-tinta/15 bg-white/60 p-4 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl bg-white shadow-tarjeta p-4 text-sm">
               {etiquetas.map(([nombre, valor]) => (
                 <div key={nombre} className="contents">
                   <dt className="text-suave">{nombre}</dt>

@@ -21,7 +21,7 @@ interface Props {
 }
 
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 const botonSecundario = `${boton} border border-tinta/25 text-tinta`
 
 export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: Props) {
@@ -84,7 +84,7 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
       <div className="mx-auto flex max-w-lg flex-col gap-4 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
-          className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-tinta disabled:opacity-50"
+          className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-oliva disabled:opacity-50"
           disabled={guardando}
           onClick={onVolver}
         >

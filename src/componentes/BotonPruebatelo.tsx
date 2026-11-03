@@ -294,7 +294,7 @@ export function BotonPruebatelo({
           <div
             role="group"
             aria-label={`Pruébatelo en Gemini: outfit ${String(numero)}`}
-            className="flex flex-col gap-2 rounded-2xl bg-tinta p-4 text-sm text-papel shadow-lg"
+            className="flex flex-col gap-2 rounded-2xl bg-oliva p-4 text-sm text-papel shadow-lg"
           >
             {panel}
             {copiadoAMano && <p>Texto copiado.</p>}

@@ -57,7 +57,7 @@ export function BarraNavegacion() {
   return (
     <nav
       aria-label="Principal"
-      className="fixed inset-x-0 bottom-0 border-t border-black/10 bg-papel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-tinta/10 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-4">
         {destinos.map(({ ruta, etiqueta, icono }) => (
@@ -67,15 +67,15 @@ export function BarraNavegacion() {
               end
               className={({ isActive }) =>
                 `flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs ${
-                  isActive ? 'font-semibold text-tinta' : 'font-medium text-suave'
+                  isActive ? 'font-semibold text-oliva-oscuro' : 'font-medium text-suave'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={`flex h-7 w-14 items-center justify-center rounded-full ${
-                      isActive ? 'bg-tinta/12' : ''
+                    className={`flex h-8 w-16 items-center justify-center rounded-full transition-colors ${
+                      isActive ? 'bg-oliva-claro' : ''
                     }`}
                   >
                     <svg

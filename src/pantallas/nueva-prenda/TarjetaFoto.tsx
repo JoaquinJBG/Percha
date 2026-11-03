@@ -25,7 +25,7 @@ interface Props {
 
 // Cuadros grises para que se vea qué parte del recorte es transparente.
 const fondoCuadros: CSSProperties = {
-  backgroundImage: 'conic-gradient(#e7e2db 25%, #ffffff 0 50%, #e7e2db 0 75%, #ffffff 0)',
+  backgroundImage: 'conic-gradient(#e8ecd9 25%, #ffffff 0 50%, #e8ecd9 0 75%, #ffffff 0)',
   backgroundSize: '16px 16px',
 }
 
@@ -73,7 +73,7 @@ export function TarjetaFoto({ foto, numero, onUsarOriginal, onReintentar, onQuit
         {ocupada && (
           <div className="absolute inset-x-2 bottom-2 h-1.5 overflow-hidden rounded-full bg-papel/80">
             <div
-              className={`h-full bg-tinta ${progreso && progreso.total > 0 ? '' : 'w-1/3 animate-pulse'}`}
+              className={`h-full bg-oliva ${progreso && progreso.total > 0 ? '' : 'w-1/3 animate-pulse'}`}
               style={
                 progreso && progreso.total > 0
                   ? { width: `${String(Math.round((100 * progreso.cargados) / progreso.total))}%` }
@@ -95,7 +95,7 @@ export function TarjetaFoto({ foto, numero, onUsarOriginal, onReintentar, onQuit
         <label className="flex min-h-10 items-center gap-2 text-sm">
           <input
             type="checkbox"
-            className="size-5 accent-tinta"
+            className="size-5 accent-oliva"
             checked={usarOriginal}
             onChange={(evento) => {
               onUsarOriginal(evento.target.checked)

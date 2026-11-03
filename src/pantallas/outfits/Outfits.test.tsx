@@ -1,17 +1,18 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NuevaPrenda, NuevoOutfit, Outfit, Prenda } from '../../datos/modelo.ts'
 import { nuevaPrenda } from '../../datos/pruebas.ts'
-import { crearContexto, type ResultadoOutfits } from '../../outfits/reglas/index.ts'
+import { crearProveedorFalso, ErrorIA, type ProveedorIA } from '../../ia/index.ts'
+import { crearContexto } from '../../outfits/reglas/index.ts'
 import { tiempo as tiempoDePrueba } from '../../outfits/reglas/pruebas.ts'
 import type { AlmacenSitio, Sitio } from '../../tiempo/index.ts'
 import { simularUrlsDeBlob } from '../armario/urlsDePrueba.ts'
 import { ELECCION_POR_DEFECTO, type AlmacenEleccion, type Eleccion } from './eleccion.ts'
 import { Outfits } from './Outfits.tsx'
 import type { Compartidor } from './Resultado.tsx'
-import type { SelectorOutfits } from './selector.ts'
+import { crearSelectorConIA, type ResultadoSelector, type SelectorOutfits } from './selector.ts'
 
 let siguienteId = 0
 function prenda(cambios: Partial<NuevaPrenda> = {}): Prenda {
@@ -33,12 +34,14 @@ function selectorFalso(cuantos = 4) {
         principal,
         puntos: 10,
         motivo: `motivo ${String(i + 1)}`,
+        origen: 'ia' as const,
       }
     })
-    const resultado: ResultadoOutfits<Prenda> = {
+    const resultado: ResultadoSelector = {
       contexto: crearContexto(peticion),
       outfits,
       avisos: [],
+      avisoIA: null,
     }
     return Promise.resolve(resultado)
   })
@@ -180,7 +183,7 @@ describe('Outfits', () => {
     ])
 
     await usuario.click(screen.getByRole('button', { name: 'Generar otros' }))
-    expect(elegir).toHaveBeenLastCalledWith(expect.anything(), 2)
+    expect(elegir).toHaveBeenLastCalledWith(expect.anything(), 2, expect.anything())
   })
 
   it('por defecto usa las reglas y pasa el tiempo de hoy', async () => {
@@ -419,6 +422,179 @@ describe('Outfits', () => {
     await screen.findByRole('img', { name: /Collage/ })
 
     expect(urls.revocar).toHaveBeenCalledWith(primera)
+  })
+})
+
+describe('Outfits con Gemini', () => {
+  /** Tres de arriba y dos de abajo: dan para que las reglas y la IA varíen entre tandas. */
+  const armario = () => [
+    camiseta(),
+    prenda({ subcategoria: 'camisa', colores: ['azul'] }),
+    prenda({ subcategoria: 'polo', colores: ['negro'] }),
+    vaquero(),
+    prenda({ categoria: 'inferior', subcategoria: 'chinos', colores: ['beige'] }),
+    zapatillas(),
+  ]
+
+  /** Un proveedor que no responde hasta que se llama a `responder` (y apunta la última `signal`). */
+  function proveedorLento() {
+    const falso = crearProveedorFalso()
+    let responder = () => undefined
+    let signal: AbortSignal | undefined
+    const proveedor: ProveedorIA = {
+      ...falso,
+      elegirOutfits: (peticion, opciones) => {
+        signal = opciones?.signal
+        return new Promise((listo) => {
+          responder = () => {
+            listo(falso.elegirOutfits(peticion))
+          }
+        })
+      },
+    }
+    return {
+      proveedor,
+      responder: () => {
+        responder()
+      },
+      signal: () => signal,
+    }
+  }
+
+  it('con clave, dice que Gemini está eligiendo y enseña sus frases marcadas como de Gemini', async () => {
+    const lento = proveedorLento()
+    const { usuario } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(lento.proveedor)),
+      prendas: armario(),
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar' }))
+    expect(await screen.findByRole('button', { name: 'Gemini está eligiendo…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
+    lento.responder()
+
+    await screen.findByRole('img', { name: /Collage/ })
+    const tusOutfits = screen.getByRole('region', { name: 'Tus outfits' })
+    const [primero] = within(tusOutfits).getAllByRole('listitem')
+    expect(primero).toHaveTextContent('Outfit de prueba 1.')
+    expect(primero).toHaveTextContent('Elegido por Gemini')
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/sin IA/)).not.toBeInTheDocument()
+  })
+
+  it('sin clave, usa las reglas sin hablar de Gemini', async () => {
+    const { usuario } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(null)),
+      prendas: armario(),
+    })
+
+    await generar(usuario)
+
+    expect(screen.queryByText(/Gemini está eligiendo/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/sin IA/)).not.toBeInTheDocument()
+    const tusOutfits = screen.getByRole('region', { name: 'Tus outfits' })
+    for (const outfit of within(tusOutfits).getAllByRole('listitem')) {
+      expect(outfit).toHaveTextContent('Elegido por las reglas')
+    }
+  })
+
+  it.each([
+    ['sin cupo (429)', new ErrorIA('sin-cupo', { estado: 429 }), /cupo gratis de Gemini/],
+    ['error de Gemini', new ErrorIA('no-disponible', { estado: 500 }), /Gemini no responde/],
+  ])('si la IA falla (%s), enseña los de las reglas con el aviso', async (_, error, texto) => {
+    const { usuario } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(crearProveedorFalso({ error }))),
+      prendas: armario(),
+    })
+
+    await generar(usuario)
+
+    expect(screen.getByText(/^Outfits sin IA:/)).toHaveTextContent(texto)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    // No es ropa que falte: el aviso de la IA no lleva al alta de prendas.
+    expect(screen.queryByRole('link', { name: 'Añadir prenda' })).not.toBeInTheDocument()
+    const tusOutfits = screen.getByRole('region', { name: 'Tus outfits' })
+    expect(within(tusOutfits).getAllByRole('listitem')[0]).toHaveTextContent(
+      'Elegido por las reglas',
+    )
+  })
+
+  it('cancelar aborta la petición, vuelve a la tanda anterior y descarta la respuesta tardía', async () => {
+    const lento = proveedorLento()
+    const { usuario, repo } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(lento.proveedor)),
+      prendas: armario(),
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar' }))
+    await screen.findByRole('button', { name: 'Gemini está eligiendo…' })
+    lento.responder()
+    await screen.findByRole('img', { name: /Collage/ })
+    await usuario.click(screen.getByRole('button', { name: 'Favorito: outfit 1' }))
+    expect(repo.guardar).toHaveBeenCalledOnce()
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar otros' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Cancelar' }))
+
+    expect(lento.signal()?.aborted).toBe(true)
+    expect(screen.getByRole('button', { name: 'Generar otros' })).toBeEnabled()
+    // La tanda anterior vuelve con su estado: el favorito sigue marcado.
+    const favorito = () => screen.getByRole('button', { name: 'Favorito: outfit 1' })
+    expect(favorito()).toHaveAttribute('aria-pressed', 'true')
+    lento.responder()
+    await new Promise((listo) => setTimeout(listo, 0))
+    expect(favorito()).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('salir de la pantalla mientras Gemini elige cancela la petición', async () => {
+    const lento = proveedorLento()
+    const { usuario, router } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(lento.proveedor)),
+      prendas: armario(),
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar' }))
+    await screen.findByRole('button', { name: 'Gemini está eligiendo…' })
+    await router.navigate('/prendas/nueva')
+
+    await screen.findByRole('heading', { name: 'Nueva prenda' })
+    expect(lento.signal()?.aborted).toBe(true)
+  })
+
+  it('cancelar la primera vez deja la pantalla como al entrar', async () => {
+    const lento = proveedorLento()
+    const { usuario } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(lento.proveedor)),
+      prendas: armario(),
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar' }))
+    await usuario.click(await screen.findByRole('button', { name: 'Cancelar' }))
+
+    expect(screen.getByRole('button', { name: 'Generar' })).toBeEnabled()
+    expect(screen.queryByRole('region', { name: 'Tus outfits' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('generar otra vez pide otra tanda: otra semilla a Gemini y a las reglas', async () => {
+    const proveedor = crearProveedorFalso({ error: new ErrorIA('sin-cupo', { estado: 429 }) })
+    const { usuario, componer } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(proveedor)),
+      prendas: armario(),
+    })
+    const tanda = (llamada: number) =>
+      (componer.mock.calls[llamada] as unknown as [{ prendas: Prenda[] }[]])[0].map((o) =>
+        o.prendas.map((p) => p.id).join('+'),
+      )
+
+    await generar(usuario)
+    await usuario.click(screen.getByRole('button', { name: 'Generar otros' }))
+    await waitFor(() => {
+      expect(componer).toHaveBeenCalledTimes(2)
+    })
+
+    expect(proveedor.peticionesOutfits.map((p) => p.semilla)).toEqual([1, 2])
+    expect(tanda(1)).not.toEqual(tanda(0))
   })
 })
 

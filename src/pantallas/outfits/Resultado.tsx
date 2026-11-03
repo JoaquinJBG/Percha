@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NuevoOutfit, Outfit, Prenda } from '../../datos/modelo.ts'
 import { TIPO_COLLAGE, type OutfitCollage } from '../../outfits/collage/index.ts'
 import type { ResultadoOutfits } from '../../outfits/reglas/index.ts'
+import type { ResultadoSelector } from './selector.ts'
 
 export type Compartidor = Partial<Pick<Navigator, 'share' | 'canShare'>>
 
@@ -13,7 +14,7 @@ export interface AccionesResultado {
 }
 
 interface Props extends AccionesResultado {
-  resultado: ResultadoOutfits<Prenda>
+  resultado: Pick<ResultadoSelector, 'contexto' | 'outfits'>
   nombreFichero: string
   /** Avisa mientras se guarda, para no dejar generar otra tanda a medias. */
   alOcupar?: (ocupado: boolean) => void
@@ -203,7 +204,12 @@ export function Resultado({
               >
                 {i + 1}
               </span>
-              <p className="min-w-0 flex-1">{conMayuscula(outfit.motivo)}</p>
+              <div className="min-w-0 flex-1">
+                <p>{conMayuscula(outfit.motivo)}</p>
+                <p className="text-xs text-suave">
+                  {outfit.origen === 'ia' ? 'Elegido por Gemini' : 'Elegido por las reglas'}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => void cambiarFavorito(i)}

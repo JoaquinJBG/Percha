@@ -3,6 +3,7 @@ import { Ajustes } from '../pantallas/Ajustes.tsx'
 import { Armario } from '../pantallas/armario/Armario.tsx'
 import { NuevaPrenda } from '../pantallas/nueva-prenda/NuevaPrenda.tsx'
 import { Outfits } from '../pantallas/outfits/Outfits.tsx'
+import { outfitsConIAoReglas } from '../pantallas/outfits/selector.ts'
 import { Perfil } from '../pantallas/perfil/Perfil.tsx'
 import { Layout } from './Layout.tsx'
 
@@ -12,7 +13,7 @@ export const rutas: RouteObject[] = [
     children: [
       { index: true, element: <Armario /> },
       { path: 'prendas/nueva', element: <NuevaPrenda /> },
-      { path: 'outfits', element: <Outfits /> },
+      { path: 'outfits', element: <Outfits elegir={outfitsConIAoReglas} /> },
       { path: 'perfil', element: <Perfil /> },
       { path: 'ajustes', element: <Ajustes /> },
       { path: '*', element: <Navigate to="/" replace /> },

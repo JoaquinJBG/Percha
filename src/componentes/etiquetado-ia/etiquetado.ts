@@ -46,6 +46,21 @@ function proveedorFalsoDeDesarrollo(): ProveedorIA | null {
       await new Promise((listo) => setTimeout(listo, 1500))
       return falso.etiquetarPrendas(prendas, opciones)
     },
+    async elegirOutfits(peticion, opciones) {
+      opciones?.signal?.throwIfAborted()
+      await new Promise<void>((listo, fallo) => {
+        const espera = setTimeout(listo, 1500)
+        opciones?.signal?.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(espera)
+            fallo(new DOMException('Cancelado', 'AbortError'))
+          },
+          { once: true },
+        )
+      })
+      return falso.elegirOutfits(peticion, opciones)
+    },
   }
 }
 

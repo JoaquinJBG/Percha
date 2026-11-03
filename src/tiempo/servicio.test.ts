@@ -149,6 +149,17 @@ describe('tiempoDeHoy', () => {
     expect(error).toMatchObject({ tipo: 'servicio', cause: 'Latitude must be in range' })
   })
 
+  it('da un error de servicio con el código aunque el cuerpo no sea JSON', async () => {
+    const { servicio } = montar({
+      cuerpos: [new Response('<html>Bad Gateway</html>', { status: 502 })],
+    })
+
+    await expect(servicio.tiempoDeHoy(valencia)).rejects.toMatchObject({
+      tipo: 'servicio',
+      message: 'El servicio del tiempo ha fallado (502).',
+    })
+  })
+
   it('da un error sin red si la petición no sale', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
@@ -226,6 +237,30 @@ describe('caché del tiempo', () => {
     expect(tiempo.fecha).toBe('2026-11-03')
   })
 
+  it('no la usa si se guardó «en el futuro» (reloj cambiado)', async () => {
+    let ahora = AHORA
+    const { servicio, fetch } = montar({ cuerpos: [prevision(), prevision()], ahora: () => ahora })
+
+    await servicio.tiempoDeHoy(valencia)
+    ahora -= 5 * 60 * 1000
+    await servicio.tiempoDeHoy(valencia)
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('junta dos peticiones simultáneas del mismo sitio en una', async () => {
+    const { servicio, fetch } = montar()
+
+    const [a, b] = await Promise.all([
+      servicio.tiempoDeHoy(valencia),
+      servicio.tiempoDeHoy({ ...valencia, nombre: 'Otra' }),
+    ])
+
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(a.sitio.nombre).toBe('Valencia')
+    expect(b.sitio.nombre).toBe('Otra')
+  })
+
   it('sobrevive a recargar la página gracias a localStorage', async () => {
     const almacen = window.localStorage
     almacen.clear()
@@ -256,9 +291,9 @@ describe('caché del tiempo', () => {
   it('ignora una entrada de localStorage corrupta y borra las caducadas', async () => {
     const almacen = window.localStorage
     almacen.clear()
-    almacen.setItem('percha:tiempo:39.47,-0.38', '{no es json')
+    almacen.setItem('percha:tiempo:v1:39.47,-0.38', '{no es json')
     almacen.setItem(
-      'percha:tiempo:40.42,-3.70',
+      'percha:tiempo:v1:40.42,-3.70',
       JSON.stringify({ guardado: AHORA - 2 * HORA_MS, datos: { fecha: 'x', zonaHoraria: 'UTC' } }),
     )
     almacen.setItem('otra-cosa', 'se queda')
@@ -267,11 +302,34 @@ describe('caché del tiempo', () => {
     await servicio.tiempoDeHoy(valencia)
 
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect(almacen.getItem('percha:tiempo:40.42,-3.70')).toBeNull()
+    expect(almacen.getItem('percha:tiempo:v1:40.42,-3.70')).toBeNull()
     expect(almacen.getItem('otra-cosa')).toBe('se queda')
-    expect(JSON.parse(almacen.getItem('percha:tiempo:39.47,-0.38') ?? '')).toMatchObject({
+    expect(JSON.parse(almacen.getItem('percha:tiempo:v1:39.47,-0.38') ?? '')).toMatchObject({
       guardado: AHORA,
     })
+  })
+
+  it('ignora entradas con otra forma y borra las de versiones anteriores', async () => {
+    const almacen = window.localStorage
+    almacen.clear()
+    const incompleta = {
+      fecha: '2026-11-02',
+      zonaHoraria: 'Europe/Madrid',
+      hora: 'x',
+      resumen: 'x',
+    }
+    almacen.setItem(
+      'percha:tiempo:v1:39.47,-0.38',
+      JSON.stringify({ guardado: AHORA, datos: incompleta }),
+    )
+    almacen.setItem('percha:tiempo:39.47,-0.38', JSON.stringify({ guardado: AHORA, datos: {} }))
+    const { servicio, fetch } = montar({ almacen })
+
+    const tiempo = await servicio.tiempoDeHoy(valencia)
+
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(tiempo.temperatura.actual).toBe(16.8)
+    expect(almacen.getItem('percha:tiempo:39.47,-0.38')).toBeNull()
   })
 
   it('sigue funcionando si localStorage está lleno', async () => {
@@ -335,6 +393,27 @@ describe('buscarCiudades', () => {
     expect(url?.searchParams.get('name')).toBe('valencia')
     expect(url?.searchParams.get('language')).toBe('es')
     expect(url?.searchParams.get('count')).toBe('5')
+  })
+
+  it('añade la provincia si dos coincidencias se verían iguales', async () => {
+    const sanJuan = (admin2: string, latitude: number) => ({
+      name: 'San Juan',
+      latitude,
+      longitude: -3,
+      admin1: 'Castilla y León',
+      admin2,
+      country: 'España',
+    })
+    const { servicio } = montar({
+      cuerpos: [{ results: [sanJuan('Burgos', 42.1), sanJuan('León', 42.6)] }],
+    })
+
+    const ciudades = await servicio.buscarCiudades('San Juan')
+
+    expect(ciudades.map((c) => c.detalle)).toEqual([
+      'Burgos, Castilla y León, España',
+      'León, Castilla y León, España',
+    ])
   })
 
   it('devuelve una lista vacía si no hay ninguna ciudad', async () => {

@@ -2,7 +2,7 @@ import { crearServicioTiempo } from './servicio.ts'
 
 export { crearServicioTiempo, type OpcionesServicio, type ServicioTiempo } from './servicio.ts'
 export { obtenerUbicacion, NOMBRE_MI_UBICACION, type OpcionesUbicacion } from './ubicacion.ts'
-export { crearAlmacenSitioLocal, type AlmacenSitio } from './sitioRecordado.ts'
+export { crearAlmacenSitioLocal, type AlmacenSitio, type SitioRecordado } from './sitioRecordado.ts'
 export {
   ErrorTiempo,
   type Precipitacion,

@@ -1,3 +1,4 @@
+import { almacenLocal } from './almacen.ts'
 import { clasificar, resumir } from './resumen.ts'
 import { ErrorTiempo, type Sitio, type TiempoHoy } from './tipos.ts'
 
@@ -6,7 +7,9 @@ const URL_PREVISION = 'https://api.open-meteo.com/v1/forecast'
 const MAX_COINCIDENCIAS = 5
 const DURACION_CACHE_MS = 60 * 60 * 1000
 const TIEMPO_MAXIMO_PETICION_MS = 10_000
-const PREFIJO_CACHE = 'percha:tiempo:'
+const FAMILIA_CACHE = 'percha:tiempo:'
+// Subir la versión si cambia la forma de TiempoHoy: las entradas viejas se borran solas.
+const PREFIJO_CACHE = `${FAMILIA_CACHE}v1:`
 
 export interface OpcionesServicio {
   fetch?: typeof fetch
@@ -30,6 +33,7 @@ export function crearServicioTiempo(opciones: OpcionesServicio = {}): ServicioTi
   const almacen = opciones.almacen === undefined ? almacenLocal() : opciones.almacen
   const ahora = opciones.ahora ?? Date.now
   const memoria = new Map<string, EntradaCache>()
+  const enVuelo = new Map<string, Promise<TiempoHoy>>()
 
   async function pedirJson(url: string): Promise<unknown> {
     let respuesta: Response
@@ -45,6 +49,15 @@ export function crearServicioTiempo(opciones: OpcionesServicio = {}): ServicioTi
         cause: error,
       })
     }
+    if (!respuesta.ok) {
+      const cuerpo: unknown = await respuesta.json().catch(() => null)
+      const motivo = esObjeto(cuerpo) && typeof cuerpo.reason === 'string' ? cuerpo.reason : ''
+      throw new ErrorTiempo(
+        'servicio',
+        `El servicio del tiempo ha fallado (${String(respuesta.status)}).`,
+        { cause: motivo || undefined },
+      )
+    }
     let cuerpo: unknown
     try {
       cuerpo = await respuesta.json()
@@ -52,14 +65,6 @@ export function crearServicioTiempo(opciones: OpcionesServicio = {}): ServicioTi
       throw new ErrorTiempo('servicio', 'El servicio del tiempo ha dado una respuesta rara.', {
         cause: error,
       })
-    }
-    if (!respuesta.ok) {
-      const motivo = esObjeto(cuerpo) && typeof cuerpo.reason === 'string' ? cuerpo.reason : ''
-      throw new ErrorTiempo(
-        'servicio',
-        `El servicio del tiempo ha fallado (${String(respuesta.status)}).`,
-        { cause: motivo || undefined },
-      )
     }
     return cuerpo
   }
@@ -88,6 +93,33 @@ export function crearServicioTiempo(opciones: OpcionesServicio = {}): ServicioTi
     }
   }
 
+  async function pedirPrevision(sitio: Sitio): Promise<TiempoHoy> {
+    const parametros = new URLSearchParams({
+      latitude: sitio.latitud.toFixed(4),
+      longitude: sitio.longitud.toFixed(4),
+      current: 'temperature_2m,apparent_temperature,weather_code,wind_speed_10m',
+      daily: [
+        'weather_code',
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'apparent_temperature_max',
+        'apparent_temperature_min',
+        'precipitation_sum',
+        'precipitation_probability_max',
+        'wind_speed_10m_max',
+      ].join(','),
+      timezone: 'auto',
+      forecast_days: '1',
+      temperature_unit: 'celsius',
+      wind_speed_unit: 'kmh',
+      precipitation_unit: 'mm',
+    })
+    const cuerpo = await pedirJson(`${URL_PREVISION}?${parametros.toString()}`)
+    const datos = leerPrevision(cuerpo, sitio)
+    guardarCache(claveDeSitio(sitio), datos)
+    return datos
+  }
+
   return {
     async buscarCiudades(texto) {
       const nombre = texto.trim().replace(/\s+/g, ' ')
@@ -107,30 +139,13 @@ export function crearServicioTiempo(opciones: OpcionesServicio = {}): ServicioTi
       const enCache = leerCache(clave)
       if (enCache) return { ...enCache, sitio }
 
-      const parametros = new URLSearchParams({
-        latitude: sitio.latitud.toFixed(4),
-        longitude: sitio.longitud.toFixed(4),
-        current: 'temperature_2m,apparent_temperature,weather_code,wind_speed_10m',
-        daily: [
-          'weather_code',
-          'temperature_2m_max',
-          'temperature_2m_min',
-          'apparent_temperature_max',
-          'apparent_temperature_min',
-          'precipitation_sum',
-          'precipitation_probability_max',
-          'wind_speed_10m_max',
-        ].join(','),
-        timezone: 'auto',
-        forecast_days: '1',
-        temperature_unit: 'celsius',
-        wind_speed_unit: 'kmh',
-        precipitation_unit: 'mm',
-      })
-      const cuerpo = await pedirJson(`${URL_PREVISION}?${parametros.toString()}`)
-      const datos = leerPrevision(cuerpo, sitio)
-      guardarCache(clave, datos)
-      return datos
+      let peticion = enVuelo.get(clave)
+      if (!peticion) {
+        peticion = pedirPrevision(sitio).finally(() => enVuelo.delete(clave))
+        enVuelo.set(clave, peticion)
+      }
+      const datos = await peticion
+      return { ...datos, sitio }
     },
   }
 }
@@ -149,21 +164,15 @@ function sigueVigente(entrada: EntradaCache, ahora: number): boolean {
 
 function fechaEn(zonaHoraria: string, instante: number): string | null {
   try {
-    // en-CA formatea como AAAA-MM-DD.
-    return new Intl.DateTimeFormat('en-CA', {
+    const partes = new Intl.DateTimeFormat('en-US', {
       timeZone: zonaHoraria,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(instante)
-  } catch {
-    return null
-  }
-}
-
-function almacenLocal(): Storage | null {
-  try {
-    return globalThis.localStorage
+    }).formatToParts(instante)
+    const parte = (tipo: Intl.DateTimeFormatPartTypes) =>
+      partes.find((p) => p.type === tipo)?.value ?? ''
+    return `${parte('year')}-${parte('month')}-${parte('day')}`
   } catch {
     return null
   }
@@ -177,8 +186,7 @@ function leerEntrada(almacen: Storage, clave: string): EntradaCache | null {
     if (!esObjeto(valor) || typeof valor.guardado !== 'number' || !esObjeto(valor.datos)) {
       return null
     }
-    const datos = valor.datos
-    if (typeof datos.fecha !== 'string' || typeof datos.zonaHoraria !== 'string') return null
+    if (!esTiempoGuardado(valor.datos)) return null
     return valor as unknown as EntradaCache
   } catch {
     return null
@@ -189,29 +197,41 @@ function limpiarCaducadas(almacen: Storage, ahora: number) {
   const claves: string[] = []
   for (let i = 0; i < almacen.length; i++) {
     const clave = almacen.key(i)
-    if (clave?.startsWith(PREFIJO_CACHE)) claves.push(clave)
+    if (clave?.startsWith(FAMILIA_CACHE)) claves.push(clave)
   }
   for (const clave of claves) {
-    const entrada = leerEntrada(almacen, clave)
+    const entrada = clave.startsWith(PREFIJO_CACHE) ? leerEntrada(almacen, clave) : null
     if (!entrada || !sigueVigente(entrada, ahora)) almacen.removeItem(clave)
   }
 }
 
 function leerCiudades(cuerpo: unknown): Sitio[] {
   if (!esObjeto(cuerpo) || !Array.isArray(cuerpo.results)) return []
-  const sitios: Sitio[] = []
+  const candidatas: { sitio: Sitio; comarca: string | null }[] = []
   for (const resultado of cuerpo.results as unknown[]) {
     if (!esObjeto(resultado)) continue
-    const { name, latitude, longitude, admin1, country } = resultado
+    const { name, latitude, longitude, admin1, admin2, country } = resultado
     if (typeof name !== 'string' || !esNumero(latitude) || !esNumero(longitude)) continue
-    const lugares = [admin1, country].filter(
-      (parte): parte is string => typeof parte === 'string' && parte !== '' && parte !== name,
-    )
     const sitio: Sitio = { nombre: name, latitud: latitude, longitud: longitude }
-    if (lugares.length > 0) sitio.detalle = lugares.join(', ')
-    sitios.push(sitio)
+    const detalle = unirLugares(name, admin1, country)
+    if (detalle) sitio.detalle = detalle
+    candidatas.push({ sitio, comarca: typeof admin2 === 'string' ? admin2 : null })
   }
-  return sitios
+  // Dos «San Juan» de la misma región y país solo se distinguen por la provincia o comarca.
+  const etiqueta = ({ sitio }: { sitio: Sitio }) => `${sitio.nombre}|${sitio.detalle ?? ''}`
+  return candidatas.map((candidata) => {
+    const repetida = candidatas.filter((otra) => etiqueta(otra) === etiqueta(candidata)).length > 1
+    if (!repetida || !candidata.comarca) return candidata.sitio
+    const detalle = unirLugares(candidata.sitio.nombre, candidata.comarca, candidata.sitio.detalle)
+    return detalle ? { ...candidata.sitio, detalle } : candidata.sitio
+  })
+}
+
+function unirLugares(nombre: string, ...partes: unknown[]): string | null {
+  const lugares = partes.filter(
+    (parte): parte is string => typeof parte === 'string' && parte !== '' && parte !== nombre,
+  )
+  return lugares.length > 0 ? lugares.join(', ') : null
 }
 
 function leerPrevision(cuerpo: unknown, sitio: Sitio): TiempoHoy {
@@ -255,6 +275,25 @@ function leerPrevision(cuerpo: unknown, sitio: Sitio): TiempoHoy {
   }
   const clima = clasificar(medidas)
   return { sitio, zonaHoraria, fecha, hora, ...medidas, clima, resumen: resumir(clima) }
+}
+
+function esTiempoGuardado(datos: unknown): datos is TiempoHoy {
+  if (!esObjeto(datos)) return false
+  const { temperatura, sensacion, lluvia, viento, clima } = datos
+  const numeros = (grupo: unknown, campos: string[]) =>
+    esObjeto(grupo) && campos.every((campo) => esNumero(grupo[campo]))
+  return (
+    typeof datos.fecha === 'string' &&
+    typeof datos.zonaHoraria === 'string' &&
+    typeof datos.hora === 'string' &&
+    typeof datos.resumen === 'string' &&
+    esNumero(datos.codigo) &&
+    esObjeto(clima) &&
+    numeros(temperatura, ['actual', 'minima', 'maxima']) &&
+    numeros(sensacion, ['actual', 'minima', 'maxima']) &&
+    numeros(viento, ['actual', 'maximo']) &&
+    numeros(lluvia, ['cantidad'])
+  )
 }
 
 function primero(valor: unknown): unknown {

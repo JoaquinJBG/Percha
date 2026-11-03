@@ -7,6 +7,7 @@ import {
   tiempoDeHoy,
   type AlmacenSitio,
   type Sitio,
+  type SitioRecordado,
   type TiempoHoy as DatosTiempo,
 } from '../tiempo/index.ts'
 
@@ -35,13 +36,13 @@ export function TiempoHoy({
   ubicar = obtenerUbicacion,
   almacenSitio = almacenPorDefecto,
 }: Props) {
-  const [sitioInicial] = useState(() => almacenSitio.leer())
+  const [recordadoInicial] = useState(() => almacenSitio.leer())
   const [tiempo, setTiempo] = useState<DatosTiempo | null>(null)
-  const [cargando, setCargando] = useState(sitioInicial !== null)
+  const [cargando, setCargando] = useState(recordadoInicial !== null)
   const [error, setError] = useState<string | null>(null)
   const [texto, setTexto] = useState('')
   const [coincidencias, setCoincidencias] = useState<Sitio[] | null>(null)
-  const [eligiendo, setEligiendo] = useState(sitioInicial === null)
+  const [eligiendo, setEligiendo] = useState(recordadoInicial === null)
   // Solo cuenta la última petición: si el usuario cambia de idea, la anterior se descarta.
   const ultimaPeticion = useRef(0)
 
@@ -60,19 +61,21 @@ export function TiempoHoy({
     }
   }
 
-  async function mostrar(sitio: Sitio) {
+  async function mostrar(sitio: Sitio, recordado: SitioRecordado) {
     const datos = await ejecutar(() => consultar(sitio))
     if (!datos) return
-    almacenSitio.guardar(sitio)
+    almacenSitio.guardar(recordado)
     setTiempo(datos)
     setCoincidencias(null)
     setEligiendo(false)
   }
 
   useEffect(() => {
-    if (!sitioInicial) return
+    if (!recordadoInicial) return
     const peticion = ++ultimaPeticion.current
-    consultar(sitioInicial).then(
+    const cargar = async () =>
+      consultar(recordadoInicial.tipo === 'ciudad' ? recordadoInicial.sitio : await ubicar())
+    cargar().then(
       (datos) => {
         if (peticion !== ultimaPeticion.current) return
         setTiempo(datos)
@@ -85,12 +88,16 @@ export function TiempoHoy({
         setCargando(false)
       },
     )
-  }, [sitioInicial, consultar])
+  }, [recordadoInicial, consultar, ubicar])
 
   async function usarUbicacion() {
     setCoincidencias(null)
     const sitio = await ejecutar(ubicar)
-    if (sitio) await mostrar(sitio)
+    if (sitio) await mostrar(sitio, { tipo: 'ubicacion' })
+  }
+
+  function elegirCiudad(sitio: Sitio) {
+    return mostrar(sitio, { tipo: 'ciudad', sitio })
   }
 
   async function buscarCiudad(evento: SubmitEvent<HTMLFormElement>) {
@@ -106,7 +113,7 @@ export function TiempoHoy({
       setCoincidencias(null)
       setError(`No encuentro «${nombre}». Prueba con otro nombre.`)
     } else if (encontradas.length === 1 && encontradas[0]) {
-      await mostrar(encontradas[0])
+      await elegirCiudad(encontradas[0])
     } else {
       setCoincidencias(encontradas)
     }
@@ -176,6 +183,9 @@ export function TiempoHoy({
             <button
               type="button"
               onClick={() => {
+                // Descarta la búsqueda en curso para que no cambie el sitio por detrás.
+                ultimaPeticion.current++
+                setCargando(false)
                 setEligiendo(false)
                 setCoincidencias(null)
                 setError(null)
@@ -196,7 +206,7 @@ export function TiempoHoy({
               <li key={`${String(sitio.latitud)},${String(sitio.longitud)}`}>
                 <button
                   type="button"
-                  onClick={() => void mostrar(sitio)}
+                  onClick={() => void elegirCiudad(sitio)}
                   disabled={cargando}
                   className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-left disabled:opacity-60"
                 >

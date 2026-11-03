@@ -5,6 +5,7 @@ import {
   ErrorTiempo,
   type AlmacenSitio,
   type Sitio,
+  type SitioRecordado,
   type TiempoHoy as Datos,
 } from '../tiempo/index.ts'
 import { TiempoHoy } from './TiempoHoy.tsx'
@@ -38,17 +39,21 @@ function datos(sitio: Sitio): Datos {
   }
 }
 
-function almacen(inicial: Sitio | null = null): AlmacenSitio & { guardado: Sitio | null } {
+function almacen(
+  inicial: SitioRecordado | null = null,
+): AlmacenSitio & { guardado: SitioRecordado | null } {
   return {
     guardado: inicial,
     leer() {
       return this.guardado
     },
-    guardar(sitio) {
-      this.guardado = sitio
+    guardar(recordado) {
+      this.guardado = recordado
     },
   }
 }
+
+const miUbicacion: Sitio = { nombre: 'Tu ubicación', latitud: 40.42, longitud: -3.7 }
 
 describe('TiempoHoy', () => {
   it('deja elegir entre varias ciudades con el mismo nombre y recuerda la elegida', async () => {
@@ -66,7 +71,7 @@ describe('TiempoHoy', () => {
     expect(await screen.findByText('frío y lluvia')).toBeInTheDocument()
     expect(screen.getByText('0 °C (sensación -3 °C)')).toBeInTheDocument()
     expect(screen.getByText('80 % · 3,3 mm')).toBeInTheDocument()
-    expect(recordado.guardado).toEqual(valenciaVE)
+    expect(recordado.guardado).toEqual({ tipo: 'ciudad', sitio: valenciaVE })
   })
 
   it('avisa si la ciudad no existe', async () => {
@@ -98,7 +103,12 @@ describe('TiempoHoy', () => {
 
   it('carga sola el último sitio elegido', async () => {
     const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
-    render(<TiempoHoy consultar={consultar} almacenSitio={almacen(valenciaES)} />)
+    render(
+      <TiempoHoy
+        consultar={consultar}
+        almacenSitio={almacen({ tipo: 'ciudad', sitio: valenciaES })}
+      />,
+    )
 
     expect(await screen.findByText('frío y lluvia')).toBeInTheDocument()
     expect(consultar).toHaveBeenCalledWith(valenciaES)
@@ -107,9 +117,70 @@ describe('TiempoHoy', () => {
 
   it('vuelve a pedir el sitio si falla la red al cargar el último', async () => {
     const consultar = () => Promise.reject(new ErrorTiempo('sin-red', 'Sin conexión.'))
-    render(<TiempoHoy consultar={consultar} almacenSitio={almacen(valenciaES)} />)
+    render(
+      <TiempoHoy
+        consultar={consultar}
+        almacenSitio={almacen({ tipo: 'ciudad', sitio: valenciaES })}
+      />,
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión.')
     expect(screen.getByRole('button', { name: 'Usar mi ubicación' })).toBeInTheDocument()
+  })
+
+  it('de la ubicación recuerda que se usa, no las coordenadas, y la vuelve a pedir', async () => {
+    const usuario = userEvent.setup()
+    const ubicar = vi.fn(() => Promise.resolve(miUbicacion))
+    const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
+    const recordado = almacen()
+    render(<TiempoHoy ubicar={ubicar} consultar={consultar} almacenSitio={recordado} />)
+
+    await usuario.click(screen.getByRole('button', { name: 'Usar mi ubicación' }))
+
+    expect(await screen.findByText('frío y lluvia')).toBeInTheDocument()
+    expect(recordado.guardado).toEqual({ tipo: 'ubicacion' })
+  })
+
+  it('al abrir con la ubicación recordada pide la posición de nuevo', async () => {
+    const ubicar = vi.fn(() => Promise.resolve(miUbicacion))
+    const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
+    render(
+      <TiempoHoy
+        ubicar={ubicar}
+        consultar={consultar}
+        almacenSitio={almacen({ tipo: 'ubicacion' })}
+      />,
+    )
+
+    expect(await screen.findByText('frío y lluvia')).toBeInTheDocument()
+    expect(ubicar).toHaveBeenCalled()
+    expect(consultar).toHaveBeenCalledWith(miUbicacion)
+  })
+
+  it('«Volver a» descarta la búsqueda en curso', async () => {
+    const usuario = userEvent.setup()
+    let responder: (sitios: Sitio[]) => void = () => undefined
+    const buscar = () =>
+      new Promise<Sitio[]>((resolver) => {
+        responder = resolver
+      })
+    const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
+    render(
+      <TiempoHoy
+        buscar={buscar}
+        consultar={consultar}
+        almacenSitio={almacen({ tipo: 'ciudad', sitio: valenciaES })}
+      />,
+    )
+    await usuario.click(await screen.findByRole('button', { name: 'Cambiar sitio' }))
+
+    await usuario.type(screen.getByLabelText('O escribe tu ciudad'), 'Caracas{Enter}')
+    await usuario.click(screen.getByRole('button', { name: 'Volver a Valencia' }))
+    responder([valenciaVE])
+    await new Promise((resolver) => setTimeout(resolver, 0))
+
+    expect(consultar).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/Comunidad Valenciana/)).toBeInTheDocument()
+    expect(screen.queryByText(/Venezuela/)).not.toBeInTheDocument()
   })
 })

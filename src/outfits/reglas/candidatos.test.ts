@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { candidatos } from './candidatos.ts'
+import { candidatos, mejoresPorCategoria } from './candidatos.ts'
 import { prenda, tiempo } from './pruebas.ts'
 import type { Peticion, PrendaReglas } from './tipos.ts'
 
@@ -67,7 +67,7 @@ describe('abrigo según la temperatura', () => {
     const resultado = candidatos(peticion([jersey, gabardina, camiseta], { tiempo: tiempo(30) }))
     expect(ids(resultado.candidatos)).toEqual(['camiseta'])
     expect(motivoDe(resultado, 'jersey')).toBe('demasiado abrigo para 30 °C')
-    expect(motivoDe(resultado, 'gabardina')).toBe('hace calor para abrigo (30 °C)')
+    expect(motivoDe(resultado, 'gabardina')).toBe('hace calor para abrigo a 30 °C')
   })
 
   it('con calor y lluvia deja un chubasquero ligero', () => {
@@ -273,7 +273,7 @@ describe('avisos', () => {
         { tiempo: tiempo(5) },
       ),
     ).avisos
-    expect(avisos).toEqual(['te falta un abrigo para 5 °C: salen sin él'])
+    expect(avisos).toEqual(['te falta un abrigo para 5 °C'])
   })
 
   it('armario informal para una boda: dice por qué', () => {
@@ -303,5 +303,94 @@ describe('avisos', () => {
     expect(avisos).toEqual([
       'no tienes ropa ni calzado que encaje del todo con techwear para diario: uso lo más parecido',
     ])
+  })
+})
+
+describe('casos raros que encontró la revisión', () => {
+  const lluvia = tiempo(15, { precipitacion: 'lluvia' })
+
+  it('«ante» como preposición en las notas no descarta', () => {
+    const camisa = prenda({ id: 'camisa', notas: 'Perfecta ante cualquier plan' })
+    const botines = prenda({ id: 'botines', categoria: 'calzado', notas: 'Botines de ante' })
+    const resultado = candidatos(peticion([camisa, botines], { tiempo: lluvia }))
+    expect(ids(resultado.candidatos)).toEqual(['camisa'])
+  })
+
+  it('«agua» en las notas no la hace impermeable', () => {
+    const lana = prenda({ categoria: 'abrigo', abrigo: 3, notas: 'lavar a mano con agua fría' })
+    const [candidato] = candidatos(peticion([lana], { tiempo: lluvia })).candidatos
+    expect(candidato?.motivos).not.toContain('para la lluvia')
+  })
+
+  it('sandalias marcadas como abrigadas tampoco con frío', () => {
+    const sandalias = prenda({
+      id: 's',
+      categoria: 'calzado',
+      subcategoria: 'sandalias',
+      abrigo: 3,
+    })
+    expect(motivoDe(candidatos(peticion([sandalias], { tiempo: tiempo(5) })), 's')).toBe(
+      'con 5 °C no va calzado abierto',
+    )
+  })
+
+  it('pantalón corto a 15 °C fuera', () => {
+    const cortos = prenda({ id: 'c', categoria: 'inferior', subcategoria: 'Shorts', abrigo: 2 })
+    expect(motivoDe(candidatos(peticion([cortos], { tiempo: tiempo(15) })), 'c')).toBe(
+      'con 15 °C no van pantalones cortos',
+    )
+  })
+
+  it('con calor fuera botas de nieve y gorro de lana; a 15 °C, fuera el plumífero', () => {
+    const botas = prenda({ categoria: 'calzado', abrigo: 4 })
+    const gorro = prenda({ categoria: 'accesorio', abrigo: 3 })
+    expect(candidatos(peticion([botas, gorro], { tiempo: tiempo(27) })).candidatos).toEqual([])
+    const plumifero = prenda({ categoria: 'abrigo', abrigo: 5 })
+    expect(candidatos(peticion([plumifero], { tiempo: tiempo(15) })).candidatos).toEqual([])
+  })
+
+  it('en casa no cuenta el tiempo de fuera', () => {
+    const { contexto } = candidatos(peticion([], { ocasion: 'casa', tiempo: tiempo(3) }))
+    expect(contexto).toMatchObject({ temperatura: null, necesitaAbrigo: false, temporada: 'otoño' })
+  })
+
+  it('con lluvia y calor no hace falta abrigo', () => {
+    const { contexto } = candidatos(
+      peticion([], { tiempo: tiempo(30, { precipitacion: 'lluvia' }) }),
+    )
+    expect(contexto.necesitaAbrigo).toBe(false)
+  })
+
+  it('otro estilo y además algo informal: fuera', () => {
+    const sudadera = prenda({ id: 'sudadera', estilos: ['streetwear'], formalidad: 3 })
+    const resultado = candidatos(peticion([sudadera], { ocasion: 'boda', estilo: 'formal' }))
+    expect(motivoDe(resultado, 'sudadera')).toBe('de otro estilo y algo informal para boda')
+  })
+
+  it('los avisos y las descartadas no dependen del orden de entrada', () => {
+    const armario = [
+      prenda({ id: 'a' }),
+      prenda({ id: 'b', categoria: 'inferior' }),
+      prenda({ id: 'c', categoria: 'calzado', subcategoria: 'sandalias' }),
+      prenda({ id: 'd', categoria: 'calzado', subcategoria: 'botines de ante' }),
+    ]
+    const ida = candidatos(peticion(armario, { tiempo: lluvia }))
+    const vuelta = candidatos(peticion([...armario].reverse(), { tiempo: lluvia }))
+    expect(vuelta.avisos).toEqual(ida.avisos)
+    expect(ids(vuelta.descartadas)).toEqual(ids(ida.descartadas))
+  })
+})
+
+describe('mejoresPorCategoria', () => {
+  it('se queda con las n primeras de cada categoría', () => {
+    const lista = candidatos(
+      peticion([
+        prenda({ id: 's1' }),
+        prenda({ id: 's2' }),
+        prenda({ id: 's3' }),
+        prenda({ id: 'z1', categoria: 'calzado' }),
+      ]),
+    ).candidatos
+    expect(ids(mejoresPorCategoria(lista, 2))).toEqual(['s1', 's2', 'z1'])
   })
 })

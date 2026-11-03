@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { CATEGORIAS, ESTILOS, OCASIONES, TEMPORADAS } from '../../datos/modelo.ts'
 import { crearAzar } from './azar.ts'
 import { armonia } from './colores.ts'
-import { cuatroOutfits } from './outfits.ts'
+import { candidatos } from './candidatos.ts'
+import { comprobarOutfit, cuatroOutfits } from './outfits.ts'
 import { armarioEjemplo, prenda, tiempo } from './pruebas.ts'
 import type { OutfitReglas, Peticion, PrendaReglas } from './tipos.ts'
 
@@ -205,8 +206,8 @@ describe('armarios cortos', () => {
       ),
     )
     expect(outfits).toHaveLength(1)
-    expect(outfits[0]?.motivo).toMatch(/^para 6 °C/)
-    expect(avisos).toContain('te falta un abrigo para 6 °C: salen sin él')
+    expect(outfits[0]?.motivo).toMatch(/^sin abrigo para 6 °C/)
+    expect(avisos).toContain('te falta un abrigo para 6 °C')
   })
 
   it('ocasión formal con armario informal: ningún outfit y la razón', () => {
@@ -302,5 +303,85 @@ describe('volumen', () => {
     expect(performance.now() - inicio).toBeLessThan(500)
     expect(outfits).toHaveLength(4)
     expect(outfits.every(esValido)).toBe(true)
+  })
+})
+
+describe('motivos del tiempo', () => {
+  const basicas = () => [
+    prenda(),
+    prenda({ categoria: 'inferior' }),
+    prenda({ categoria: 'calzado', subcategoria: 'zapatillas' }),
+  ]
+
+  it('con lluvia y calor: ligero, y lo dice', () => {
+    const ligeras = [
+      prenda({ abrigo: 1 }),
+      prenda({ categoria: 'inferior', abrigo: 1 }),
+      prenda({ categoria: 'calzado', abrigo: 1 }),
+    ]
+    const [outfit] = cuatroOutfits(
+      peticion(ligeras, { tiempo: tiempo(30, { precipitacion: 'lluvia' }) }),
+    ).outfits
+    expect(outfit?.motivo).toMatch(/^ligero por 30 °C y lluvia/)
+  })
+
+  it('con lluvia templada y sin abrigo', () => {
+    const { outfits, avisos } = cuatroOutfits(
+      peticion(basicas(), { tiempo: tiempo(20, { precipitacion: 'lluvia' }) }),
+    )
+    expect(outfits[0]?.motivo).toMatch(/^sin abrigo para la lluvia/)
+    expect(avisos).toContain('te falta un abrigo para la lluvia')
+  })
+
+  it('en casa con frío: sin abrigo ni grados', () => {
+    const [outfit] = cuatroOutfits(
+      peticion(basicas(), { ocasion: 'casa', tiempo: tiempo(2) }),
+    ).outfits
+    expect(outfit?.motivo).toBe('informal para casa, casual')
+  })
+})
+
+describe('comprobarOutfit', () => {
+  const camiseta = prenda({ id: 'camiseta' })
+  const vaqueros = prenda({ id: 'vaqueros', categoria: 'inferior', abrigo: 3 })
+  const vestido = prenda({ id: 'vestido', categoria: 'vestido' })
+  const botas = prenda({ id: 'botas', categoria: 'calzado', abrigo: 3 })
+  const abrigo = prenda({ id: 'abrigo', categoria: 'abrigo', abrigo: 4 })
+  const deHoy = candidatos(
+    peticion([camiseta, vaqueros, vestido, botas, abrigo], { tiempo: tiempo(8) }),
+  )
+
+  it('devuelve las prendas en orden de collage', () => {
+    expect(comprobarOutfit(['botas', 'abrigo', 'vaqueros', 'camiseta'], deHoy)).toEqual({
+      prendas: [camiseta, vaqueros, abrigo, botas],
+    })
+  })
+
+  it.each([
+    [['camiseta', 'vaqueros', 'abrigo', 'nada'], 'la prenda nada no está entre los candidatos'],
+    [['camiseta', 'camiseta', 'botas', 'abrigo'], 'repite la prenda camiseta'],
+    [
+      ['camiseta', 'vestido', 'botas', 'abrigo'],
+      'necesita una parte de arriba y otra de abajo, o un vestido',
+    ],
+    [['vestido', 'abrigo'], 'necesita un calzado'],
+    [['vestido', 'botas'], 'hoy necesita abrigo'],
+  ])('%j → %s', (elegidas, error) => {
+    expect(comprobarOutfit(elegidas, deHoy)).toEqual({ error })
+  })
+
+  it('sin abrigos en el armario no lo exige', () => {
+    const sinAbrigo = candidatos(peticion([vestido, botas], { tiempo: tiempo(8) }))
+    expect(comprobarOutfit(['vestido', 'botas'], sinAbrigo)).toEqual({ prendas: [vestido, botas] })
+  })
+})
+
+describe('volumen grande', () => {
+  it('1000 prendas en menos de medio segundo', () => {
+    const armario = armarioGrande(1000, 7)
+    const inicio = performance.now()
+    const { outfits } = cuatroOutfits(peticion(armario, { tiempo: tiempo(18) }))
+    expect(performance.now() - inicio).toBeLessThan(500)
+    expect(outfits).toHaveLength(4)
   })
 })

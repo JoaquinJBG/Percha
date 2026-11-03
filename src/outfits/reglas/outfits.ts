@@ -1,6 +1,7 @@
 import type { Categoria } from '../../datos/modelo.ts'
 import { crearAzar } from './azar.ts'
 import { candidatos } from './candidatos.ts'
+import { LIMITE_ABRIGO } from './clima.ts'
 import { armonia } from './colores.ts'
 import { afinidad } from './estilos.ts'
 import { nombreFormalidad } from './ocasiones.ts'
@@ -10,6 +11,7 @@ import type {
   OutfitReglas,
   Peticion,
   PrendaReglas,
+  ResultadoCandidatos,
   ResultadoOutfits,
 } from './tipos.ts'
 
@@ -18,6 +20,16 @@ export const CUANTOS_OUTFITS = 4
 const VARIEDAD = 2.5
 const CHOQUE_COLOR = 10
 const YA_USADA = 1.5
+/** Con armarios grandes, solo las mejores de arriba y de abajo entran en las combinaciones. */
+const MAX_BASE_POR_CATEGORIA = 40
+const ORDEN_COLLAGE: readonly Categoria[] = [
+  'superior',
+  'inferior',
+  'vestido',
+  'abrigo',
+  'calzado',
+  'accesorio',
+]
 
 type NoVacia<T> = [T, ...T[]]
 
@@ -35,14 +47,16 @@ function motivo(contexto: Contexto, piezas: readonly Candidato[]): string {
   const partes: string[] = []
   const conAbrigo = piezas.some((c) => c.prenda.categoria === 'abrigo')
   const grados = temperatura === null ? '' : `${String(temperatura)} °C`
-  if (conAbrigo) {
-    if (temperatura !== null && (!precipitacion || temperatura < 16)) {
-      partes.push(`abrigo por ${grados}${precipitacion ? ` y ${precipitacion}` : ''}`)
-    } else if (precipitacion) {
-      partes.push(`abrigo por la ${precipitacion}`)
-    }
+  const yPrecipitacion = precipitacion ? ` y ${precipitacion}` : ''
+  if (conAbrigo && temperatura !== null && temperatura < LIMITE_ABRIGO) {
+    partes.push(`abrigo por ${grados}${yPrecipitacion}`)
+  } else if (conAbrigo && precipitacion) {
+    partes.push(`abrigo por la ${precipitacion}`)
+  } else if (contexto.necesitaAbrigo) {
+    const frio = temperatura !== null && temperatura < LIMITE_ABRIGO
+    partes.push(`sin abrigo para ${frio ? grados : `la ${precipitacion ?? 'lluvia'}`}`)
   } else if (temperatura !== null) {
-    partes.push(temperatura >= 24 ? `ligero por ${grados}` : `para ${grados}`)
+    partes.push(`${temperatura >= 24 ? 'ligero por' : 'para'} ${grados}${yPrecipitacion}`)
   }
 
   const base = piezas.filter((c) =>
@@ -88,8 +102,9 @@ export function cuatroOutfits<P extends PrendaReglas>(
       nota: nota(piezas) + azar() * VARIEDAD,
     })
   }
-  for (const superior of bolsa('superior')) {
-    for (const inferior of bolsa('inferior')) anadirBase([superior, inferior])
+  const inferiores = bolsa('inferior').slice(0, MAX_BASE_POR_CATEGORIA)
+  for (const superior of bolsa('superior').slice(0, MAX_BASE_POR_CATEGORIA)) {
+    for (const inferior of inferiores) anadirBase([superior, inferior])
   }
   for (const vestido of bolsa('vestido')) anadirBase([vestido])
   if (bases.length === 0 || calzados.length === 0) return { contexto, outfits: [], avisos }
@@ -164,4 +179,37 @@ export function cuatroOutfits<P extends PrendaReglas>(
     )
   }
   return { contexto, outfits, avisos }
+}
+
+/**
+ * Comprueba un outfit elegido por fuera (la IA) contra los candidatos de hoy. Devuelve sus prendas en
+ * orden de collage o el motivo por el que no vale.
+ */
+export function comprobarOutfit<P extends PrendaReglas>(
+  ids: readonly string[],
+  resultado: ResultadoCandidatos<P>,
+): { prendas: P[] } | { error: string } {
+  const porId = new Map(resultado.candidatos.map((c) => [c.prenda.id, c.prenda]))
+  const prendas: P[] = []
+  for (const id of ids) {
+    const prenda = porId.get(id)
+    if (!prenda) return { error: `la prenda ${id} no está entre los candidatos` }
+    if (prendas.includes(prenda)) return { error: `repite la prenda ${id}` }
+    prendas.push(prenda)
+  }
+  const cuantas = (categoria: Categoria) => prendas.filter((p) => p.categoria === categoria).length
+  const conPar = cuantas('superior') === 1 && cuantas('inferior') === 1 && cuantas('vestido') === 0
+  const conVestido = cuantas('vestido') === 1 && cuantas('superior') + cuantas('inferior') === 0
+  if (!conPar && !conVestido) {
+    return { error: 'necesita una parte de arriba y otra de abajo, o un vestido' }
+  }
+  if (cuantas('calzado') !== 1) return { error: 'necesita un calzado' }
+  if (cuantas('abrigo') > 1) return { error: 'lleva más de un abrigo' }
+  const hayAbrigo = resultado.candidatos.some((c) => c.prenda.categoria === 'abrigo')
+  if (resultado.contexto.necesitaAbrigo && hayAbrigo && cuantas('abrigo') === 0) {
+    return { error: 'hoy necesita abrigo' }
+  }
+  if (cuantas('accesorio') > 2) return { error: 'lleva más de dos accesorios' }
+  prendas.sort((a, b) => ORDEN_COLLAGE.indexOf(a.categoria) - ORDEN_COLLAGE.indexOf(b.categoria))
+  return { prendas }
 }

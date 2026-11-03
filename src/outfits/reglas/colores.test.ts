@@ -63,3 +63,31 @@ describe('armonia', () => {
     expect(armonia([rayas, prenda({ categoria: 'inferior' })]).combina).toBe(true)
   })
 })
+
+describe('prendas de varios colores', () => {
+  const flores = prenda({ colores: ['rojo', 'verde'], estampado: 'flores' })
+
+  it('una estampada de varios colores combina con neutros', () => {
+    const vaqueros = prenda({ categoria: 'inferior', subcategoria: 'vaqueros', colores: ['azul'] })
+    expect(armonia([flores, vaqueros, prenda({ categoria: 'calzado' })]).combina).toBe(true)
+  })
+
+  it('el resto puede repetir uno de sus colores, pero no traer otro', () => {
+    const falda = (color: string) => prenda({ categoria: 'inferior', colores: [color] })
+    expect(armonia([flores, falda('rojo')]).combina).toBe(true)
+    expect(armonia([flores, falda('azul')]).combina).toBe(false)
+  })
+
+  it('celeste y azul son el mismo color', () => {
+    expect(familiaColor('Celeste')).toBe('azul')
+    expect(armonia([prenda({ colores: ['celeste'] }), prenda({ colores: ['azul'] })]).combina).toBe(
+      true,
+    )
+  })
+
+  it('«Unicolor», «sólido» o «Liso.» no son estampado', () => {
+    for (const estampado of ['Unicolor', 'sólido', 'Liso.']) {
+      expect(esEstampada({ estampado })).toBe(false)
+    }
+  })
+})

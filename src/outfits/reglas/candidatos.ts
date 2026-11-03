@@ -8,7 +8,7 @@ import {
 } from './clima.ts'
 import { afinidad, estilosAfines } from './estilos.ts'
 import { FORMALIDAD_POR_OCASION, distanciaFormalidad } from './ocasiones.ts'
-import { algunaPalabra, palabras } from './texto.ts'
+import { algunaPalabra, normalizar, palabras } from './texto.ts'
 import type {
   Candidato,
   Contexto,
@@ -31,16 +31,28 @@ const CALZADO_ABIERTO = [
   'esparto',
 ] as const
 const MATERIAL_DELICADO = ['ante', 'serraje', 'gamuza', 'terciopelo', 'suede'] as const
-const PARA_LLUVIA = ['agua', 'impermeable', 'chubasquero', 'goretex', 'paraguas'] as const
+// En las notas, «ante» también es preposición: solo cuenta como «de ante» o «en ante».
+const MATERIAL_EN_NOTAS = /\b(?:de|en)\s+(?:ante|serraje|gamuza|terciopelo)\b|\bsuede\b/
+const PARA_LLUVIA = ['agua', 'impermeable', 'chubasquero', 'goretex'] as const
+const CORTO = ['corto', 'cortos', 'short', 'shorts', 'bermuda', 'bermudas'] as const
+/** Por debajo de esto no se lleva calzado abierto aunque esté etiquetado como abrigado. */
+const LIMITE_CALZADO_ABIERTO = 14
+/** Por encima de esto la lluvia se lleva sin abrigo. */
+const LIMITE_CALOR = 24
 
 export function crearContexto(peticion: Peticion): Contexto {
   const { tiempo, estilo, ocasion } = peticion
-  const temperatura = temperaturaDe(tiempo)
-  const precipitacion = tiempo?.clima.precipitacion ?? null
+  // En casa no cuenta el tiempo de fuera; solo la temporada.
+  const fuera = ocasion !== 'casa'
+  const temperatura = fuera ? temperaturaDe(tiempo) : null
+  const precipitacion = fuera ? (tiempo?.clima.precipitacion ?? null) : null
+  const frio = temperatura !== null && temperatura < LIMITE_ABRIGO
+  const lluviaSinCalor =
+    precipitacion !== null && (temperatura === null || temperatura < LIMITE_CALOR)
   return {
     temperatura,
     precipitacion,
-    necesitaAbrigo: (temperatura !== null && temperatura < LIMITE_ABRIGO) || precipitacion !== null,
+    necesitaAbrigo: frio || lluviaSinCalor,
     temporada: tiempo
       ? temporadaDe(tiempo.fecha, tiempo.sitio.latitud)
       : temporadaDe(peticion.fecha),
@@ -62,7 +74,7 @@ function objetivoDe(categoria: Categoria, temperatura: number): number {
     case 'inferior':
       return Math.min(objetivo, 4)
     case 'calzado':
-      return Math.min(Math.max(objetivo, 2), 4)
+      return Math.min(objetivo, 4)
     case 'abrigo':
       return Math.max(objetivo, 2)
     case 'accesorio':
@@ -78,34 +90,50 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
   let puntos = 0
   let parcial = false
 
+  const subcategoria = palabras(prenda.subcategoria)
+  const abierto =
+    prenda.categoria === 'calzado' &&
+    algunaPalabra(palabras(prenda.subcategoria, prenda.notas), CALZADO_ABIERTO)
+
   if (precipitacion) {
-    const texto = palabras(prenda.subcategoria, prenda.notas)
-    if (prenda.categoria === 'calzado' && algunaPalabra(texto, CALZADO_ABIERTO)) {
-      return { descarte: `con ${precipitacion} no va calzado abierto` }
-    }
-    if (algunaPalabra(texto, MATERIAL_DELICADO)) {
-      return { descarte: `con ${precipitacion} no va el ante ni el terciopelo` }
-    }
-    if (algunaPalabra(texto, PARA_LLUVIA)) {
+    if (abierto) return { descarte: `con ${precipitacion} no va calzado abierto` }
+    const delicada =
+      algunaPalabra(subcategoria, MATERIAL_DELICADO) ||
+      MATERIAL_EN_NOTAS.test(normalizar(prenda.notas))
+    if (delicada) return { descarte: `con ${precipitacion} no va el ante ni el terciopelo` }
+    if (algunaPalabra(subcategoria, PARA_LLUVIA)) {
       puntos += 2
       motivos.push(`para la ${precipitacion}`)
     }
   }
 
   if (temperatura !== null) {
+    const grados = `${String(temperatura)} °C`
+    if (abierto && temperatura < LIMITE_CALZADO_ABIERTO) {
+      return { descarte: `con ${grados} no va calzado abierto` }
+    }
+    if (
+      prenda.categoria === 'inferior' &&
+      temperatura < LIMITE_ABRIGO &&
+      algunaPalabra(subcategoria, CORTO)
+    ) {
+      return { descarte: `con ${grados} no van pantalones cortos` }
+    }
     if (
       prenda.categoria === 'abrigo' &&
-      temperatura >= 24 &&
+      temperatura >= LIMITE_CALOR &&
       !(precipitacion && prenda.abrigo <= 2)
     ) {
-      return { descarte: `hace calor para abrigo (${String(temperatura)} °C)` }
+      return { descarte: `hace calor para abrigo a ${grados}` }
     }
     const diferencia = prenda.abrigo - objetivoDe(prenda.categoria, temperatura)
-    if (diferencia >= 3) {
-      return { descarte: `demasiado abrigo para ${String(temperatura)} °C` }
+    // Lo que va encima (abrigo, gorro, bufanda) se nota más: se tolera un nivel menos de sobra.
+    const encima = prenda.categoria === 'abrigo' || prenda.categoria === 'accesorio'
+    if (diferencia >= (encima ? 2 : 3)) {
+      return { descarte: `demasiado abrigo para ${grados}` }
     }
     if (diferencia <= -3 && prenda.categoria !== 'accesorio') {
-      return { descarte: `poco abrigo para ${String(temperatura)} °C` }
+      return { descarte: `poco abrigo para ${grados}` }
     }
     if (Math.abs(diferencia) === 2) {
       puntos -= 1
@@ -168,6 +196,8 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
       puntos += 1
       break
     case 'ninguno':
+      // Si además ya era parcial por formalidad, le fallan las dos cosas: fuera.
+      if (parcial) return { descarte: `de otro estilo y algo informal para ${ocasion}` }
       parcial = true
       puntos -= 2
       motivos.push('de otro estilo')
@@ -180,7 +210,10 @@ function motivoMasRepetido(descartadas: readonly Descartada[]): string | null {
   const veces = new Map<string, number>()
   for (const { motivo } of descartadas) veces.set(motivo, (veces.get(motivo) ?? 0) + 1)
   let mejor: string | null = null
-  for (const [motivo, n] of veces) if (mejor === null || n > (veces.get(mejor) ?? 0)) mejor = motivo
+  for (const [motivo, n] of veces) {
+    const actual = mejor === null ? 0 : (veces.get(mejor) ?? 0)
+    if (mejor === null || n > actual || (n === actual && motivo < mejor)) mejor = motivo
+  }
   return mejor
 }
 
@@ -227,7 +260,7 @@ function avisosDe(
       contexto.temperatura !== null && contexto.temperatura < LIMITE_ABRIGO
         ? `${String(contexto.temperatura)} °C`
         : `la ${contexto.precipitacion ?? 'lluvia'}`
-    avisos.push(falta(`te falta un abrigo para ${para}: salen sin él`, ['abrigo'], descartadas))
+    avisos.push(falta(`te falta un abrigo para ${para}`, ['abrigo'], descartadas))
   }
 
   const flojas: string[] = []
@@ -266,10 +299,24 @@ export function candidatos<P extends PrendaReglas>(peticion: Peticion<P>): Resul
     }
   }
   lista.sort(porPuntos)
+  descartadas.sort((a, b) => (a.prenda.id < b.prenda.id ? -1 : a.prenda.id > b.prenda.id ? 1 : 0))
   return {
     contexto,
     candidatos: lista,
     descartadas,
     avisos: avisosDe(peticion, contexto, lista, descartadas),
   }
+}
+
+/** Las `n` mejores de cada categoría, para no gastar cupo de la IA con armarios grandes. */
+export function mejoresPorCategoria<P extends PrendaReglas>(
+  lista: readonly Candidato<P>[],
+  n: number,
+): Candidato<P>[] {
+  const vistas = new Map<Categoria, number>()
+  return lista.filter((c) => {
+    const ya = vistas.get(c.prenda.categoria) ?? 0
+    vistas.set(c.prenda.categoria, ya + 1)
+    return ya < n
+  })
 }

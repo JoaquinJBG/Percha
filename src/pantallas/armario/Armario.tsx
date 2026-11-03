@@ -64,10 +64,18 @@ export function Armario({
   // Qué detalle sigue abierto, para que dos toques en «volver» o un borrado que acaba tarde no
   // retrocedan dos veces y saquen al usuario de la app.
   const detalleAbierto = useRef(idDetalle)
+  // Lo mismo para la edición: un doble toque o un «atrás» mientras guarda no cierran dos veces.
+  const edicionAbierta = useRef(editando ? idDetalle : null)
+  // Sube tras editar una prenda, para que los filtros se vuelvan a aplicar.
+  const [ediciones, setEdiciones] = useState(0)
 
   useEffect(() => {
     detalleAbierto.current = idDetalle
   }, [idDetalle])
+
+  useEffect(() => {
+    edicionAbierta.current = editando ? idDetalle : null
+  }, [editando, idDetalle])
 
   useEffect(() => {
     let vigente = true
@@ -104,7 +112,7 @@ export function Armario({
     return () => {
       vigente = false
     }
-  }, [listar, filtros, filtrando])
+  }, [listar, filtros, filtrando, ediciones])
 
   // Mientras llega la consulta de unos filtros nuevos se queda el resultado anterior, sin parpadeo.
   const visibles =
@@ -136,6 +144,8 @@ export function Armario({
   }
 
   function cerrarEdicion(id: string) {
+    if (edicionAbierta.current !== id) return
+    edicionAbierta.current = null
     if (esEstadoCon(ubicacion.state, 'desdeDetalle')) void navegar(-1)
     else setParametros({ [PARAMETRO_PRENDA]: id }, { replace: true })
   }
@@ -143,6 +153,7 @@ export function Armario({
   async function guardarEdicion(id: string, cambios: CambiosPrenda) {
     const guardada = await actualizar(id, cambios)
     setTodas((actuales) => actuales?.map((p) => (p.id === id ? guardada : p)) ?? null)
+    setEdiciones((anteriores) => anteriores + 1)
     cerrarEdicion(id)
   }
 

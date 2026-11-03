@@ -401,6 +401,33 @@ describe('Nueva prenda: etiquetas', () => {
     expect(guardar.mock.calls[0]?.[0].etiquetadaPor).toBe('ia')
   })
 
+  it('tras un fallo, volver a las fotos y seguir vuelve a probar con la IA', async () => {
+    const { proveedor, peticiones } = proveedorControlado()
+    const { usuario, llamadas } = montar({ proveedor })
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    await screen.findByText('Gemini está mirando la prenda…')
+    peticiones[0]?.rechazar(new ErrorIA('sin-red'))
+    await screen.findByRole('alert')
+
+    await usuario.click(screen.getByRole('button', { name: 'Cambiar fotos' }))
+    await usuario.click(botonSiguiente())
+
+    expect(peticiones).toHaveLength(2)
+  })
+
+  it('«Cambiar fotos» mientras etiqueta cancela la petición y vuelve a las fotos', async () => {
+    const { proveedor, peticiones } = proveedorControlado()
+    const { usuario, llamadas } = montar({ proveedor })
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    await screen.findByText('Gemini está mirando la prenda…')
+
+    await usuario.click(screen.getByRole('button', { name: 'Cambiar fotos' }))
+
+    expect(peticiones[0]?.opciones?.signal?.aborted).toBe(true)
+    expect(screen.getByRole('heading', { name: 'Fotos' })).toHaveFocus()
+    expect(screen.getByRole('img', { name: 'Foto 1, sin fondo' })).toBeInTheDocument()
+  })
+
   it('con una clave que no vale, el aviso lleva a Ajustes', async () => {
     const proveedor = crearProveedorFalso({ error: new ErrorIA('clave-mala') })
     const { usuario, llamadas } = montar({ proveedor })

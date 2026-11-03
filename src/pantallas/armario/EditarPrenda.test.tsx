@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CambiosPrenda, NuevaPrenda, Prenda } from '../../datos/modelo.ts'
 import { nuevaPrenda } from '../../datos/pruebas.ts'
+import type { FiltrosPrendas } from '../../datos/repositorio.ts'
 import {
   crearProveedorFalso,
   ErrorIA,
@@ -29,7 +30,11 @@ const chino = () =>
 
 function montar(inicial: Prenda, proveedor: ProveedorIA | null = crearProveedorFalso()) {
   let guardada = inicial
-  const listar = vi.fn(() => Promise.resolve([guardada]))
+  const listar = vi.fn((filtros: FiltrosPrendas = {}) =>
+    Promise.resolve(
+      [guardada].filter((p) => !filtros.categoria || p.categoria === filtros.categoria),
+    ),
+  )
   const borrar = vi.fn(() => Promise.resolve())
   const actualizar = vi.fn((id: string, cambios: CambiosPrenda) => {
     guardada = { ...guardada, ...cambios, id }
@@ -135,6 +140,43 @@ describe('editar una prenda', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Chino' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Editar chino' })).not.toBeInTheDocument()
+  })
+
+  it('«atrás» mientras guarda no retrocede otra vez al terminar', async () => {
+    const { usuario, router, actualizar } = montar(chino())
+    let terminar: () => void = () => undefined
+    actualizar.mockImplementationOnce(
+      (id: string, cambios: CambiosPrenda) =>
+        new Promise<Prenda>((resolver) => {
+          terminar = () => {
+            resolver({ ...chino(), ...cambios, id })
+          }
+        }),
+    )
+    const edicion = await abrirEdicion(usuario, 'Chino')
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+
+    await act(() => router.navigate(-1))
+    await act(async () => {
+      terminar()
+      await Promise.resolve()
+    })
+
+    expect(router.state.location.search).toBe('?prenda=p1')
+    expect(screen.getByRole('dialog', { name: 'Chino' })).toBeInTheDocument()
+  })
+
+  it('con un filtro puesto, la prenda que deja de cumplirlo sale de la lista', async () => {
+    const { usuario } = montar(chino())
+    await usuario.click(await screen.findByRole('button', { name: /Parte de abajo/ }))
+    const edicion = await abrirEdicion(usuario, 'Chino')
+
+    await usuario.click(categoria(edicion, 'Parte de arriba'))
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+    const detalle = await screen.findByRole('dialog', { name: 'Chino' })
+    await usuario.click(within(detalle).getByRole('button', { name: 'Armario' }))
+
+    expect(await screen.findByText('Ninguna prenda cumple estos filtros.')).toBeInTheDocument()
   })
 
   it('una prenda de la IA que cambia de categoría pasa a etiquetada a mano', async () => {

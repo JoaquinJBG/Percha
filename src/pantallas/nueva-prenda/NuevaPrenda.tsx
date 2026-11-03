@@ -242,7 +242,8 @@ export function NuevaPrenda({
     setPaso('etiquetando')
     const resultado = await ia.etiquetar(conFotos)
     if (!resultado) return
-    etiquetadasPara.current = conFotos
+    // Tras un fallo, «Siguiente» con las mismas fotos vuelve a probar.
+    etiquetadasPara.current = 'etiquetas' in resultado ? conFotos : null
     if ('etiquetas' in resultado)
       abrirFormulario({ etiquetas: resultado.etiquetas, por: 'ia' }, null)
     else abrirFormulario(BASE_VACIA, resultado.aviso)
@@ -421,9 +422,21 @@ export function NuevaPrenda({
           <div className="h-1.5 overflow-hidden rounded-full bg-tinta/10">
             <div className="h-full w-1/3 animate-pulse bg-tinta" />
           </div>
-          <button type="button" className={botonSecundario} onClick={etiquetarAMano}>
-            Etiquetar a mano
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              className={botonSecundario}
+              onClick={() => {
+                ia.cancelar()
+                setPaso('fotos')
+              }}
+            >
+              Cambiar fotos
+            </button>
+            <button type="button" className={botonSecundario} onClick={etiquetarAMano}>
+              Etiquetar a mano
+            </button>
+          </div>
         </section>
       )}
 

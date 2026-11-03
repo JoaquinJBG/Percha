@@ -148,7 +148,15 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
             </p>
           )}
           {avisoIA && (
-            <AvisoEtiquetado aviso={avisoIA} onReintentar={() => void volverAEtiquetar()} />
+            <AvisoEtiquetado
+              aviso={avisoIA}
+              onReintentar={() => void volverAEtiquetar()}
+              nota={
+                avisoIA.ajustes
+                  ? 'Si vas ahora a Ajustes, se pierden los cambios sin guardar.'
+                  : undefined
+              }
+            />
           )}
         </div>
 

@@ -14,9 +14,29 @@ export type ObtenerProveedor = () => Promise<ProveedorIA | null>
 /** Solo en `pnpm dev`: `localStorage['percha:ia-falsa']` = `ok` o un tipo de error (`sin-cupo`…). */
 const CLAVE_IA_FALSA = 'percha:ia-falsa'
 
+const TIPOS_ERROR: TipoErrorIA[] = [
+  'sin-clave',
+  'clave-mala',
+  'sin-cupo',
+  'sin-red',
+  'modelo',
+  'no-disponible',
+  'respuesta',
+  'foto',
+  'otro',
+]
+
+function leerModoFalso(): string | null {
+  try {
+    return localStorage.getItem(CLAVE_IA_FALSA)
+  } catch {
+    return null
+  }
+}
+
 function proveedorFalsoDeDesarrollo(): ProveedorIA | null {
-  const modo = localStorage.getItem(CLAVE_IA_FALSA)
-  if (!modo) return null
+  const modo = leerModoFalso()
+  if (modo !== 'ok' && !TIPOS_ERROR.includes(modo as TipoErrorIA)) return null
   const falso = crearProveedorFalso(
     modo === 'ok' ? {} : { error: new ErrorIA(modo as TipoErrorIA) },
   )

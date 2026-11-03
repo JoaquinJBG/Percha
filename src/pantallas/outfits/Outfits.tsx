@@ -121,7 +121,7 @@ export function Outfits({
           disabled={generando}
           className="min-h-12 rounded-xl bg-tinta px-4 text-lg font-semibold text-papel disabled:opacity-60"
         >
-          {generando ? 'Generando…' : listo ? 'Generar otros' : 'Generar'}
+          {generando ? 'Generando…' : listo?.resultado.outfits.length ? 'Generar otros' : 'Generar'}
         </button>
         {!tiempo && (
           <p className="text-sm text-suave">

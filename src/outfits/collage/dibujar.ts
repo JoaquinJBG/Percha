@@ -110,7 +110,7 @@ function dibujarPrenda(pincel: Pincel, prenda: ImagenPrenda, caja: Rect) {
   pincel.roundRect(dentro.x, dentro.y, dentro.ancho, dentro.alto, 12)
   pincel.fill()
   pincel.fillStyle = COLORES_COLLAGE.suave
-  pincel.font = `500 22px ${FUENTE}`
+  pincel.font = `500 26px ${FUENTE}`
   pincel.textAlign = 'center'
   pincel.textBaseline = 'middle'
   const [linea = ''] = partirTexto(pincel, prenda.nombre, dentro.ancho - 16, 1)
@@ -144,23 +144,23 @@ function dibujarRecuadro(pincel: Pincel, recuadro: RecuadroCollage, celda: Rect,
   // Número en la esquina, para casar la imagen con la lista de motivos de la pantalla.
   pincel.fillStyle = COLORES_COLLAGE.tinta
   pincel.beginPath()
-  pincel.arc(celda.x + 36, celda.y + 36, 20, 0, Math.PI * 2)
+  pincel.arc(celda.x + 40, celda.y + 40, 24, 0, Math.PI * 2)
   pincel.fill()
   pincel.fillStyle = COLORES_COLLAGE.recuadro
-  pincel.font = `600 22px ${FUENTE}`
+  pincel.font = `600 28px ${FUENTE}`
   pincel.textAlign = 'center'
   pincel.textBaseline = 'middle'
-  pincel.fillText(String(numero), celda.x + 36, celda.y + 37)
+  pincel.fillText(String(numero), celda.x + 40, celda.y + 41)
 
   pincel.fillStyle = COLORES_COLLAGE.tinta
-  pincel.font = `500 26px ${FUENTE}`
+  pincel.font = `500 32px ${FUENTE}`
   pincel.textAlign = 'left'
   pincel.textBaseline = 'top'
   const anchoTexto = celda.ancho - RELLENO * 2
   const lineas = partirTexto(pincel, conMayuscula(recuadro.motivo), anchoTexto, LINEAS_MOTIVO)
-  const arriba = celda.y + celda.alto - RELLENO - ALTO_TEXTO + 16
+  const arriba = celda.y + celda.alto - RELLENO - ALTO_TEXTO + 12
   lineas.forEach((linea, i) => {
-    pincel.fillText(linea, celda.x + RELLENO, arriba + i * 34)
+    pincel.fillText(linea, celda.x + RELLENO, arriba + i * 42)
   })
 }
 

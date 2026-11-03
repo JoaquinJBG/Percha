@@ -12,7 +12,7 @@ export const ANCHO_COLLAGE = 1080
 export const ALTO_COLLAGE = 1350
 export const MARGEN = 24
 /** Banda de cada recuadro donde va el motivo (dos líneas). */
-export const ALTO_TEXTO = 96
+export const ALTO_TEXTO = 104
 
 /** Los cuatro recuadros del 2×2, de izquierda a derecha y de arriba abajo. */
 export function recuadros(ancho = ANCHO_COLLAGE, alto = ALTO_COLLAGE, margen = MARGEN): Rect[] {

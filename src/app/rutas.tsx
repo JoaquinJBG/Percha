@@ -3,7 +3,7 @@ import { Ajustes } from '../pantallas/Ajustes.tsx'
 import { Armario } from '../pantallas/armario/Armario.tsx'
 import { NuevaPrenda } from '../pantallas/nueva-prenda/NuevaPrenda.tsx'
 import { Outfits } from '../pantallas/Outfits.tsx'
-import { Perfil } from '../pantallas/Perfil.tsx'
+import { Perfil } from '../pantallas/perfil/Perfil.tsx'
 import { Layout } from './Layout.tsx'
 
 export const rutas: RouteObject[] = [

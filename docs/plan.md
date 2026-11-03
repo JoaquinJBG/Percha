@@ -69,10 +69,20 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | ✅ |
 | T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ⏳ |
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ⏳ |
-| T1.4 | Lista del armario con filtros, editar y borrar | T1.1 | ⏳ |
+| T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ⏳ |
+| T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ⏳ |
 
-T1.2, T1.3 y T1.4 van en paralelo cuando T1.1 esté en `main` (zonas distintas: `src/recorte/`, `src/ia/`,
-`src/pantallas/armario/`).
+T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:
+
+- **T1.2:** `src/recorte/` y la pantalla «Nueva prenda» (`src/pantallas/nueva-prenda/`). Guarda la prenda con
+  la categoría elegida a mano y `etiquetadaPor: 'manual'`.
+- **T1.3:** `src/ia/`, la clave en Ajustes y el formulario de etiquetas (`src/componentes/formulario-prenda/`).
+  No lo monta en otras pantallas.
+- **T1.4:** `src/pantallas/armario/` (lista, filtros y detalle con borrar). Sin formulario de edición.
+- **T2.2:** `src/outfits/reglas/`, solo lógica, sin UI.
+
+Cada una puede añadir **una línea** a la navegación (`src/app/`) si la necesita. Lo que haga falta coser entre
+ellas va a T1.5.
 
 ## Fase 2 — Outfits
 

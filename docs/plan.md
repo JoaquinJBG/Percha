@@ -71,7 +71,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ✅ |
 | T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ✅ |
 | T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ✅ |
-| T1.6 | Alta masiva: muchas fotos de golpe, cola persistente y etiquetado de 5 en 5 (D16) | T1.5 | 👀 |
+| T1.6 | Alta masiva: muchas fotos de golpe, cola persistente y etiquetado de 5 en 5 (D16) | T1.5 | ✅ |
 
 T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:
 

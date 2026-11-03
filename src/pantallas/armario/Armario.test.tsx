@@ -92,6 +92,10 @@ describe('lista del armario', () => {
 
     expect(await screen.findByText('Tu armario está vacío')).toBeInTheDocument()
     expect(screen.getByText(/Añade tu primera prenda/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Añadir prenda' })).toHaveAttribute(
+      'href',
+      '/prendas/nueva',
+    )
     expect(screen.queryByRole('group', { name: 'Categoría' })).not.toBeInTheDocument()
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
@@ -100,6 +104,10 @@ describe('lista del armario', () => {
     montar(repositorio([camiseta(), vaquero(), chino()]))
 
     expect(await screen.findByText('3 prendas')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Añadir prenda' })).toHaveAttribute(
+      'href',
+      '/prendas/nueva',
+    )
     const arriba = screen.getByRole('region', { name: /Parte de arriba/ })
     const abajo = screen.getByRole('region', { name: /Parte de abajo/ })
     expect(within(arriba).getAllByRole('listitem')).toHaveLength(1)
@@ -202,7 +210,7 @@ describe('detalle de una prenda', () => {
     expect(within(detalle).getByText('Casual, streetwear')).toBeInTheDocument()
     expect(within(detalle).getByText('Me queda un poco largo')).toBeInTheDocument()
     expect(within(detalle).queryByRole('textbox')).not.toBeInTheDocument()
-    expect(within(detalle).queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
+    expect(within(detalle).getByRole('button', { name: 'Editar' })).toBeInTheDocument()
 
     await usuario.click(within(detalle).getByRole('button', { name: 'Armario' }))
 

@@ -13,7 +13,9 @@ Percha es una web estática: no hay servidor ni base de datos en la nube. Se alo
 ## Configuración del repo
 
 - `wrangler.jsonc`: publica `dist/` y manda las rutas desconocidas a `index.html` (la app es de una página).
-- `public/_headers`: cabeceras COOP/COEP para que el recorte en WASM use varios hilos.
+- `public/_headers`: cabeceras COOP/COEP para que el recorte en WASM use varios hilos y `Referrer-Policy:
+  no-referrer`, porque Hugging Face rechaza (404 sin CORS) las peticiones con Referer de `*.workers.dev` y
+  sin ella el modelo de recorte no se descarga.
 - `.node-version`: Node 22 para el build.
 - `vite.config.ts` quita del build el runtime WASM de ONNX (27 MB); Transformers.js lo baja de jsDelivr.
 

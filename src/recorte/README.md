@@ -14,4 +14,5 @@ Recorte del fondo de las fotos de prendas en el propio navegador (decisión D10)
 El modelo (88 MB en WebGPU, 44 MB en WASM) viene de Hugging Face y el runtime de ONNX (5,6 MB) de
 jsDelivr; Transformers.js los guarda en la Cache API. Para que WASM use varios hilos hace falta
 aislamiento entre orígenes: COOP/COEP en `vite.config.ts` (dev y preview) y `public/_headers`
-(Cloudflare Pages). Licencia del modelo: CC BY-NC 4.0, solo uso no comercial.
+(Cloudflare). Ese fichero también quita el Referer: Hugging Face no sirve el modelo a webs de `*.workers.dev`.
+Licencia del modelo: CC BY-NC 4.0, solo uso no comercial.

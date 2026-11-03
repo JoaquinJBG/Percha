@@ -70,7 +70,8 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ✅ |
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ✅ |
 | T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ✅ |
-| T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ⏳ |
+| T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | 👀 |
+| T1.6 | Alta en lote: «Añadir varias», hasta 5 prendas etiquetadas en una sola petición (D9) | T1.5 | ⏳ |
 
 T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:
 
@@ -83,6 +84,13 @@ T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las 
 
 Cada una puede añadir **una línea** a la navegación (`src/app/`) si la necesita. Lo que haga falta coser entre
 ellas va a T1.5.
+
+### T1.6 — Alta en lote
+- **Qué:** botón «Añadir varias» junto a «Añadir prenda»: elegir hasta 5 fotos de la galería (una por prenda),
+  recortarlas, etiquetarlas en **una** petición (`etiquetarPrendas` con 5 prendas, D9) y revisarlas una a una
+  con `FormularioPrenda` antes de guardar. Si la IA devuelve `null` para alguna, esa va vacía con aviso.
+- **Por qué aparte:** T1.5 deja el flujo de una prenda; el lote necesita su propia pantalla (cola de revisión,
+  qué pasa si se cancela a medias) y una petición de 5 tarda ~40 s (S2).
 
 ## Fase 2 — Outfits
 

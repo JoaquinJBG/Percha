@@ -67,9 +67,9 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
 | T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | ✅ |
-| T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | 👀 |
-| T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ⏳ |
-| T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | 👀 |
+| T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ✅ |
+| T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ✅ |
+| T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ✅ |
 | T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ⏳ |
 
 T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:

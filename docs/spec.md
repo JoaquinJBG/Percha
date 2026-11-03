@@ -69,6 +69,7 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
 | D11 | Etiquetar con `gemini-3.5-flash-lite` y salida JSON con esquema, validada con Zod | 5 prendas en una petición en 38 s, con buena calidad y desde el navegador ([S2](spikes/s2-gemini.md)). |
 | D12 | Sin búsqueda en Google (*grounding*) en la v1 | Con la clave gratis da 429 a la primera ([S2](spikes/s2-gemini.md)). |
 | D13 | *Try-on*: una imagen compuesta (persona + prendas) compartida con Gemini y el texto copiado al portapapeles | Si el texto va dentro de `share()`, Gemini no lo recibe; pegado, genera la foto en ~30 s ([S3](spikes/s3-compartir.md)). |
+| D14 | Colores y estampados con lista cerrada en la IA y el formulario; el modelo de datos sigue admitiendo texto libre | Los filtros por color funcionan si todos dicen «azul marino» igual; las copias y prendas a mano de antes no se rompen. «figurativo» se añade porque en S2 la camisa de conejos salió «geométrico». |
 
 ## Modelo de datos (borrador)
 
@@ -80,6 +81,13 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
 - **Outfit**: `id`, `prendas[]`, `estilo`, `ocasion`, `tiempo` (temperatura, lluvia), `explicacion`,
   `favorito`, `creadoEn`.
 - **Ajustes**: `claveGemini`, `modeloGemini`.
+
+## Listas cerradas de etiquetas
+
+- **Colores:** blanco, crudo, negro, gris, beige, camel, marrón, azul marino, azul, celeste, vaquero, verde,
+  caqui, rojo, granate, rosa, morado, amarillo, naranja, dorado, plateado.
+- **Estampados:** liso, rayas, cuadros, lunares, flores, animal, geométrico, figurativo, gráfico / logo,
+  camuflaje, tie-dye, otro.
 
 ## Listas fijas (borrador)
 

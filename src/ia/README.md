@@ -5,13 +5,22 @@ todo desde `src/ia/index.ts`.
   - `etiquetarPrendas(prendas: { fotos: Blob[] }[], { signal }?)`: hasta `MAX_PRENDAS_POR_PETICION` (5)
     prendas con 1–2 fotos cada una, en **una** petición. Devuelve `(EtiquetasPrenda | null)[]` en el mismo
     orden: `null` si la IA no dio nada válido para esa prenda. Si no vale ninguna, lanza `ErrorIA`.
+  - `elegirOutfits({ prendas, estilo, ocasion, tiempo, semilla? }, { signal }?)`: hasta 4 outfits
+    (`{ prendas: string[], porque: string }`) elegidos entre las prendas recibidas, que van **en texto y
+    sin fotos** (id y etiquetas). No comprueba que el outfit valga: eso lo hace `src/outfits/ia/`. Si no
+    llega ninguno con forma válida, lanza `ErrorIA('respuesta')`.
   - `comprobarClave({ signal }?)`: se resuelve si la clave y el modelo valen.
 - `proveedorDesdeAjustes()`: el proveedor Gemini con la clave y el modelo guardados. Sin clave, sus llamadas
   lanzan `ErrorIA('sin-clave')`.
 - `crearProveedorGemini({ clave, modelo })`: usa `@google/genai` (se carga al primer uso), salida JSON
   con esquema (`esquema.ts`) y prompt de `prompt.ts`. Las fotos se reducen a 768 px en JPEG con fondo
   blanco (`fotos.ts`).
-- `crearProveedorFalso({ etiquetas?, error? })` y `ETIQUETAS_DE_PRUEBA`: sin red, para tests y pantallas.
+- Outfits en Gemini: el prompt está en `prompt-outfits.ts` (v1) y el esquema en `esquema-outfits.ts`. Cada
+  prenda va como una línea con una referencia corta (`P1`, `P2`…) en vez de su UUID, que se traduce de
+  vuelta al leer; una referencia que no se envió se deja tal cual para que se vea que no existe. La
+  `semilla` va como `seed`.
+- `crearProveedorFalso({ etiquetas?, outfits?, error? })`, `ETIQUETAS_DE_PRUEBA` y `outfitsDePrueba`: sin
+  red, para tests y pantallas.
 - `ErrorIA`: `tipo` (`sin-clave`, `clave-mala`, `sin-cupo`, `sin-red`, `modelo`, `no-disponible`,
   `respuesta`, `otro`) y `message` listo para enseñar. No guarda el error de Google ni la clave. Una
   cancelación con `signal` llega como el `AbortError` de siempre.

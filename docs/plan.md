@@ -118,7 +118,7 @@ Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
 | T3.1 | Perfil con fotos de cara y cuerpo | T1.1 | ✅ |
-| T3.2 | Botón «Pruébatelo en Gemini» | T3.1, T2.4, S3 | ⏳ |
+| T3.2 | Botón «Pruébatelo en Gemini» | T3.1, T2.4, S3 | 👀 falta probarlo en Android con una foto real |
 
 ## Fase 4 — Publicar y probar con amigos
 

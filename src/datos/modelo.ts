@@ -148,3 +148,59 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
   claveGemini: null,
   modeloGemini: MODELO_GEMINI_POR_DEFECTO,
 }
+
+/** Colores y estampados que proponen la IA y el formulario. El modelo admite cualquier texto. */
+export const COLORES = [
+  'blanco',
+  'crudo',
+  'negro',
+  'gris',
+  'beige',
+  'camel',
+  'marrón',
+  'azul marino',
+  'azul',
+  'celeste',
+  'vaquero',
+  'verde',
+  'caqui',
+  'rojo',
+  'granate',
+  'rosa',
+  'morado',
+  'amarillo',
+  'naranja',
+  'dorado',
+  'plateado',
+] as const
+
+export const ESTAMPADOS = [
+  'liso',
+  'rayas',
+  'cuadros',
+  'lunares',
+  'flores',
+  'animal',
+  'geométrico',
+  'figurativo',
+  'gráfico / logo',
+  'camuflaje',
+  'tie-dye',
+  'otro',
+] as const
+
+/** Lo que etiqueta la IA o el formulario: la prenda sin id, fotos, fecha ni origen. */
+export const etiquetasPrendaSchema = camposPrendaSchema.pick({
+  categoria: true,
+  subcategoria: true,
+  colores: true,
+  estampado: true,
+  estilos: true,
+  abrigo: true,
+  formalidad: true,
+  ocasiones: true,
+  temporadas: true,
+  notas: true,
+})
+
+export type EtiquetasPrenda = z.infer<typeof etiquetasPrendaSchema>

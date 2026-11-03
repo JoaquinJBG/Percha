@@ -1,0 +1,28 @@
+import { describe, expect, it } from 'vitest'
+import { COLORES } from '../datos/modelo.ts'
+import { esquemaParaGemini } from './esquema.ts'
+import { aBase64 } from './fotos.ts'
+
+describe('esquema para Gemini', () => {
+  const esquema = esquemaParaGemini()
+  const texto = JSON.stringify(esquema)
+
+  it('no lleva $schema ni los límites de entero de JavaScript', () => {
+    expect(esquema).not.toHaveProperty('$schema')
+    expect(texto).not.toContain(String(Number.MAX_SAFE_INTEGER))
+  })
+
+  it('cierra los colores con la lista fija', () => {
+    expect(texto).toContain(JSON.stringify([...COLORES]))
+  })
+})
+
+describe('fotos en base64', () => {
+  it('codifica bien una foto más grande que un trozo', async () => {
+    const bytes = Uint8Array.from({ length: 70_000 }, (_, i) => i % 256)
+
+    const base64 = await aBase64(new Blob([bytes]))
+
+    expect(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))).toEqual(bytes)
+  })
+})

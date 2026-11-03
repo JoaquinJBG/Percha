@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -162,7 +162,9 @@ describe('lista del armario', () => {
         prenda({ subcategoria: 'jersey', fotos: [{ original, recortada: null }] }),
       ]),
     )
-    await screen.findByText('2 prendas')
+    await waitFor(() => {
+      expect(urls.blobs.size).toBe(2)
+    })
 
     expect([...urls.blobs.values()]).toEqual(expect.arrayContaining([recortada, original]))
     expect(urls.blobs.size).toBe(2)
@@ -170,14 +172,19 @@ describe('lista del armario', () => {
 
   it('libera las URLs de las fotos que dejan de verse y al salir', async () => {
     const { usuario, unmount } = montar(repositorio([camiseta(), vaquero(), chino()]))
-    await screen.findByText('3 prendas')
+    // Las URLs se crean y se liberan en efectos, que pueden ir un turno por detrás del DOM:
+    // se espera a ellas, no al texto que las precede.
+    await waitFor(() => {
+      expect(urls.crear).toHaveBeenCalledTimes(3)
+    })
     const creadas = urls.crear.mock.results.map((r) => r.value as string)
-    expect(creadas).toHaveLength(3)
 
     await usuario.click(screen.getByRole('button', { name: /Parte de arriba/ }))
     await screen.findByText('1 de 3 prendas')
     // Las dos del grupo de abajo ya no se ven: sus URLs se liberan.
-    expect(urls.revocar).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(urls.revocar).toHaveBeenCalledTimes(2)
+    })
 
     unmount()
 

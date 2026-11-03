@@ -207,10 +207,15 @@ describe('elegir outfits con IA', () => {
   })
 
   it.each([
-    ['respuesta inválida', new ErrorIA('respuesta'), 'respuesta'],
-    ['429 sin cupo', new ErrorIA('sin-cupo', { estado: 429 }), 'sin-cupo'],
-    ['sin red', new ErrorIA('sin-red'), 'sin-red'],
-  ] as const)('con %s devuelve las reglas con un aviso', async (_, error, tipo) => {
+    [
+      'respuesta inválida',
+      new ErrorIA('respuesta'),
+      'respuesta',
+      'Gemini ha devuelto algo que no se entiende. Prueba otra vez.',
+    ],
+    ['429 sin cupo', new ErrorIA('sin-cupo', { estado: 429 }), 'sin-cupo', null],
+    ['sin red', new ErrorIA('sin-red'), 'sin-red', null],
+  ] as const)('con %s devuelve las reglas con un aviso', async (_, error, tipo, mensaje) => {
     const proveedor = crearProveedorFalso({ error })
 
     const resultado = await elegirOutfitsConIA(trabajoConFrio, 5, { proveedor })
@@ -219,7 +224,8 @@ describe('elegir outfits con IA', () => {
     expect(resultado.errorIA).toBe(tipo)
     expect(ids(resultado.outfits)).toEqual(ids(reglas.outfits))
     expect(resultado.outfits.map((o) => o.origen)).toEqual(['reglas', 'reglas', 'reglas', 'reglas'])
-    expect(resultado.avisos).toContain(`outfits sin IA: ${error.message}`)
+    expect(resultado.avisos).toContain(`outfits sin IA: ${mensaje ?? error.message}`)
+    expect(resultado.avisos.join()).not.toContain('etiqueta a mano')
   })
 
   it('si la IA no devuelve ningún outfit con forma válida, salen las reglas', async () => {
@@ -229,6 +235,42 @@ describe('elegir outfits con IA', () => {
 
     expect(resultado.errorIA).toBe('respuesta')
     expect(resultado.outfits).toHaveLength(4)
+  })
+
+  it('si la IA responde pero no vale ninguno de sus outfits, lo avisa como respuesta inválida', async () => {
+    const proveedor = crearProveedorFalso({
+      outfits: (peticion) =>
+        outfitsDePrueba(peticion).map((o) => ({ ...o, prendas: [...o.prendas, 'inventada'] })),
+    })
+
+    const resultado = await elegirOutfitsConIA(trabajoConFrio, 1, { proveedor })
+
+    expect(resultado.errorIA).toBe('respuesta')
+    expect(resultado.outfits.map((o) => o.origen)).toEqual(['reglas', 'reglas', 'reglas', 'reglas'])
+    expect(resultado.avisos.some((a) => a.startsWith('outfits sin IA: '))).toBe(true)
+  })
+
+  it('no le manda abrigos si hoy no hacen falta ni accesorios de otro estilo, como las reglas', async () => {
+    const peticion: Peticion = {
+      prendas: [
+        prenda({ id: 'camiseta' }),
+        prenda({ id: 'vaquero', categoria: 'inferior', colores: ['vaquero'] }),
+        prenda({ id: 'zapatillas', categoria: 'calzado' }),
+        prenda({ id: 'cazadora', categoria: 'abrigo', abrigo: 3 }),
+        prenda({ id: 'gorra-rockera', categoria: 'accesorio', estilos: ['rockero'] }),
+      ],
+      estilo: 'casual',
+      ocasion: 'diario',
+      tiempo: tiempo(22),
+    }
+    const proveedor = crearProveedorFalso()
+
+    await elegirOutfitsConIA(peticion, 1, { proveedor })
+
+    const enviadas = proveedor.peticionesOutfits[0]?.prendas.map((p) => p.id)
+    expect(enviadas).toEqual(expect.arrayContaining(['camiseta', 'vaquero', 'zapatillas']))
+    expect(enviadas).not.toContain('cazadora')
+    expect(enviadas).not.toContain('gorra-rockera')
   })
 
   it('sin clave no llama a Gemini y salen las reglas con el aviso de Ajustes', async () => {

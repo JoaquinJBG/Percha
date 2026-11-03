@@ -72,7 +72,9 @@ describe('elegir outfits con Gemini', () => {
     const texto = String(partes[0]?.text)
     expect(texto).toContain('Estilo: casual')
     expect(texto).toContain('Ocasión: diario')
-    expect(texto).toContain('Tiempo: 12 °C de sensación, lluvia, otoño. Hace falta abrigo.')
+    expect(texto).toContain(
+      'Tiempo: 12 °C de sensación, lluvia, otoño. Haría falta abrigo, pero no hay',
+    )
     expect(texto).toContain('P1 · superior · camiseta · blanco · liso')
     expect(texto).toContain('P3 · calzado · zapatillas')
     expect(texto).not.toContain('uuid-')
@@ -82,6 +84,28 @@ describe('elegir outfits con Gemini', () => {
       responseJsonSchema: esquemaOutfitsParaGemini(),
       seed: 7,
     })
+  })
+
+  it('dice si hace falta abrigo y recorta las notas largas', async () => {
+    const { proveedor, peticiones } = montar(() =>
+      Promise.resolve({ outfits: [{ prendas: ['P1'], porque: 'Vale.' }] }),
+    )
+    const conAbrigo: PeticionOutfits = {
+      ...peticion,
+      prendas: [
+        ...peticion.prendas,
+        { ...prenda('uuid-gabardina', 'abrigo'), notas: `algodón\n${'x'.repeat(500)}` },
+      ],
+    }
+
+    await proveedor.elegirOutfits(conAbrigo)
+
+    const partes = (peticiones[0]?.contents as { parts: { text: string }[] }[])[0]?.parts ?? []
+    const texto = partes[0]?.text ?? ''
+    expect(texto).toContain('otoño. Hace falta abrigo.')
+    const linea = texto.split('\n').find((l) => l.startsWith('P4 ')) ?? ''
+    expect(linea).toContain('algodón x')
+    expect(linea.length).toBeLessThan(220)
   })
 
   it('devuelve los ids de las prendas y la frase de cada outfit', async () => {

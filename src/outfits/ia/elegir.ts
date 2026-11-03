@@ -10,6 +10,7 @@ import {
 } from '../reglas/index.ts'
 import type {
   Candidato,
+  Contexto,
   OutfitReglas,
   Peticion,
   PrendaReglas,
@@ -43,13 +44,32 @@ function esCancelacion(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-/** Como las reglas: plenas si las hay en la categoría; si no, también las parciales. */
-function paraLaIA<P extends PrendaReglas>(lista: readonly Candidato<P>[]): Candidato<P>[] {
+/**
+ * Lo mismo que usarían las reglas: plenas si las hay en la categoría (si no, también las parciales),
+ * abrigos solo si hoy hacen falta y accesorios solo plenos.
+ */
+function paraLaIA<P extends PrendaReglas>(
+  lista: readonly Candidato<P>[],
+  contexto: Contexto,
+): Candidato<P>[] {
   const conPlenas = new Set<Categoria>(
     lista.filter((c) => c.ajuste === 'pleno').map((c) => c.prenda.categoria),
   )
-  const utiles = lista.filter((c) => c.ajuste === 'pleno' || !conPlenas.has(c.prenda.categoria))
+  const utiles = lista.filter(({ prenda, ajuste }) => {
+    if (prenda.categoria === 'abrigo' && !contexto.necesitaAbrigo) return false
+    if (prenda.categoria === 'accesorio') return ajuste === 'pleno'
+    return ajuste === 'pleno' || !conPlenas.has(prenda.categoria)
+  })
   return mejoresPorCategoria(utiles, MAX_POR_CATEGORIA)
+}
+
+function avisoSinIA(error: ErrorIA): string {
+  // El mensaje de `respuesta` habla de etiquetar a mano, que aquí no pinta.
+  const mensaje =
+    error.tipo === 'respuesta'
+      ? 'Gemini ha devuelto algo que no se entiende. Prueba otra vez.'
+      : error.message
+  return `outfits sin IA: ${mensaje}`
 }
 
 function aTexto({
@@ -99,7 +119,7 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
   if (deReglas.length === 0) return { ...reglas, outfits: deReglas, errorIA: null }
 
   const resultado = candidatos(peticion)
-  const enviadas = paraLaIA(resultado.candidatos)
+  const enviadas = paraLaIA(resultado.candidatos, resultado.contexto)
   const soloEnviadas: ResultadoCandidatos<P> = { ...resultado, candidatos: enviadas }
 
   let propuestas
@@ -121,7 +141,7 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
     return {
       ...reglas,
       outfits: deReglas,
-      avisos: [...reglas.avisos, `outfits sin IA: ${errorIA.message}`],
+      avisos: [...reglas.avisos, avisoSinIA(errorIA)],
       errorIA: errorIA.tipo,
     }
   }
@@ -146,6 +166,7 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
       origen: 'ia',
     })
   }
+  const ningunoValido = outfits.length === 0
   // Para rellenar, primero los de reglas cuya parte de arriba (o vestido) aún no sale.
   const principales = new Set(outfits.map((o) => o.principal.id))
   const relleno = [
@@ -162,7 +183,11 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
   return {
     contexto: reglas.contexto,
     outfits,
-    avisos: [...resultado.avisos, ...avisoDeCuantos(outfits.length)],
-    errorIA: null,
+    avisos: [
+      ...resultado.avisos,
+      ...avisoDeCuantos(outfits.length),
+      ...(ningunoValido ? [avisoSinIA(new ErrorIA('respuesta'))] : []),
+    ],
+    errorIA: ningunoValido ? 'respuesta' : null,
   }
 }

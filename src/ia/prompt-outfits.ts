@@ -17,13 +17,23 @@ Respeta el estilo y la ocasión. Colores con sentido: neutros con todo, como muc
 prenda estampada.
 En «porque», una frase corta (máximo 20 palabras), de tú, que diga por qué funciona hoy.`
 
-function textoTiempo({ tiempo }: PeticionOutfits): string {
+/** Las notas son texto libre: sin tope, una sola prenda podría inflar el prompt. */
+const MAX_LARGO_NOTAS = 120
+
+function textoTiempo(peticion: PeticionOutfits): string {
+  const { tiempo } = peticion
   const partes: string[] = []
   if (tiempo.temperatura !== null) partes.push(`${String(tiempo.temperatura)} °C de sensación`)
   if (tiempo.precipitacion) partes.push(tiempo.precipitacion)
   if (tiempo.temporada) partes.push(tiempo.temporada)
   const dia = partes.length > 0 ? partes.join(', ') : 'no se sabe'
-  return `${dia}. ${tiempo.necesitaAbrigo ? 'Hace falta abrigo.' : 'No hace falta abrigo.'}`
+  const hayAbrigo = peticion.prendas.some((p) => p.categoria === 'abrigo')
+  const abrigo = !tiempo.necesitaAbrigo
+    ? 'No hace falta abrigo.'
+    : hayAbrigo
+      ? 'Hace falta abrigo.'
+      : 'Haría falta abrigo, pero no hay ninguno en la lista: no lo pongas.'
+  return `${dia}. ${abrigo}`
 }
 
 function textoPrenda(referencia: string, prenda: PrendaParaOutfit): string {
@@ -37,7 +47,7 @@ function textoPrenda(referencia: string, prenda: PrendaParaOutfit): string {
     `abrigo ${String(prenda.abrigo)}/5`,
     `formalidad ${String(prenda.formalidad)}/5`,
   ]
-  const notas = prenda.notas.replace(/\s+/g, ' ').trim()
+  const notas = prenda.notas.replace(/\s+/g, ' ').trim().slice(0, MAX_LARGO_NOTAS)
   if (notas) partes.push(notas)
   return partes.join(' · ')
 }

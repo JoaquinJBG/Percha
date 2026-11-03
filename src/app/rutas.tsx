@@ -1,6 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { Ajustes } from '../pantallas/Ajustes.tsx'
-import { Armario } from '../pantallas/Armario.tsx'
+import { Armario } from '../pantallas/armario/Armario.tsx'
 import { Outfits } from '../pantallas/Outfits.tsx'
 import { Perfil } from '../pantallas/Perfil.tsx'
 import { Layout } from './Layout.tsx'

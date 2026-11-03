@@ -100,7 +100,7 @@ ellas va a T1.5.
 | T2.2 | Motor de candidatos por reglas (tiempo, ocasión, formalidad) + 4 outfits sin IA | T1.1 | ✅ |
 | T2.3 | Selección de 4 outfits con IA y su explicación (lógica, sin UI) | T2.2, T1.3 | ✅ |
 | T2.4 | Pantalla Outfits: estilo, ocasión, tiempo, generar con reglas; collage 2×2; guardar, descargar y compartir | T2.2 | ✅ |
-| T2.5 | Conectar la IA de T2.3 a la pantalla de T2.4 (con las reglas de respaldo) | T2.3, T2.4 | 👀 |
+| T2.5 | Conectar la IA de T2.3 a la pantalla de T2.4 (con las reglas de respaldo) | T2.3, T2.4 | ✅ |
 
 **Tanda siguiente, en paralelo:** T1.5, T2.3, T2.4 y T3.1, cada una en su zona:
 
@@ -118,11 +118,11 @@ Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
 | T3.1 | Perfil con fotos de cara y cuerpo | T1.1 | ✅ |
-| T3.2 | Botón «Pruébatelo en Gemini» | T3.1, T2.4, S3 | 👀 falta probarlo en Android con una foto real |
+| T3.2 | Botón «Pruébatelo en Gemini» | T3.1, T2.4, S3 | ✅ |
 
 ## Fase 4 — Publicar y probar con amigos
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T4.1 | Alojar gratis en Cloudflare Workers ([`despliegue.md`](despliegue.md)) y guía para instalarla en Android ([`guia-movil.md`](guia-movil.md)) | — | 👀 falta que el usuario cree el proyecto en Cloudflare |
+| T4.1 | Alojar gratis en Cloudflare Workers ([`despliegue.md`](despliegue.md)) y guía para instalarla en Android ([`guia-movil.md`](guia-movil.md)) | — | ✅ |
 | T4.2 | Guía para conseguir la clave gratis de Gemini: en [`guia-movil.md`](guia-movil.md) y enlace en Ajustes | T1.3 | ✅ |

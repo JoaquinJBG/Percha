@@ -3,7 +3,7 @@
 Percha es una web estática: no hay servidor ni base de datos en la nube. Se aloja **gratis** en
 **Cloudflare Workers** (archivos estáticos) y se publica sola con cada push a `main`.
 
-- **URL:** `https://percha.<tu-subdominio>.workers.dev` (el subdominio lo elige Cloudflare al crear la cuenta).
+- **URL:** <https://percha.joaquinjesusbeltrangarcia.workers.dev>
 - **Cuenta:** la Cloudflare del usuario, conectada al repo privado `JoaquinJBG/Percha` de GitHub.
 - **Coste:** 0 €. El plan gratis de Workers sirve archivos estáticos sin límite de peticiones; lo único
   limitado son los ficheros (25 MiB cada uno y 20.000 en total), y Percha queda muy por debajo.
@@ -36,15 +36,13 @@ Cloudflare. Los nombres de los menús pueden variar un poco.
    | Deploy command | `npx wrangler deploy` |
    | Root directory | (vacío) |
 
-5. En **Variables** (o *Advanced settings → Build variables*) añade `SKIP_DEPENDENCY_INSTALL` = `1`, para que
-   Cloudflare no intente instalar con su propio pnpm (el build ya instala con la versión del repo).
-6. **Deploy**. El primer build tarda unos minutos. Al acabar, copia la URL `…workers.dev` que te enseña.
+5. **Deploy**. El primer build tarda unos minutos. Al acabar, copia la URL `…workers.dev` que te enseña.
 
 Desde ese momento, **cada push a `main` publica la versión nueva sola**. Las otras ramas no se publican
 (si Cloudflare ofrece «previews» de ramas, se pueden dejar desactivadas).
 
 **Si la pestaña Workers no deja importar el repo**, Cloudflare Pages también vale: *Pages → Connect to
-Git*, mismo build command, **Build output directory** `dist`, la misma variable, y sin deploy command.
+Git*, mismo build command, **Build output directory** `dist` y sin deploy command.
 Pages lee `public/_headers` y, al no haber `404.html`, ya sirve `index.html` en cualquier ruta.
 
 ## Probar que va bien
@@ -55,3 +53,6 @@ En Chrome del móvil, abre la URL:
 2. En **Armario → Añadir prenda**, la cámara funciona (hace falta HTTPS, y `workers.dev` lo tiene).
 3. El recorte avisa «Cargando el recortador» la primera vez y después tarda unos segundos.
 4. Si cambias de pantalla y recargas en `/prendas/nueva`, la app sigue cargando (no sale un 404).
+
+Cloudflare detecta Node 22 (`.node-version`) y pnpm 12.16.1 (`packageManager`) por su cuenta y los instala
+antes del build; no hace falta ninguna variable.

@@ -1,23 +1,53 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { proveedorConClave, type ObtenerProveedor } from '../../componentes/etiquetado-ia/index.ts'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
-import type { Prenda } from '../../datos/modelo.ts'
-import { borrarPrenda, listarPrendas, type FiltrosPrendas } from '../../datos/repositorio.ts'
+import type { CambiosPrenda, Prenda } from '../../datos/modelo.ts'
+import {
+  actualizarPrenda,
+  borrarPrenda,
+  listarPrendas,
+  type FiltrosPrendas,
+} from '../../datos/repositorio.ts'
 import { aFiltrosPrendas, contar, hayFiltros, SIN_FILTROS, type Filtros } from './ayudas.ts'
 import { DetallePrenda } from './DetallePrenda.tsx'
+import { EditarPrenda } from './EditarPrenda.tsx'
 import { FiltrosArmario } from './FiltrosArmario.tsx'
 import { RejillaPrendas } from './RejillaPrendas.tsx'
 
-/** `listar` y `borrar` son para los tests; si se pasan, que no cambien en cada render o se recarga sin fin. */
+/** Las props son para los tests; `listar`, si se pasa, que no cambie en cada render o se recarga sin fin. */
 interface Props {
   listar?: (filtros?: FiltrosPrendas) => Promise<Prenda[]>
   borrar?: (id: string) => Promise<void>
+  actualizar?: (id: string, cambios: CambiosPrenda) => Promise<Prenda>
+  obtenerProveedor?: ObtenerProveedor
 }
 
-/** El detalle va en la URL (`/?prenda=<id>`) para que el botón «atrás» del móvil lo cierre. */
+/**
+ * El detalle va en la URL (`/?prenda=<id>`) y la edición también (`&editar=1`), para que el botón
+ * «atrás» del móvil los cierre.
+ */
 const PARAMETRO_PRENDA = 'prenda'
+const PARAMETRO_EDITAR = 'editar'
 
-export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props) {
+const botonAñadir =
+  'flex min-h-12 items-center justify-center gap-2 rounded-xl bg-tinta px-4 font-medium text-papel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+
+function esEstadoCon(estado: unknown, clave: string): boolean {
+  return (
+    typeof estado === 'object' &&
+    estado !== null &&
+    clave in estado &&
+    Boolean((estado as Record<string, unknown>)[clave])
+  )
+}
+
+export function Armario({
+  listar = listarPrendas,
+  borrar = borrarPrenda,
+  actualizar = actualizarPrenda,
+  obtenerProveedor = proveedorConClave,
+}: Props) {
   const [todas, setTodas] = useState<Prenda[] | null>(null)
   // Solo los ids: las fotos salen siempre de `todas`, así las que siguen a la vista no recrean su URL.
   const [idsFiltrados, setIdsFiltrados] = useState<Set<string> | null>(null)
@@ -29,6 +59,7 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
   const ubicacion = useLocation()
 
   const idDetalle = parametros.get(PARAMETRO_PRENDA)
+  const editando = idDetalle !== null && parametros.get(PARAMETRO_EDITAR) === '1'
   const filtrando = hayFiltros(filtros)
   // Qué detalle sigue abierto, para que dos toques en «volver» o un borrado que acaba tarde no
   // retrocedan dos veces y saquen al usuario de la app.
@@ -93,11 +124,26 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
   function cerrar(id: string) {
     if (detalleAbierto.current !== id) return
     detalleAbierto.current = null
-    const estado: unknown = ubicacion.state
-    const desdeLista =
-      typeof estado === 'object' && estado !== null && 'desdeLista' in estado && estado.desdeLista
-    if (desdeLista) void navegar(-1)
+    if (esEstadoCon(ubicacion.state, 'desdeLista')) void navegar(-1)
     else setParametros({}, { replace: true })
+  }
+
+  function editar(prenda: Prenda) {
+    setParametros(
+      { [PARAMETRO_PRENDA]: prenda.id, [PARAMETRO_EDITAR]: '1' },
+      { state: { desdeDetalle: true } },
+    )
+  }
+
+  function cerrarEdicion(id: string) {
+    if (esEstadoCon(ubicacion.state, 'desdeDetalle')) void navegar(-1)
+    else setParametros({ [PARAMETRO_PRENDA]: id }, { replace: true })
+  }
+
+  async function guardarEdicion(id: string, cambios: CambiosPrenda) {
+    const guardada = await actualizar(id, cambios)
+    setTodas((actuales) => actuales?.map((p) => (p.id === id ? guardada : p)) ?? null)
+    cerrarEdicion(id)
   }
 
   async function borrarDetalle(id: string) {
@@ -123,11 +169,21 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
           <p className="text-suave">
             Añade tu primera prenda con una foto: Percha la recorta y la etiqueta por ti.
           </p>
+          <Link to="/prendas/nueva" className={`${botonAñadir} mt-2`}>
+            Añadir prenda
+          </Link>
         </div>
       )}
 
       {todas && todas.length > 0 && (
         <div inert={idDetalle !== null} className="contents">
+          <Link to="/prendas/nueva" className={botonAñadir}>
+            <span aria-hidden="true" className="text-xl leading-none">
+              +
+            </span>
+            Añadir prenda
+          </Link>
+
           <FiltrosArmario prendas={todas} filtros={filtros} onCambiar={cambiarFiltros} />
 
           {borrada !== null && (
@@ -163,14 +219,27 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
         </div>
       )}
 
-      {/* T1.5: pasa `onEditar` a DetallePrenda para abrir el formulario de T1.3 desde aquí. */}
-      {todas && idDetalle !== null && idDetalle !== borrada && (
+      {todas && idDetalle !== null && idDetalle !== borrada && editando && prendaDetalle && (
+        <EditarPrenda
+          // Si cambia la prenda (otro enlace), el formulario empieza de cero.
+          key={prendaDetalle.id}
+          prenda={prendaDetalle}
+          obtenerProveedor={obtenerProveedor}
+          onVolver={() => {
+            cerrarEdicion(idDetalle)
+          }}
+          onGuardar={(cambios) => guardarEdicion(idDetalle, cambios)}
+        />
+      )}
+
+      {todas && idDetalle !== null && idDetalle !== borrada && !(editando && prendaDetalle) && (
         <DetallePrenda
           prenda={prendaDetalle}
           onVolver={() => {
             cerrar(idDetalle)
           }}
           onBorrar={borrarDetalle}
+          onEditar={editar}
         />
       )}
     </Pantalla>

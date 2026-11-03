@@ -45,7 +45,8 @@ export function CopiaArmario() {
     try {
       descargar(await exportarCopia(), nombreFicheroCopia())
       setEstado({ fase: 'hecho', texto: 'Copia descargada.' })
-    } catch {
+    } catch (error) {
+      console.error(error)
       setEstado({ fase: 'error', texto: 'No se pudo preparar la copia.' })
     }
   }
@@ -59,6 +60,7 @@ export function CopiaArmario() {
         texto: `Copia importada: ${contar(prendas, 'prenda', 'prendas')} y ${contar(outfits, 'outfit', 'outfits')}.`,
       })
     } catch (error) {
+      if (!(error instanceof ErrorCopia)) console.error(error)
       setEstado({
         fase: 'error',
         texto: error instanceof ErrorCopia ? error.message : 'No se pudo importar la copia.',
@@ -96,7 +98,6 @@ export function CopiaArmario() {
       <input
         ref={selector}
         type="file"
-        accept=".zip,application/zip"
         aria-label="Fichero de copia"
         className="hidden"
         onChange={(evento) => {
@@ -123,7 +124,8 @@ export function CopiaArmario() {
             Fusionar con lo que tengo
           </button>
           <p className="-mt-1 text-sm text-suave">
-            Añade lo de la copia. Si una prenda ya está, se queda la versión de la copia.
+            Añade lo de la copia. Si algo ya está, se queda la versión de la copia; lo que falte en
+            ella no se borra.
           </p>
           <button
             type="button"

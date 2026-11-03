@@ -248,4 +248,69 @@ describe('copias que no valen', () => {
     const copia = await retocar(await exportarCopia(), () => undefined, ['fotos/1.jpg'])
     await esperarRechazo(copia, MENSAJE_COPIA_DANADA)
   })
+
+  it('una ruta de foto que no es un fichero del zip', async () => {
+    const copia = await retocar(await exportarCopia(), (json) => {
+      const [prenda] = json.prendas as { fotos: { original: { ruta: string } }[] }[]
+      const [foto] = prenda?.fotos ?? []
+      if (foto) foto.original.ruta = 'toString'
+    })
+    await esperarRechazo(copia, MENSAJE_COPIA_DANADA)
+  })
+})
+
+describe('copias manipuladas que se importan con cuidado', () => {
+  it('una foto con un tipo que no es de imagen se guarda como binario', async () => {
+    const { camiseta } = await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      for (const prenda of json.prendas as { fotos: { original: { tipo: string } }[] }[]) {
+        for (const foto of prenda.fotos) foto.original.tipo = 'text/html'
+      }
+    })
+
+    await importarCopia(copia, 'reemplazar')
+
+    expect((await leerPrenda(camiseta.id))?.fotos[0]?.original.type).toBe(
+      'application/octet-stream',
+    )
+  })
+
+  it('una prenda repetida cuenta una vez', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      const prendas = json.prendas as unknown[]
+      json.prendas = [...prendas, prendas[0]]
+    })
+
+    expect(await importarCopia(copia, 'reemplazar')).toEqual({ prendas: 2, outfits: 1 })
+    expect(await db.prendas.count()).toBe(2)
+  })
+
+  it('los ficheros que no son de Percha se ignoran', async () => {
+    await sembrar()
+    const ficheros = unzipSync(new Uint8Array(await (await exportarCopia()).arrayBuffer()))
+    ficheros['otra/cosa.bin'] = new Uint8Array(1000)
+
+    expect(await importarCopia(new Blob([zipSync(ficheros)]), 'reemplazar')).toEqual({
+      prendas: 2,
+      outfits: 1,
+    })
+  })
+})
+
+describe('fusionar el perfil', () => {
+  it('no borra con un campo vacío de la copia lo que ya hay en el móvil', async () => {
+    await guardarPerfil({ ciudad: 'Valencia' })
+    const copia = await exportarCopia()
+    await guardarPerfil({ ciudad: 'Bilbao', fotoCara: imagen(9), estilosFavoritos: ['boho'] })
+
+    await importarCopia(copia, 'fusionar')
+
+    expect(await sinBlobs(await leerPerfil())).toEqual({
+      fotoCara: await sinBlobs(imagen(9)),
+      fotoCuerpo: null,
+      ciudad: 'Valencia',
+      estilosFavoritos: ['boho'],
+    })
+  })
 })

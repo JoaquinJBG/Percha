@@ -22,7 +22,10 @@ export class ErrorCopia extends Error {
   override name = 'ErrorCopia'
 }
 
-/** `reemplazar` borra prendas, outfits y perfil antes; `fusionar` añade y, si el `id` coincide, gana la copia. */
+/**
+ * `reemplazar` borra prendas, outfits y perfil antes; `fusionar` añade y, si el `id` coincide, gana la
+ * copia (en el perfil, campo a campo y sin pisar con un campo vacío).
+ */
 export type ModoImportar = 'reemplazar' | 'fusionar'
 
 export interface ResumenImportacion {
@@ -146,19 +149,43 @@ export async function importarCopia(
     }
     await db.prendas.bulkPut(prendas)
     await db.outfits.bulkPut(outfits)
-    if (perfil) await db.perfil.put(perfil, FILA_UNICA)
+    if (perfil) {
+      const local = modo === 'fusionar' ? await db.perfil.get(FILA_UNICA) : undefined
+      await db.perfil.put(local ? fusionarPerfil(local, perfil) : perfil, FILA_UNICA)
+    }
     const ajustes = (await db.ajustes.get(FILA_UNICA)) ?? AJUSTES_POR_DEFECTO
     await db.ajustes.put({ ...ajustes, modeloGemini }, FILA_UNICA)
   })
 
-  return { prendas: prendas.length, outfits: outfits.length }
+  return {
+    prendas: new Set(prendas.map(({ id }) => id)).size,
+    outfits: new Set(outfits.map(({ id }) => id)).size,
+  }
 }
+
+/** Al fusionar, un campo vacío en la copia no borra lo que ya hay en el móvil (p. ej. la foto de cara). */
+function fusionarPerfil(local: Perfil, copia: Perfil): Perfil {
+  return {
+    fotoCara: copia.fotoCara ?? local.fotoCara,
+    fotoCuerpo: copia.fotoCuerpo ?? local.fotoCuerpo,
+    ciudad: copia.ciudad || local.ciudad,
+    estilosFavoritos:
+      copia.estilosFavoritos.length > 0 ? copia.estilosFavoritos : local.estilosFavoritos,
+  }
+}
+
+const TIPOS_IMAGEN = new Set(Object.keys(EXTENSIONES))
+const MAX_BYTES_FICHERO = 64 * 1024 * 1024
 
 function leerCopia(bytes: Uint8Array) {
   let zip: Unzipped
   let json: unknown
   try {
-    zip = unzipSync(bytes)
+    // Solo se descomprime lo que usa Percha, y con tope, para que un zip manipulado no tumbe la pestaña.
+    zip = unzipSync(bytes, {
+      filter: ({ name, originalSize }) =>
+        (name === MANIFIESTO || name.startsWith('fotos/')) && originalSize <= MAX_BYTES_FICHERO,
+    })
     const manifiesto = zip[MANIFIESTO]
     if (!manifiesto) throw new Error(`Falta ${MANIFIESTO}`)
     json = JSON.parse(strFromU8(manifiesto))
@@ -185,9 +212,10 @@ function leerCopia(bytes: Uint8Array) {
   const manifiesto = resultado.data
 
   function sacarBlob({ ruta, tipo }: RefBlob): Blob {
-    const datos = zip[ruta]
+    const datos = Object.hasOwn(zip, ruta) ? zip[ruta] : undefined
     if (!datos) throw new ErrorCopia(MENSAJE_COPIA_DANADA, { cause: new Error(`Falta ${ruta}`) })
-    return new Blob([datos], { type: tipo })
+    // Un tipo que no es de imagen (p. ej. text/html) podría ejecutarse si alguien abre la foto.
+    return new Blob([datos], { type: TIPOS_IMAGEN.has(tipo) ? tipo : 'application/octet-stream' })
   }
   function sacarBlobOpcional(ref: RefBlob | null): Blob | null {
     return ref ? sacarBlob(ref) : null

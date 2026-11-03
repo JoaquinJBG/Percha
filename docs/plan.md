@@ -66,7 +66,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | 👀 |
+| T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | ✅ |
 | T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ⏳ |
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ⏳ |
 | T1.4 | Lista del armario con filtros, editar y borrar | T1.1 | ⏳ |
@@ -78,7 +78,7 @@ T1.2, T1.3 y T1.4 van en paralelo cuando T1.1 esté en `main` (zonas distintas: 
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T2.1 | Tiempo: geolocalización o ciudad, con Open-Meteo | T0.1 | 👀 |
+| T2.1 | Tiempo: geolocalización o ciudad, con Open-Meteo | T0.1 | ✅ |
 | T2.2 | Motor de candidatos por reglas (tiempo, ocasión, formalidad) + 4 outfits sin IA | T1.1 | ⏳ |
 | T2.3 | Selección de 4 outfits con IA y su explicación | T2.2, T1.3 | ⏳ |
 | T2.4 | Collage 2×2 en canvas; guardar, descargar y compartir | T2.2 | ⏳ |

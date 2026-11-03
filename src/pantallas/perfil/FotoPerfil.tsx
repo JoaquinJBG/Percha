@@ -45,7 +45,7 @@ export function FotoPerfil({ id, titulo, foto, camara, ocupada, onElegir, onBorr
           <FotoBlob
             blob={foto}
             alt={`Tu foto: ${titulo.toLocaleLowerCase('es')}`}
-            className={`h-full w-full object-cover ${ocupada ? 'opacity-60' : ''}`}
+            className={`h-full w-full object-contain ${ocupada ? 'opacity-60' : ''}`}
           />
         ) : (
           <p className="p-3 text-center text-sm text-suave">{ocupada ? '' : 'Sin foto'}</p>

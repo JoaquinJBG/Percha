@@ -34,6 +34,9 @@ export async function normalizarFoto(foto: Blob): Promise<Blob> {
     const lienzo = new OffscreenCanvas(ancho, alto)
     const ctx = lienzo.getContext('2d')
     if (!ctx) throw new ErrorFoto('No se pudo preparar la foto.')
+    // Un PNG transparente pasado a JPEG saldría con el fondo negro.
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, ancho, alto)
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(mapa, 0, 0, ancho, alto)
     return await lienzo.convertToBlob({ type: 'image/jpeg', quality: CALIDAD_JPEG })

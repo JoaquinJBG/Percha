@@ -19,6 +19,7 @@ interface Motor {
 }
 
 interface Cargado {
+  motor: Motor
   modelo: PreTrainedModel
   procesador: Processor
 }
@@ -30,6 +31,7 @@ interface NavegadorConGPU {
 /** WebGPU primero (fp16 si la GPU lo admite) y WASM q8 de respaldo: pesa la mitad y recorta igual. */
 async function motoresPosibles(): Promise<Motor[]> {
   const wasm: Motor = { device: 'wasm', dtype: 'q8' }
+  if (webgpuRoto) return [wasm]
   try {
     const adaptador = await (navigator as NavegadorConGPU).gpu?.requestAdapter()
     if (!adaptador) return [wasm]
@@ -80,10 +82,11 @@ async function cargarCon(
     },
     progress_callback,
   })
-  return { modelo, procesador }
+  return { motor, modelo, procesador }
 }
 
 let carga: Promise<Cargado> | null = null
+let webgpuRoto = false
 
 /** Carga el modelo una vez por worker. Si falla, se olvida para poder reintentarlo. */
 export function cargarModelo(avisar: (progreso: ProgresoCarga) => void): Promise<Cargado> {
@@ -107,17 +110,35 @@ export function cargarModelo(avisar: (progreso: ProgresoCarga) => void): Promise
   return carga
 }
 
+/**
+ * WebGPU puede cargar bien y fallar al recortar (GPU perdida al pasar la app a segundo plano, sin
+ * memoria): entonces se descarta y se repite con WASM.
+ */
 export async function recortarFoto(
   foto: Blob,
   avisar: (progreso: ProgresoCarga) => void,
 ): Promise<Blob> {
-  const { modelo, procesador } = await cargarModelo(avisar)
+  const cargado = await cargarModelo(avisar)
+  try {
+    return await recortarCon(cargado, foto)
+  } catch (error) {
+    if (cargado.motor.device !== 'webgpu') throw error
+    console.warn('El recorte con WebGPU ha fallado; se pasa a WASM', error)
+    webgpuRoto = true
+    carga = null
+    return recortarCon(await cargarModelo(avisar), foto)
+  }
+}
 
+async function recortarCon({ modelo, procesador }: Cargado, foto: Blob): Promise<Blob> {
   const mapa = await createImageBitmap(foto)
   const { width, height } = mapa
   const lienzo = new OffscreenCanvas(width, height)
   const ctx = lienzo.getContext('2d')
-  if (!ctx) throw new Error('Sin contexto 2D')
+  if (!ctx) {
+    mapa.close()
+    throw new Error('Sin contexto 2D')
+  }
   ctx.drawImage(mapa, 0, 0)
   mapa.close()
   const pixeles = ctx.getImageData(0, 0, width, height)

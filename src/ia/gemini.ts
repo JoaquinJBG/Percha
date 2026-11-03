@@ -1,12 +1,16 @@
 import type { GenerateContentParameters, GetModelParameters, Part } from '@google/genai'
 import { ErrorIA, traducirError } from './errores.ts'
 import { esquemaParaGemini, leerRespuesta } from './esquema.ts'
+import { esquemaOutfitsParaGemini, leerRespuestaOutfits, referencias } from './esquema-outfits.ts'
 import { prepararFoto as prepararFotoPorDefecto, type FotoParaIA } from './fotos.ts'
 import { INSTRUCCION_ETIQUETADO, textoPrenda } from './prompt.ts'
+import { INSTRUCCION_OUTFITS, textoPeticionOutfits } from './prompt-outfits.ts'
 import {
   MAX_PRENDAS_POR_PETICION,
   type OpcionesPeticion,
+  type PeticionOutfits,
   type PrendaAEtiquetar,
+  type PropuestaOutfit,
   type ProveedorIA,
   type ResultadoEtiquetado,
 } from './tipos.ts'
@@ -87,6 +91,31 @@ export function crearProveedorGemini({
         return respuesta.text ?? ''
       })
       return leerRespuesta(texto, prendas.length)
+    },
+
+    async elegirOutfits(
+      peticion: PeticionOutfits,
+      { signal }: OpcionesPeticion = {},
+    ): Promise<PropuestaOutfit[]> {
+      const refs = referencias(peticion.prendas.length)
+      const idPorReferencia = new Map(refs.map((ref, i) => [ref, peticion.prendas[i]?.id ?? '']))
+      const semilla = peticion.semilla
+      const texto = await llamar(async (cliente) => {
+        const respuesta = await cliente.generateContent({
+          model: modelo,
+          contents: [{ role: 'user', parts: [{ text: textoPeticionOutfits(peticion, refs) }] }],
+          config: {
+            systemInstruction: INSTRUCCION_OUTFITS,
+            responseMimeType: 'application/json',
+            responseJsonSchema: esquemaOutfitsParaGemini(),
+            ...(semilla !== undefined &&
+              Number.isFinite(semilla) && { seed: Math.trunc(semilla) | 0 }),
+            ...(signal && { abortSignal: signal }),
+          },
+        })
+        return respuesta.text ?? ''
+      })
+      return leerRespuestaOutfits(texto, idPorReferencia)
     },
 
     async comprobarClave({ signal }: OpcionesPeticion = {}): Promise<void> {

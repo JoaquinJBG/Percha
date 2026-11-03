@@ -1,4 +1,5 @@
-import type { EtiquetasPrenda } from '../datos/modelo.ts'
+import type { Estilo, EtiquetasPrenda, Ocasion, Temporada } from '../datos/modelo.ts'
+import type { Precipitacion } from '../tiempo/tipos.ts'
 
 /** Lotes de hasta 5 prendas: con más, la respuesta tarda y puede degradarse (S2). */
 export const MAX_PRENDAS_POR_PETICION = 5
@@ -15,12 +16,55 @@ export interface OpcionesPeticion {
   signal?: AbortSignal
 }
 
+/** Una prenda candidata para un outfit: solo su id y sus etiquetas, sin fotos (ahorra cupo). */
+export type PrendaParaOutfit = Pick<
+  EtiquetasPrenda,
+  | 'categoria'
+  | 'subcategoria'
+  | 'colores'
+  | 'estampado'
+  | 'estilos'
+  | 'abrigo'
+  | 'formalidad'
+  | 'notas'
+> & { id: string }
+
+/** Lo que importa del día para vestirse; encaja con el `Contexto` de `src/outfits/reglas/`. */
+export interface TiempoParaOutfits {
+  /** Sensación térmica media en °C; `null` si no se sabe. */
+  temperatura: number | null
+  precipitacion: Precipitacion | null
+  necesitaAbrigo: boolean
+  temporada: Temporada | null
+}
+
+export interface PeticionOutfits {
+  /** Las candidatas que ya han pasado las reglas. */
+  prendas: readonly PrendaParaOutfit[]
+  estilo: Estilo
+  ocasion: Ocasion
+  tiempo: TiempoParaOutfits
+  /** Otra semilla, otra tanda. */
+  semilla?: number
+}
+
+/** Un outfit propuesto por la IA: ids de prendas (sin comprobar) y una frase de por qué. */
+export interface PropuestaOutfit {
+  prendas: string[]
+  porque: string
+}
+
 export interface ProveedorIA {
   /** Lanza `ErrorIA` si no se puede etiquetar ninguna; `RangeError` si el lote no vale. */
   etiquetarPrendas(
     prendas: PrendaAEtiquetar[],
     opciones?: OpcionesPeticion,
   ): Promise<ResultadoEtiquetado>
+  /**
+   * Hasta 4 outfits elegidos entre las prendas de la petición, en una petición sin fotos. Los ids no se
+   * comprueban: eso lo hace quien llama. Lanza `ErrorIA` si no llega ninguno con forma válida.
+   */
+  elegirOutfits(peticion: PeticionOutfits, opciones?: OpcionesPeticion): Promise<PropuestaOutfit[]>
   /** Se resuelve si la clave y el modelo valen; si no, lanza `ErrorIA`. */
   comprobarClave(opciones?: OpcionesPeticion): Promise<void>
 }

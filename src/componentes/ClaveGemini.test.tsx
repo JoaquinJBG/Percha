@@ -96,6 +96,28 @@ describe('clave de Gemini en Ajustes', () => {
     expect(crearProveedor).not.toHaveBeenCalled()
   })
 
+  it('rechaza una clave con espacios o caracteres raros sin llamar a Gemini', async () => {
+    const { usuario, crearProveedor } = montar()
+
+    await pegarYGuardar(usuario, 'clave\u200bfalsa')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('caracteres raros')
+    expect(crearProveedor).not.toHaveBeenCalled()
+    expect((await leerAjustes()).claveGemini).toBeNull()
+  })
+
+  it('comprueba con el modelo que haya guardado en ese momento', async () => {
+    await guardarAjustes({ claveGemini: CLAVE_FALSA })
+    const { usuario, crearProveedor } = montar()
+    await screen.findByRole('button', { name: 'Comprobar' })
+    await guardarAjustes({ modeloGemini: 'gemini-importado' })
+
+    await usuario.click(screen.getByRole('button', { name: 'Comprobar' }))
+
+    await screen.findByText('Gemini acepta tu clave.')
+    expect(crearProveedor).toHaveBeenCalledWith(CLAVE_FALSA, 'gemini-importado')
+  })
+
   it('comprueba la clave guardada', async () => {
     await guardarAjustes({ claveGemini: CLAVE_FALSA })
     const { usuario, proveedor } = montar()

@@ -47,6 +47,11 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
     }
   }, [])
 
+  // Se relee por si otra parte de Ajustes (importar una copia) ha cambiado el modelo.
+  async function modeloActual(): Promise<string> {
+    return (await leerAjustes()).modeloGemini
+  }
+
   async function ocupar(textoEspera: string, tarea: () => Promise<void>) {
     setEspera(textoEspera)
     setAviso(null)
@@ -65,10 +70,18 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
       setAviso({ tipo: 'error', texto: 'Pega la clave primero.' })
       return
     }
+    // Un espacio invisible o una comilla tipográfica al copiar harían fallar la cabecera HTTP.
+    if (!/^[!-~]+$/.test(clave)) {
+      setAviso({
+        tipo: 'error',
+        texto: 'La clave lleva espacios o caracteres raros. Cópiala otra vez de AI Studio.',
+      })
+      return
+    }
     void ocupar('Comprobando la clave con Gemini…', async () => {
       let fallo: ErrorIA | null = null
       try {
-        await crearProveedor(clave, ajustes.modeloGemini).comprobarClave()
+        await crearProveedor(clave, await modeloActual()).comprobarClave()
       } catch (error) {
         fallo = comoErrorIA(error)
       }
@@ -96,7 +109,7 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
     if (!ajustes || !guardada) return
     void ocupar('Comprobando la clave con Gemini…', async () => {
       try {
-        await crearProveedor(guardada, ajustes.modeloGemini).comprobarClave()
+        await crearProveedor(guardada, await modeloActual()).comprobarClave()
         setAviso({ tipo: 'bien', texto: 'Gemini acepta tu clave.' })
       } catch (error) {
         setAviso({ tipo: 'error', texto: comoErrorIA(error).message })
@@ -157,7 +170,7 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="AIza…"
+            placeholder="Pega aquí tu clave"
             className="min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-tinta"
           />
         </label>

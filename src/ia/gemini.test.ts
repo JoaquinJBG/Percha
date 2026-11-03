@@ -177,6 +177,7 @@ describe('errores de Gemini', () => {
     ['no-disponible', errorDeApi(503, '{}')],
     ['otro', errorDeApi(400, '{"error":{"status":"FAILED_PRECONDITION"}}')],
     ['sin-red', new TypeError('Failed to fetch')],
+    ['otro', new TypeError("Failed to execute 'append' on 'Headers': Invalid value")],
     ['otro', new Error('raro')],
   ])('da «%s» para %s', async (tipo, fallo) => {
     const { proveedor } = montar(() => Promise.reject(fallo))
@@ -185,6 +186,20 @@ describe('errores de Gemini', () => {
     await expect(etiquetar).rejects.toBeInstanceOf(ErrorIA)
     await expect(etiquetar).rejects.toMatchObject({ tipo })
     await expect(proveedor.comprobarClave()).rejects.toMatchObject({ tipo })
+  })
+
+  it('si una foto no se puede preparar, lo dice sin llamar a Gemini', async () => {
+    const crearCliente = vi.fn(() => Promise.resolve({ generateContent: vi.fn(), get: vi.fn() }))
+    const proveedor = crearProveedorGemini({
+      clave: CLAVE_FALSA,
+      modelo: MODELO,
+      crearCliente,
+      prepararFoto: () => Promise.reject(new Error('no se puede decodificar')),
+    })
+
+    await expect(proveedor.etiquetarPrendas([{ fotos: [foto()] }])).rejects.toMatchObject({
+      tipo: 'foto',
+    })
   })
 
   it('el mensaje del modelo que no existe dice cuál es', async () => {

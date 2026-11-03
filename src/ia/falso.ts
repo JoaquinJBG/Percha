@@ -1,5 +1,5 @@
 import type { EtiquetasPrenda } from '../datos/modelo.ts'
-import type { ErrorIA } from './errores.ts'
+import { ErrorIA } from './errores.ts'
 import {
   MAX_PRENDAS_POR_PETICION,
   type PrendaAEtiquetar,
@@ -46,12 +46,19 @@ export function crearProveedorFalso({
       return comprobaciones
     },
     etiquetarPrendas(prendas) {
-      if (prendas.length > MAX_PRENDAS_POR_PETICION) {
-        return Promise.reject(new RangeError('Demasiadas prendas'))
+      // Mismo contrato que Gemini: hasta 5 prendas con 1–2 fotos cada una.
+      if (
+        prendas.length > MAX_PRENDAS_POR_PETICION ||
+        prendas.some(({ fotos }) => fotos.length < 1 || fotos.length > 2)
+      ) {
+        return Promise.reject(new RangeError('Lote no válido'))
       }
       lotes.push(prendas)
       if (error) return Promise.reject(error)
       const resultado: ResultadoEtiquetado = prendas.map(etiquetas)
+      if (resultado.length > 0 && resultado.every((e) => e === null)) {
+        return Promise.reject(new ErrorIA('respuesta'))
+      }
       return Promise.resolve(resultado)
     },
     comprobarClave() {

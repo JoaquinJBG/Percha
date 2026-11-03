@@ -67,7 +67,9 @@ export function crearProveedorGemini({
         for (const [i, prenda] of prendas.entries()) {
           partes.push({ text: textoPrenda(i + 1) })
           for (const foto of prenda.fotos) {
-            const { datos, tipo } = await prepararFoto(foto)
+            const { datos, tipo } = await prepararFoto(foto).catch(() => {
+              throw new ErrorIA('foto')
+            })
             partes.push({ inlineData: { data: datos, mimeType: tipo } })
           }
         }

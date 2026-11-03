@@ -6,6 +6,7 @@ export type TipoErrorIA =
   | 'modelo'
   | 'no-disponible'
   | 'respuesta'
+  | 'foto'
   | 'otro'
 
 const MENSAJES: Record<Exclude<TipoErrorIA, 'modelo'>, string> = {
@@ -16,6 +17,7 @@ const MENSAJES: Record<Exclude<TipoErrorIA, 'modelo'>, string> = {
   'sin-red': 'No hay conexión. Prueba cuando tengas red.',
   'no-disponible': 'Gemini no responde ahora mismo. Prueba en un rato.',
   respuesta: 'Gemini ha devuelto algo que no se entiende. Prueba otra vez o etiqueta a mano.',
+  foto: 'No se ha podido preparar la foto para Gemini. Prueba con otra o etiqueta a mano.',
   otro: 'No se ha podido hablar con Gemini.',
 }
 
@@ -58,7 +60,9 @@ export function traducirError(error: unknown, modelo: string): unknown {
     if (estado >= 500) return new ErrorIA('no-disponible', { estado })
     return new ErrorIA('otro', { estado })
   }
-  // `fetch` lanza TypeError cuando no llega a haber respuesta (sin red, DNS, CORS).
-  if (error instanceof TypeError) return new ErrorIA('sin-red')
+  // `fetch` lanza TypeError sin respuesta (sin red, DNS, CORS); otros TypeError no son de red.
+  if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
+    return new ErrorIA('sin-red')
+  }
   return new ErrorIA('otro')
 }

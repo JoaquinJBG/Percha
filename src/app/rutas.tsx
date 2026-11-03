@@ -2,7 +2,7 @@ import { Navigate, type RouteObject } from 'react-router'
 import { Ajustes } from '../pantallas/Ajustes.tsx'
 import { Armario } from '../pantallas/armario/Armario.tsx'
 import { NuevaPrenda } from '../pantallas/nueva-prenda/NuevaPrenda.tsx'
-import { Outfits } from '../pantallas/Outfits.tsx'
+import { Outfits } from '../pantallas/outfits/Outfits.tsx'
 import { Perfil } from '../pantallas/perfil/Perfil.tsx'
 import { Layout } from './Layout.tsx'
 

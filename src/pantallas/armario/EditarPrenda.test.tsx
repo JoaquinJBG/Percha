@@ -269,6 +269,7 @@ describe('volver a etiquetar con IA', () => {
         return new Promise(() => undefined)
       },
       comprobarClave: () => Promise.resolve(),
+      elegirOutfits: () => Promise.resolve([]),
     }
     const { usuario } = montar(chino(), proveedor)
     const edicion = await abrirEdicion(usuario, 'Chino')

@@ -72,6 +72,7 @@ describe('etiquetarUna', () => {
         Promise.resolve({
           etiquetarPrendas: () => Promise.reject(new DOMException('cancelada', 'AbortError')),
           comprobarClave: () => Promise.resolve(),
+          elegirOutfits: () => Promise.resolve([]),
         }),
       [foto],
       control.signal,

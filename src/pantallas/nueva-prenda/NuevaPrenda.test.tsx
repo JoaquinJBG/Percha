@@ -48,6 +48,7 @@ function proveedorControlado() {
         peticiones.push({ prendas, opciones, resolver, rechazar })
       }),
     comprobarClave: () => Promise.resolve(),
+    elegirOutfits: () => Promise.resolve([]),
   }
   return { proveedor, peticiones }
 }

@@ -1,0 +1,11 @@
+// Despliegue en Cloudflare Workers con archivos estáticos (sin código de servidor).
+// Lo construye y publica Workers Builds con cada push a `main`: ver docs/despliegue.md.
+{
+  "name": "percha",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Rutas como /prendas/nueva sirven index.html y las resuelve React Router.
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -124,5 +124,5 @@ Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T4.1 | Alojar gratis (Cloudflare Pages o similar) y guía para instalarla en Android | fase 3 | ⏳ |
-| T4.2 | Guía para conseguir la clave gratis de Gemini, dentro de la app | T1.3 | ⏳ |
+| T4.1 | Alojar gratis en Cloudflare Workers ([`despliegue.md`](despliegue.md)) y guía para instalarla en Android ([`guia-movil.md`](guia-movil.md)) | — | 👀 falta que el usuario cree el proyecto en Cloudflare |
+| T4.2 | Guía para conseguir la clave gratis de Gemini: en [`guia-movil.md`](guia-movil.md) y enlace en Ajustes | T1.3 | ✅ |

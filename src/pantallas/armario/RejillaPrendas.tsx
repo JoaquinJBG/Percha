@@ -20,8 +20,7 @@ export function RejillaPrendas({ prendas, onAbrir }: Props) {
             id={`grupo-${categoria}`}
             className="mb-2 flex items-baseline gap-2 text-sm font-semibold text-suave"
           >
-            {ETIQUETA_CATEGORIA[categoria]}
-            <span className="font-normal">{delGrupo.length}</span>
+            {ETIQUETA_CATEGORIA[categoria]} <span className="font-normal">{delGrupo.length}</span>
           </h2>
           <ul className="grid grid-cols-3 gap-2">
             {delGrupo.map((prenda) => {

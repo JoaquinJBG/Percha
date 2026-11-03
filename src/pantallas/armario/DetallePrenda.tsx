@@ -27,10 +27,16 @@ function lista(valores: readonly string[]): string {
 export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
   const [fase, setFase] = useState<Fase>('libre')
   const titulo = useRef<HTMLHeadingElement>(null)
+  const cancelar = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     titulo.current?.focus()
   }, [])
+
+  // El foco lleva la confirmación a la vista: «Borrar» está al final y la confirmación saldría debajo.
+  useEffect(() => {
+    if (fase === 'confirmando') cancelar.current?.focus()
+  }, [fase])
 
   async function borrar(id: string) {
     setFase('borrando')
@@ -155,6 +161,7 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
                 </p>
                 <div className="flex gap-3">
                   <button
+                    ref={cancelar}
                     type="button"
                     className={botonSecundario}
                     disabled={fase === 'borrando'}

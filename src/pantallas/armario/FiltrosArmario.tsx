@@ -42,8 +42,7 @@ export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
           onCambiar({ ...filtros, categoria })
         }}
       >
-        {etiqueta}
-        <span className={activo ? 'text-papel/75' : 'text-suave'}>{cuantas}</span>
+        {etiqueta} <span className={activo ? 'text-papel/75' : 'text-suave'}>{cuantas}</span>
       </button>
     )
   }

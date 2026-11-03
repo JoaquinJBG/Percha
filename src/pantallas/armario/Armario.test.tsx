@@ -35,9 +35,13 @@ function repositorio(iniciales: Prenda[]) {
 }
 
 function montar(repo: ReturnType<typeof repositorio>, ruta = '/') {
+  // Una pantalla antes en el historial, para ver si «volver» retrocede de más.
   const router = createMemoryRouter(
-    [{ path: '/', element: <Armario listar={repo.listar} borrar={repo.borrar} /> }],
-    { initialEntries: [ruta] },
+    [
+      { path: '/', element: <Armario listar={repo.listar} borrar={repo.borrar} /> },
+      { path: '/antes', element: <p>Pantalla anterior</p> },
+    ],
+    { initialEntries: ['/antes', ruta], initialIndex: 1 },
   )
   const { unmount } = render(<RouterProvider router={router} />)
   return { usuario: userEvent.setup(), router, unmount }
@@ -207,6 +211,17 @@ describe('detalle de una prenda', () => {
     expect(screen.getByText('2 prendas')).toBeInTheDocument()
   })
 
+  it('dos toques seguidos en «volver» solo cierran el detalle', async () => {
+    const { usuario, router } = montar(repositorio([camiseta()]))
+    await usuario.click(await screen.findByRole('button', { name: 'Camiseta' }))
+
+    await usuario.dblClick(screen.getByRole('button', { name: 'Armario' }))
+
+    expect(router.state.location.pathname).toBe('/')
+    expect(router.state.location.search).toBe('')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('un enlace a una prenda que ya no está lo dice y vuelve al armario', async () => {
     const { usuario, router } = montar(repositorio([camiseta()]), '/?prenda=no-existe')
 
@@ -226,6 +241,7 @@ describe('borrar una prenda', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Borrar' }))
     expect(screen.getByText('¿Borrar esta prenda? No se puede deshacer.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus()
     await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
 
     expect(repo.borrar).not.toHaveBeenCalled()
@@ -249,6 +265,28 @@ describe('borrar una prenda', () => {
     expect(nombresEnLista()).toEqual(['Chino'])
     expect(screen.getByText('1 de 2 prendas')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Parte de abajo/ })).toHaveTextContent('1')
+  })
+
+  it('si se vuelve mientras se borra, no retrocede otra vez al terminar', async () => {
+    const repo = repositorio([camiseta(), chino()])
+    let terminar: () => void = () => undefined
+    repo.borrar.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolver) => {
+          terminar = resolver
+        }),
+    )
+    const { usuario, router } = montar(repo)
+    await usuario.click(await screen.findByRole('button', { name: 'Camiseta' }))
+    await usuario.click(screen.getByRole('button', { name: 'Borrar' }))
+    await usuario.click(screen.getByRole('button', { name: 'Sí, borrar' }))
+
+    await usuario.click(screen.getByRole('button', { name: 'Armario' }))
+    terminar()
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Prenda borrada.')
+    expect(router.state.location.pathname).toBe('/')
+    expect(nombresEnLista()).toEqual(['Chino'])
   })
 
   it('si no se puede borrar, lo dice y la prenda sigue', async () => {

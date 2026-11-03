@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import type { Prenda } from '../../datos/modelo.ts'
@@ -8,6 +8,7 @@ import { DetallePrenda } from './DetallePrenda.tsx'
 import { FiltrosArmario } from './FiltrosArmario.tsx'
 import { RejillaPrendas } from './RejillaPrendas.tsx'
 
+/** `listar` y `borrar` son para los tests; si se pasan, que no cambien en cada render o se recarga sin fin. */
 interface Props {
   listar?: (filtros?: FiltrosPrendas) => Promise<Prenda[]>
   borrar?: (id: string) => Promise<void>
@@ -18,7 +19,7 @@ const PARAMETRO_PRENDA = 'prenda'
 
 export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props) {
   const [todas, setTodas] = useState<Prenda[] | null>(null)
-  // Solo los ids: las fotos salen siempre de `todas`, así filtrar no recrea sus URLs.
+  // Solo los ids: las fotos salen siempre de `todas`, así las que siguen a la vista no recrean su URL.
   const [idsFiltrados, setIdsFiltrados] = useState<Set<string> | null>(null)
   const [filtros, setFiltros] = useState<Filtros>(SIN_FILTROS)
   const [error, setError] = useState(false)
@@ -29,12 +30,21 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
 
   const idDetalle = parametros.get(PARAMETRO_PRENDA)
   const filtrando = hayFiltros(filtros)
+  // Qué detalle sigue abierto, para que dos toques en «volver» o un borrado que acaba tarde no
+  // retrocedan dos veces y saquen al usuario de la app.
+  const detalleAbierto = useRef(idDetalle)
+
+  useEffect(() => {
+    detalleAbierto.current = idDetalle
+  }, [idDetalle])
 
   useEffect(() => {
     let vigente = true
     listar().then(
       (prendas) => {
-        if (vigente) setTodas(prendas)
+        if (!vigente) return
+        setTodas(prendas)
+        setError(false)
       },
       (fallo: unknown) => {
         console.error(fallo)
@@ -51,7 +61,9 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
     let vigente = true
     listar(aFiltrosPrendas(filtros)).then(
       (prendas) => {
-        if (vigente) setIdsFiltrados(new Set(prendas.map((p) => p.id)))
+        if (!vigente) return
+        setIdsFiltrados(new Set(prendas.map((p) => p.id)))
+        setError(false)
       },
       (fallo: unknown) => {
         console.error(fallo)
@@ -67,12 +79,20 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
   const visibles =
     filtrando && idsFiltrados ? (todas?.filter((p) => idsFiltrados.has(p.id)) ?? null) : todas
 
+  function cambiarFiltros(nuevos: Filtros) {
+    setFiltros(nuevos)
+    // Para que el siguiente filtro no enseñe un instante el resultado de uno anterior.
+    if (!hayFiltros(nuevos)) setIdsFiltrados(null)
+  }
+
   function abrir(prenda: Prenda) {
     setBorrada(null)
     setParametros({ [PARAMETRO_PRENDA]: prenda.id }, { state: { desdeLista: true } })
   }
 
-  function cerrar() {
+  function cerrar(id: string) {
+    if (detalleAbierto.current !== id) return
+    detalleAbierto.current = null
     const estado: unknown = ubicacion.state
     const desdeLista =
       typeof estado === 'object' && estado !== null && 'desdeLista' in estado && estado.desdeLista
@@ -84,7 +104,7 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
     await borrar(id)
     setBorrada(id)
     setTodas((actuales) => actuales?.filter((p) => p.id !== id) ?? null)
-    cerrar()
+    cerrar(id)
   }
 
   const prendaDetalle = todas?.find((p) => p.id === idDetalle)
@@ -107,8 +127,8 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
       )}
 
       {todas && todas.length > 0 && (
-        <>
-          <FiltrosArmario prendas={todas} filtros={filtros} onCambiar={setFiltros} />
+        <div inert={idDetalle !== null} className="contents">
+          <FiltrosArmario prendas={todas} filtros={filtros} onCambiar={cambiarFiltros} />
 
           {borrada !== null && (
             <p role="status" className="text-sm">
@@ -131,7 +151,7 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
                 type="button"
                 className="min-h-12 font-medium underline"
                 onClick={() => {
-                  setFiltros(SIN_FILTROS)
+                  cambiarFiltros(SIN_FILTROS)
                 }}
               >
                 Quitar filtros
@@ -140,12 +160,18 @@ export function Armario({ listar = listarPrendas, borrar = borrarPrenda }: Props
           )}
 
           {visibles && visibles.length > 0 && <RejillaPrendas prendas={visibles} onAbrir={abrir} />}
-        </>
+        </div>
       )}
 
       {/* T1.5: pasa `onEditar` a DetallePrenda para abrir el formulario de T1.3 desde aquí. */}
       {todas && idDetalle !== null && idDetalle !== borrada && (
-        <DetallePrenda prenda={prendaDetalle} onVolver={cerrar} onBorrar={borrarDetalle} />
+        <DetallePrenda
+          prenda={prendaDetalle}
+          onVolver={() => {
+            cerrar(idDetalle)
+          }}
+          onBorrar={borrarDetalle}
+        />
       )}
     </Pantalla>
   )

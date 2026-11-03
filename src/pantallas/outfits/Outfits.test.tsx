@@ -323,6 +323,28 @@ describe('Outfits', () => {
     expect(repo.marcar).toHaveBeenLastCalledWith('o2', true)
   })
 
+  it('no deja generar otra tanda mientras se guarda', async () => {
+    const repo = repositorio()
+    let terminar: () => void = () => undefined
+    repo.guardar.mockImplementationOnce(
+      (datos) =>
+        new Promise((resolver) => {
+          terminar = () => {
+            resolver({ ...datos, id: 'lento', creadoEn: 1 })
+          }
+        }),
+    )
+    const { usuario } = montar({ repo })
+    await generar(usuario)
+
+    await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(screen.getByRole('button', { name: 'Generar otros' })).toBeDisabled()
+    terminar()
+
+    expect(await screen.findByText('Outfits guardados.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generar otros' })).toBeEnabled()
+  })
+
   it('descarga el collage con un nombre con la fecha', async () => {
     const { usuario } = montar()
     const imagen = await generar(usuario)
@@ -359,6 +381,26 @@ describe('Outfits', () => {
     expect(screen.queryByText(/No se ha podido compartir/)).not.toBeInTheDocument()
     await usuario.click(screen.getByRole('button', { name: 'Compartir' }))
     expect(await screen.findByText(/No se ha podido compartir/)).toBeInTheDocument()
+  })
+
+  it('ignora un segundo toque en Compartir con la hoja aún abierta', async () => {
+    let cerrar: () => void = () => undefined
+    const share = vi.fn<Navigator['share']>(
+      () =>
+        new Promise((resolver) => {
+          cerrar = resolver
+        }),
+    )
+    const { usuario } = montar({ compartidor: { share, canShare: () => true } })
+    await generar(usuario)
+
+    const boton = screen.getByRole('button', { name: 'Compartir' })
+    await usuario.click(boton)
+    await usuario.click(boton)
+    cerrar()
+
+    expect(share).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/No se ha podido compartir/)).not.toBeInTheDocument()
   })
 
   it('sin Web Share con ficheros no ofrece Compartir', async () => {

@@ -16,7 +16,10 @@ interface Props {
   consultar?: (sitio: Sitio) => Promise<DatosTiempo>
   ubicar?: () => Promise<Sitio>
   almacenSitio?: AlmacenSitio
-  /** Avisa cada vez que cambia el tiempo que se muestra; tiene que ser estable entre renders. */
+  /**
+   * Avisa cada vez que cambia el tiempo que se muestra (`null` mientras se elige sitio); tiene que ser
+   * estable entre renders.
+   */
   alCambiar?: (tiempo: DatosTiempo | null) => void
 }
 
@@ -49,9 +52,10 @@ export function TiempoHoy({
   // Solo cuenta la última petición: si el usuario cambia de idea, la anterior se descarta.
   const ultimaPeticion = useRef(0)
 
+  // Mientras se elige otro sitio no hay tiempo válido: el de antes ya no es el que se ve.
   useEffect(() => {
-    alCambiar?.(tiempo)
-  }, [tiempo, alCambiar])
+    alCambiar?.(eligiendo ? null : tiempo)
+  }, [tiempo, eligiendo, alCambiar])
 
   async function ejecutar<T>(tarea: () => Promise<T>): Promise<T | undefined> {
     const peticion = ++ultimaPeticion.current

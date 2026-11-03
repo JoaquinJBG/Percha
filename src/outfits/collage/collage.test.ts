@@ -76,6 +76,10 @@ describe('partirTexto', () => {
     expect(partirTexto(pincel, 'abrigo por 8 °C', 100, 2)).toEqual(['abrigo por', '8 °C'])
   })
 
+  it('corta con «…» una palabra que no cabe sola', () => {
+    expect(partirTexto(pincel, 'cortavientos impermeable', 80, 1)).toEqual(['cortavi…'])
+  })
+
   it('acaba en «…» si no cabe en las líneas que hay', () => {
     const lineas = partirTexto(pincel, 'uno dos tres cuatro cinco seis', 80, 2)
 
@@ -103,6 +107,15 @@ describe('dibujarCollage', () => {
     expect(de('drawImage')).toHaveLength(13)
     const textos = de('fillText').map((t) => t.argumentos[0])
     expect(textos).toEqual(expect.arrayContaining(['1', '2', '3', '4']))
+    expect(de('arc')).toHaveLength(4)
+    de('fillText').forEach((trazo) => {
+      const [texto, x] = trazo.argumentos as [string, number]
+      const celda = recuadros().find((r) => x >= r.x && x <= r.x + r.ancho)
+      // Ningún texto se sale de su recuadro (el falso mide 10 px por carácter).
+      if (trazo.argumentos.length === 3 && celda && texto.length > 1) {
+        expect(x + texto.length * 10).toBeLessThanOrEqual(celda.x + celda.ancho)
+      }
+    })
     expect(textos).toEqual(
       expect.arrayContaining([
         'Casual para diario',
@@ -190,6 +203,25 @@ describe('crearCollage', () => {
     expect(cargar.mock.calls.map(([foto]) => foto)).toEqual([recortada, original])
     expect(de('drawImage')).toHaveLength(2)
     expect(cerrar).toHaveBeenCalledTimes(2)
+  })
+
+  it('lee una sola vez la foto de una prenda que sale en varios outfits', async () => {
+    const zapatillas = nuevaPrenda({ categoria: 'calzado' })
+    const cargar = vi.fn(() =>
+      Promise.resolve({ imagen: {} as unknown as ImageBitmap, ancho: 10, alto: 10 }),
+    )
+    const { crearLienzo, de } = lienzoFalso()
+
+    await crearCollage(
+      [
+        { motivo: 'a', prendas: [nuevaPrenda(), zapatillas] },
+        { motivo: 'b', prendas: [nuevaPrenda(), zapatillas] },
+      ],
+      { cargar, crearLienzo },
+    )
+
+    expect(cargar).toHaveBeenCalledTimes(3)
+    expect(de('drawImage')).toHaveLength(4)
   })
 
   it('si una foto no se puede leer, sigue con un hueco', async () => {

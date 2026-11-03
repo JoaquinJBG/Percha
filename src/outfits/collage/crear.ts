@@ -27,8 +27,14 @@ export interface OpcionesCollage {
 export const TIPO_COLLAGE = 'image/jpeg'
 const CALIDAD_JPEG = 0.9
 
+/** Alto al que se decodifica cada foto: de sobra para su hueco y la memoria no se dispara en el móvil. */
+const ALTO_MAXIMO_FOTO = 640
+
 async function cargarConBitmap(foto: Blob): Promise<ImagenCargada> {
-  const bitmap = await createImageBitmap(foto)
+  const bitmap = await createImageBitmap(foto, {
+    resizeHeight: ALTO_MAXIMO_FOTO,
+    resizeQuality: 'high',
+  })
   return {
     imagen: bitmap,
     ancho: bitmap.width,
@@ -75,38 +81,39 @@ export async function crearCollage(
   outfits: readonly OutfitCollage[],
   { cargar = cargarConBitmap, crearLienzo = lienzoDelDocumento }: OpcionesCollage = {},
 ): Promise<Blob> {
-  const cargadas: ImagenCargada[] = []
+  // Una vez por foto aunque la prenda salga en varios outfits, y de una en una, por la memoria.
+  const cargadas = new Map<Blob, ImagenCargada | null>()
   try {
-    const recuadros = await Promise.all(
-      outfits.map(async (outfit) => ({
-        motivo: outfit.motivo,
-        prendas: await Promise.all(
-          outfit.prendas.map(async (prenda): Promise<ImagenPrenda> => {
-            const sinImagen = {
-              categoria: prenda.categoria,
-              nombre: prenda.subcategoria || prenda.categoria,
-              imagen: null,
-              ancho: 0,
-              alto: 0,
-            }
-            const foto = fotoDe(prenda)
-            if (!foto) return sinImagen
-            try {
-              const imagen = await cargar(foto)
-              cargadas.push(imagen)
-              return { ...sinImagen, ...imagen }
-            } catch (fallo) {
-              console.warn('No se pudo leer una foto del collage', fallo)
-              return sinImagen
-            }
-          }),
-        ),
-      })),
-    )
+    for (const outfit of outfits) {
+      for (const prenda of outfit.prendas) {
+        const foto = fotoDe(prenda)
+        if (!foto || cargadas.has(foto)) continue
+        try {
+          cargadas.set(foto, await cargar(foto))
+        } catch (fallo) {
+          console.warn('No se pudo leer una foto del collage', fallo)
+          cargadas.set(foto, null)
+        }
+      }
+    }
+    const recuadros = outfits.map((outfit) => ({
+      motivo: outfit.motivo,
+      prendas: outfit.prendas.map((prenda): ImagenPrenda => {
+        const foto = fotoDe(prenda)
+        const imagen = foto ? cargadas.get(foto) : null
+        return {
+          categoria: prenda.categoria,
+          nombre: prenda.subcategoria || prenda.categoria,
+          imagen: imagen?.imagen ?? null,
+          ancho: imagen?.ancho ?? 0,
+          alto: imagen?.alto ?? 0,
+        }
+      }),
+    }))
     const lienzo = crearLienzo(ANCHO_COLLAGE, ALTO_COLLAGE)
     dibujarCollage(lienzo.pincel, recuadros)
     return await lienzo.aBlob()
   } finally {
-    for (const imagen of cargadas) imagen.cerrar?.()
+    for (const imagen of cargadas.values()) imagen?.cerrar?.()
   }
 }

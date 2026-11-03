@@ -58,7 +58,23 @@ const SEPARACION = 8
 const RADIO = 24
 const LINEAS_MOTIVO = 2
 
-/** Corta el texto en líneas que caben en `ancho`; la última acaba en «…» si no cabe todo. */
+/** El texto acabado en «…», acortado hasta que quepa en `ancho`. */
+function conPuntos(pincel: Pick<Pincel, 'measureText'>, texto: string, ancho: number): string {
+  let corto = texto
+  while (corto.length > 0 && pincel.measureText(`${corto}…`).width > ancho) {
+    corto = corto.slice(0, -1).trimEnd()
+  }
+  return `${corto}…`
+}
+
+function recortar(pincel: Pick<Pincel, 'measureText'>, texto: string, ancho: number): string {
+  return pincel.measureText(texto).width <= ancho ? texto : conPuntos(pincel, texto, ancho)
+}
+
+/**
+ * Corta el texto en líneas que caben en `ancho`; si no cabe todo, la última acaba en «…». Una palabra
+ * más ancha que la línea también se corta con «…».
+ */
 export function partirTexto(
   pincel: Pick<Pincel, 'measureText'>,
   texto: string,
@@ -78,15 +94,14 @@ export function partirTexto(
     actual = palabra
   }
   if (actual) lineas.push(actual)
-  if (lineas.length <= maxLineas) return lineas
 
   const visibles = lineas.slice(0, maxLineas)
-  let ultima = `${visibles[maxLineas - 1] ?? ''}…`
-  while (ultima.length > 1 && pincel.measureText(ultima).width > ancho) {
-    ultima = `${ultima.slice(0, -2).trimEnd()}…`
-  }
-  visibles[maxLineas - 1] = ultima
-  return visibles
+  const sobra = lineas.length > maxLineas
+  return visibles.map((linea, i) =>
+    sobra && i === visibles.length - 1
+      ? conPuntos(pincel, linea, ancho)
+      : recortar(pincel, linea, ancho),
+  )
 }
 
 function conMayuscula(texto: string): string {
@@ -141,26 +156,35 @@ function dibujarRecuadro(pincel: Pincel, recuadro: RecuadroCollage, celda: Rect,
     if (caja) dibujarPrenda(pincel, prenda, caja)
   })
 
-  // Número en la esquina, para casar la imagen con la lista de motivos de la pantalla.
+  // Número junto al motivo, para casar la imagen con la lista de la pantalla. Abajo y no en la
+  // esquina, para no tapar la parte de arriba.
+  const arriba = celda.y + celda.alto - RELLENO - ALTO_TEXTO + 12
+  const centro = { x: celda.x + RELLENO + 24, y: arriba + 37 }
   pincel.fillStyle = COLORES_COLLAGE.tinta
   pincel.beginPath()
-  pincel.arc(celda.x + 40, celda.y + 40, 24, 0, Math.PI * 2)
+  pincel.arc(centro.x, centro.y, 24, 0, Math.PI * 2)
   pincel.fill()
   pincel.fillStyle = COLORES_COLLAGE.recuadro
   pincel.font = `600 28px ${FUENTE}`
   pincel.textAlign = 'center'
   pincel.textBaseline = 'middle'
-  pincel.fillText(String(numero), celda.x + 40, celda.y + 41)
+  pincel.fillText(String(numero), centro.x, centro.y + 1)
 
   pincel.fillStyle = COLORES_COLLAGE.tinta
   pincel.font = `500 32px ${FUENTE}`
   pincel.textAlign = 'left'
   pincel.textBaseline = 'top'
-  const anchoTexto = celda.ancho - RELLENO * 2
-  const lineas = partirTexto(pincel, conMayuscula(recuadro.motivo), anchoTexto, LINEAS_MOTIVO)
-  const arriba = celda.y + celda.alto - RELLENO - ALTO_TEXTO + 12
+  const sangria = RELLENO + 60
+  const lineas = partirTexto(
+    pincel,
+    conMayuscula(recuadro.motivo),
+    celda.ancho - sangria - RELLENO,
+    LINEAS_MOTIVO,
+  )
+  // Con una sola línea, centrada junto al número.
+  const primera = lineas.length === 1 ? arriba + 16 : arriba
   lineas.forEach((linea, i) => {
-    pincel.fillText(linea, celda.x + RELLENO, arriba + i * 42)
+    pincel.fillText(linea, celda.x + sangria, primera + i * 42)
   })
 }
 

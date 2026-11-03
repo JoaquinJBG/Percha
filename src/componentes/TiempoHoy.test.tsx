@@ -128,6 +128,13 @@ describe('TiempoHoy', () => {
     await screen.findByText('frío y lluvia')
     expect(alCambiar).toHaveBeenNthCalledWith(1, null)
     expect(alCambiar).toHaveBeenLastCalledWith(datos(valenciaES))
+
+    // Al cambiar de sitio, el de antes ya no vale hasta volver a él.
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: 'Cambiar sitio' }))
+    expect(alCambiar).toHaveBeenLastCalledWith(null)
+    await usuario.click(screen.getByRole('button', { name: 'Volver a Valencia' }))
+    expect(alCambiar).toHaveBeenLastCalledWith(datos(valenciaES))
   })
 
   it('vuelve a pedir el sitio si falla la red al cargar el último', async () => {

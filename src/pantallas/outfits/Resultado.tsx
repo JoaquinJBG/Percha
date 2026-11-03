@@ -15,6 +15,8 @@ export interface AccionesResultado {
 interface Props extends AccionesResultado {
   resultado: ResultadoOutfits<Prenda>
   nombreFichero: string
+  /** Avisa mientras se guarda, para no dejar generar otra tanda a medias. */
+  alOcupar?: (ocupado: boolean) => void
 }
 
 type Collage =
@@ -57,6 +59,7 @@ export function Resultado({
   guardar,
   marcar,
   compartidor,
+  alOcupar,
 }: Props) {
   const { outfits, contexto } = resultado
   const [collage, setCollage] = useState<Collage>({ fase: 'dibujando' })
@@ -65,6 +68,7 @@ export function Resultado({
   const [mensaje, setMensaje] = useState<string | null>(null)
   // El estado tarda un render en verse: esto evita que dos toques seguidos guarden dos veces.
   const enCurso = useRef(false)
+  const compartiendo = useRef(false)
 
   useEffect(() => {
     let vigente = true
@@ -90,6 +94,7 @@ export function Resultado({
     if (enCurso.current) return
     enCurso.current = true
     setOcupado(true)
+    alOcupar?.(true)
     setMensaje(null)
     try {
       await tarea()
@@ -99,6 +104,7 @@ export function Resultado({
     } finally {
       enCurso.current = false
       setOcupado(false)
+      alOcupar?.(false)
     }
   }
 
@@ -144,7 +150,9 @@ export function Resultado({
     (compartidor.canShare?.({ files: [fichero] }) ?? false)
 
   async function compartir() {
-    if (!fichero || !compartidor.share) return
+    // Un segundo `share()` con la hoja aún abierta falla: se ignora el toque.
+    if (!fichero || !compartidor.share || compartiendo.current) return
+    compartiendo.current = true
     setMensaje(null)
     try {
       await compartidor.share({ files: [fichero], title: 'Mis outfits de Percha' })
@@ -152,6 +160,8 @@ export function Resultado({
       if (esCancelacion(fallo)) return
       console.error(fallo)
       setMensaje('No se ha podido compartir. Descarga la imagen y compártela desde la galería.')
+    } finally {
+      compartiendo.current = false
     }
   }
 
@@ -184,7 +194,7 @@ export function Resultado({
           const favorito = guardados[i]?.favorito ?? false
           return (
             <li
-              key={outfit.prendas.map((p) => p.id).join('+')}
+              key={i}
               className="flex items-center gap-3 rounded-xl border border-black/10 bg-white/60 p-3"
             >
               <span

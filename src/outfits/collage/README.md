@@ -11,5 +11,6 @@ Collage 2×2 de los outfits en un canvas, para verlo, descargarlo y compartirlo.
   de arriba (o el vestido), la de abajo y el calzado; el abrigo y los accesorios, en una columna a la
   derecha (62/38). Sin abrigo ni accesorios, el centro ocupa todo. `encajar` mete la foto entera, centrada
   y sin deformarla.
-- Cada recuadro lleva su número arriba a la izquierda (el mismo que la lista de la pantalla) y el motivo
-  abajo, en dos líneas como mucho, con «…» si no cabe.
+- Cada recuadro lleva abajo su número (el mismo que la lista de la pantalla) y, a su lado, el motivo
+  en dos líneas como mucho, con «…» si no cabe. Las fotos se leen una vez cada una, de una en una y a
+  640 px de alto como mucho, para no disparar la memoria del móvil.

@@ -49,6 +49,7 @@ export function Outfits({
   const [eleccion, setEleccion] = useState<Eleccion>(() => almacenEleccion.leer())
   const [tiempo, setTiempo] = useState<DatosTiempo | null>(null)
   const [estado, setEstado] = useState<Estado>({ fase: 'inicio' })
+  const [guardando, setGuardando] = useState(false)
   const intentos = useRef(0)
 
   function elegirValor(cambio: Partial<Eleccion>) {
@@ -118,7 +119,7 @@ export function Outfits({
         <button
           type="button"
           onClick={() => void generar()}
-          disabled={generando}
+          disabled={generando || guardando}
           className="min-h-12 rounded-xl bg-tinta px-4 text-lg font-semibold text-papel disabled:opacity-60"
         >
           {generando ? 'Generando…' : listo?.resultado.outfits.length ? 'Generar otros' : 'Generar'}
@@ -146,6 +147,7 @@ export function Outfits({
           guardar={guardar}
           marcar={marcar}
           compartidor={compartidor}
+          alOcupar={setGuardando}
         />
       )}
     </Pantalla>

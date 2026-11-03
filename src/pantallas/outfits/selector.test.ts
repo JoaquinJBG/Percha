@@ -81,6 +81,38 @@ describe('crearSelectorConIA', () => {
     },
   )
 
+  it('si las reglas no sacan ninguno (falta calzado), ni mira la clave ni pregunta a la IA', async () => {
+    const obtener = vi.fn(() => Promise.resolve(crearProveedorFalso()))
+    const alPreguntarIA = vi.fn()
+    const datos = {
+      ...peticion(),
+      prendas: peticion().prendas.filter((p) => p.categoria !== 'calzado'),
+    }
+
+    const resultado = await crearSelectorConIA(obtener)(datos, 1, { alPreguntarIA })
+
+    expect(obtener).not.toHaveBeenCalled()
+    expect(alPreguntarIA).not.toHaveBeenCalled()
+    expect(resultado.outfits).toEqual([])
+    expect(resultado.avisos.join(' ')).toMatch(/te falta calzado/)
+  })
+
+  it('si se cancela mientras lee la clave, no llega a preguntar a la IA', async () => {
+    const proveedor = crearProveedorFalso()
+    const controlador = new AbortController()
+    const alPreguntarIA = vi.fn()
+    const elegir = crearSelectorConIA(() => {
+      controlador.abort()
+      return Promise.resolve(proveedor)
+    })
+
+    await expect(
+      elegir(peticion(), 1, { signal: controlador.signal, alPreguntarIA }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(alPreguntarIA).not.toHaveBeenCalled()
+    expect(proveedor.peticionesOutfits).toHaveLength(0)
+  })
+
   it('al cancelar, rechaza con AbortError', async () => {
     const proveedor: ProveedorIA = {
       ...crearProveedorFalso(),

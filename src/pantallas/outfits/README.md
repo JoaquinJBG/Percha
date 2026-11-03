@@ -10,7 +10,7 @@ Pantalla Outfits: estilo, ocasión y tiempo de hoy → 4 outfits en un collage 2
   reglas y de Gemini, así «Generar otros» da otra tanda. Por defecto `outfitsPorReglas`; la app
   (`app/rutas.tsx`) pasa `outfitsConIAoReglas`: con clave (`proveedorConClave`, que en `pnpm dev` acepta el
   proveedor falso de `localStorage['percha:ia-falsa']`) usa `elegirOutfitsConIA`; sin clave, las reglas
-  sin decir nada. Si la IA falla o no hay cupo, salen las reglas con el aviso de `elegirOutfitsConIA`
+  sin decir nada. Si las reglas no sacan ninguno (falta calzado…), no se pregunta a la IA. Si la IA falla o no hay cupo, salen las reglas con el aviso de `elegirOutfitsConIA`
   en `avisoIA`, que la pantalla enseña aparte (no es ropa que falte).
 - **Con IA**, el botón dice «Gemini está eligiendo…» y aparece **Cancelar**: aborta la petición y vuelve
   a la tanda anterior tal cual (sigue montada, oculta, mientras se espera). Salir de la pantalla también

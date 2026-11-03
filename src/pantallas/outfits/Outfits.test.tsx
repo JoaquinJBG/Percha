@@ -546,6 +546,21 @@ describe('Outfits con Gemini', () => {
     expect(favorito()).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('salir de la pantalla mientras Gemini elige cancela la petición', async () => {
+    const lento = proveedorLento()
+    const { usuario, router } = montar({
+      elegir: crearSelectorConIA(() => Promise.resolve(lento.proveedor)),
+      prendas: armario(),
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Generar' }))
+    await screen.findByRole('button', { name: 'Gemini está eligiendo…' })
+    await router.navigate('/prendas/nueva')
+
+    await screen.findByRole('heading', { name: 'Nueva prenda' })
+    expect(lento.signal()?.aborted).toBe(true)
+  })
+
   it('cancelar la primera vez deja la pantalla como al entrar', async () => {
     const lento = proveedorLento()
     const { usuario } = montar({

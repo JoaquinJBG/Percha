@@ -47,8 +47,12 @@ const PREFIJO_SIN_IA = 'outfits sin IA:'
  */
 export function crearSelectorConIA(obtener: ObtenerProveedor = proveedorConClave): SelectorOutfits {
   return async (peticion, intento, { signal, alPreguntarIA } = {}) => {
+    const reglas = await outfitsPorReglas(peticion, intento)
+    // Sin ningún outfit por reglas falta base o calzado: la IA tampoco puede y no se le pregunta.
+    if (reglas.outfits.length === 0) return reglas
     const proveedor = await obtener()
-    if (!proveedor) return outfitsPorReglas(peticion, intento)
+    if (!proveedor) return reglas
+    signal?.throwIfAborted()
     alPreguntarIA?.()
     const { avisos, outfits, contexto } = await elegirOutfitsConIA(peticion, intento, {
       proveedor,

@@ -97,6 +97,7 @@ describe('formulario de etiquetas', () => {
     expect(grupo('Colores').getByRole('checkbox', { name: 'fucsia' })).toBeChecked()
     expect(screen.getByRole('combobox', { name: 'Estampado' })).toHaveValue('cachemir')
     await usuario.click(grupo('Colores').getByRole('checkbox', { name: 'fucsia' }))
+    expect(grupo('Colores').getByRole('checkbox', { name: 'fucsia' })).not.toBeChecked()
     await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(alGuardar).toHaveBeenCalledWith(

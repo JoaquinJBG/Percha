@@ -78,5 +78,5 @@ export function alternar<T>(lista: T[], valor: T): T[] {
 
 /** Las opciones fijas más los valores que ya traía la prenda y no están en la lista. */
 export function conExtras(opciones: readonly string[], elegidos: string[]): string[] {
-  return [...opciones, ...elegidos.filter((valor) => valor && !opciones.includes(valor))]
+  return [...new Set([...opciones, ...elegidos.filter(Boolean)])]
 }

@@ -181,6 +181,8 @@ export function FormularioPrenda({
   ocupado = false,
 }: Props) {
   const [borrador, setBorrador] = useState(() => borradorInicial(iniciales))
+  // Los colores fuera de la lista siguen a la vista aunque se desmarquen, para poder volver a marcarlos.
+  const [coloresIniciales] = useState(() => borrador.colores)
   const [errores, setErrores] = useState<ErroresBorrador>({})
   const formulario = useRef<HTMLFormElement>(null)
   const nombre = useId()
@@ -239,7 +241,7 @@ export function FormularioPrenda({
 
       <Casillas
         titulo="Colores"
-        opciones={conExtras(COLORES, borrador.colores)}
+        opciones={conExtras(COLORES, [...coloresIniciales, ...borrador.colores])}
         elegidas={borrador.colores}
         cambiar={(colores) => {
           cambiar('colores', colores)

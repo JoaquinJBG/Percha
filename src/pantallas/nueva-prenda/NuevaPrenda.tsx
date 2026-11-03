@@ -305,9 +305,15 @@ export function NuevaPrenda({
 
       <div className="flex flex-col gap-2">
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/" className={botonSecundario}>
-            Cancelar
-          </Link>
+          {guardando ? (
+            <button type="button" className={botonSecundario} disabled>
+              Cancelar
+            </button>
+          ) : (
+            <Link to="/" className={botonSecundario}>
+              Cancelar
+            </Link>
+          )}
           <button
             type="button"
             className={botonPrincipal}

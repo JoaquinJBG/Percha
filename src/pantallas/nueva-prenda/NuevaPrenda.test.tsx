@@ -72,14 +72,10 @@ afterEach(() => {
 })
 
 describe('Nueva prenda', () => {
-  it('se llega desde el botón «Añadir prenda» del armario', async () => {
-    const usuario = userEvent.setup()
-    const router = createMemoryRouter(rutas, { initialEntries: ['/'] })
+  it('tiene su ruta en la app', () => {
+    const router = createMemoryRouter(rutas, { initialEntries: ['/prendas/nueva'] })
     render(<RouterProvider router={router} />)
 
-    await usuario.click(screen.getByRole('link', { name: 'Añadir prenda' }))
-
-    expect(router.state.location.pathname).toBe('/prendas/nueva')
     expect(screen.getByRole('heading', { level: 1, name: 'Nueva prenda' })).toBeInTheDocument()
   })
 
@@ -175,15 +171,49 @@ describe('Nueva prenda', () => {
     expect(guardar.mock.calls[0]?.[0].fotos[0]?.recortada).toBeNull()
   })
 
-  it('con el recorte en marcha no deja guardar, salvo con «Usar la original» (no aparece hasta acabar)', async () => {
-    const { usuario } = montar()
+  it('con el recorte en marcha no deja guardar, salvo marcando «Usar la original»', async () => {
+    const { usuario, llamadas, guardar } = montar()
     await usuario.upload(screen.getByLabelText('Galería'), ficheroFoto())
+    await screen.findByText('Quitando el fondo…')
     await usuario.click(screen.getByRole('radio', { name: 'Accesorio' }))
 
     expect(botonGuardar()).toBeDisabled()
     expect(
       screen.getByText('Espera a que termine el recorte o marca «Usar la original».'),
     ).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('checkbox', { name: 'Usar la original' }))
+    expect(screen.getByText('Se guardará sin recortar')).toBeInTheDocument()
+    expect(botonGuardar()).toBeEnabled()
+
+    // Aunque el recorte llegue después, se guarda la original.
+    llamada(llamadas, 0).resolver(png)
+    await screen.findByRole('img', { name: 'Foto 1' })
+    await usuario.click(botonGuardar())
+    await screen.findByText('Prenda guardada en el armario.')
+    expect(guardar.mock.calls[0]?.[0].fotos[0]?.recortada).toBeNull()
+  })
+
+  it('mientras guarda no deja cancelar', async () => {
+    const { usuario, llamadas, guardar } = montar()
+    let terminar: () => void = () => undefined
+    guardar.mockReturnValueOnce(
+      new Promise<void>((resolver) => {
+        terminar = resolver
+      }),
+    )
+    await usuario.upload(screen.getByLabelText('Galería'), ficheroFoto())
+    await screen.findByText('Quitando el fondo…')
+    llamada(llamadas, 0).resolver(png)
+    await usuario.click(screen.getByRole('radio', { name: 'Calzado' }))
+
+    await usuario.click(botonGuardar())
+
+    expect(screen.getByRole('button', { name: 'Guardando…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
+    expect(screen.queryByRole('link', { name: 'Cancelar' })).not.toBeInTheDocument()
+    terminar()
+    expect(await screen.findByText('Prenda guardada en el armario.')).toBeInTheDocument()
   })
 
   it('admite dos fotos como mucho', async () => {

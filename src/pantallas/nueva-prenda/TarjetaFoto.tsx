@@ -36,6 +36,7 @@ function textoEstado(estado: EstadoFoto, usarOriginal: boolean): string {
     case 'preparando':
       return 'Preparando la foto…'
     case 'recortando': {
+      if (usarOriginal) return 'Se guardará sin recortar'
       const { progreso } = estado
       if (progreso && progreso.total > 0 && progreso.cargados < progreso.total) {
         return `Cargando el recortador: ${megas.format(progreso.cargados / 1e6)} de ${megas.format(progreso.total / 1e6)} MB`
@@ -90,7 +91,7 @@ export function TarjetaFoto({ foto, numero, onUsarOriginal, onReintentar, onQuit
         <p className="text-xs text-suave">Solo la primera vez. Mejor con wifi.</p>
       )}
 
-      {estado.fase === 'recortada' && (
+      {foto.original && estado.fase !== 'fallida' && (
         <label className="flex min-h-10 items-center gap-2 text-sm">
           <input
             type="checkbox"

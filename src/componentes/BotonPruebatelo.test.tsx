@@ -207,6 +207,38 @@ describe('BotonPruebatelo', () => {
     expect(await screen.findByText(INSTRUCCION)).toBeInTheDocument()
   })
 
+  it('al abrir el panel de otro outfit, se cierra el que había', async () => {
+    const usuario = userEvent.setup()
+    const copiar = () => Promise.resolve(true)
+    const comun = {
+      prendas: [{ ...nuevaPrenda(), id: '1', creadaEn: 0 }],
+      leerFotoCuerpo: () => Promise.resolve(null),
+      copiar,
+      privacidad: privacidadEnMemoria(),
+    }
+    const router = createMemoryRouter([
+      {
+        path: '/',
+        element: (
+          <>
+            <BotonPruebatelo {...comun} numero={1} />
+            <BotonPruebatelo {...comun} numero={2} />
+          </>
+        ),
+      },
+    ])
+    render(<RouterProvider router={router} />)
+
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 1' }))
+    expect(await screen.findAllByRole('group')).toHaveLength(1)
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 2' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('group')).toHaveLength(1)
+    })
+    expect(screen.getByRole('group')).toHaveAccessibleName('Pruébatelo en Gemini: outfit 2')
+  })
+
   it('si no se puede preparar la imagen, lo dice', async () => {
     const preparar = vi.fn(() => Promise.reject(new Error('canvas')))
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

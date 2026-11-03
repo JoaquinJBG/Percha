@@ -40,6 +40,12 @@ describe('describirPrenda', () => {
     expect(describirPrenda(prenda({ colores: [], estampado: 'otro' }))).toBe('camiseta')
   })
 
+  it('no repite el color que ya está en el nombre', () => {
+    expect(
+      describirPrenda(prenda({ subcategoria: 'Pantalón vaquero', colores: ['vaquero', 'azul'] })),
+    ).toBe('Pantalón vaquero de color azul')
+  })
+
   it('sin subcategoría, usa la categoría', () => {
     expect(
       describirPrenda(prenda({ categoria: 'calzado', subcategoria: ' ', colores: ['blanco'] })),

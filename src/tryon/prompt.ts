@@ -40,7 +40,9 @@ function enumerar(partes: readonly string[]): string {
  */
 export function describirPrenda(prenda: EtiquetasTryOn): string {
   let texto = prenda.subcategoria.trim() || NOMBRE_CATEGORIA[prenda.categoria]
-  const colores = prenda.colores.map((c) => c.trim()).filter(Boolean)
+  // «vaquero de color vaquero» no: el color que ya dice el nombre sobra.
+  const palabras = new Set(texto.toLocaleLowerCase('es').split(/\s+/))
+  const colores = prenda.colores.map((c) => c.trim()).filter((c) => c && !palabras.has(c))
   if (colores.length > 0) texto += ` de color ${enumerar(colores)}`
   const estampado = prenda.estampado.trim().toLocaleLowerCase('es')
   if (!SIN_ESTAMPADO.has(estampado)) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { leerPerfil } from '../datos/repositorio.ts'
 import {
@@ -38,6 +38,8 @@ type Estado =
   | { fase: 'error'; mensaje: string }
 
 const CLAVE_PRIVACIDAD = 'percha:tryon:privacidad-vista'
+/** Al abrir el panel de un outfit se cierra el de otro: si no, quedarían uno encima del otro. */
+const EVENTO_ABIERTO = 'percha:pruebatelo-abierto'
 
 const privacidadLocal: AvisoPrivacidad = {
   visto() {
@@ -99,6 +101,20 @@ export function BotonPruebatelo({
   const enCurso = useRef(false)
   // El perfil solo cambia en otra pantalla, que desmonta esta: la imagen preparada sigue valiendo.
   const preparado = useRef<TryOn | null>(null)
+  const id = useId()
+
+  useEffect(() => {
+    function alAbrirOtro(evento: Event) {
+      if (evento instanceof CustomEvent && evento.detail !== id) {
+        setEstado({ fase: 'quieto' })
+        setCopiadoAMano(null)
+      }
+    }
+    window.addEventListener(EVENTO_ABIERTO, alAbrirOtro)
+    return () => {
+      window.removeEventListener(EVENTO_ABIERTO, alAbrirOtro)
+    }
+  }, [id])
 
   useEffect(() => {
     if (estado.fase !== 'descargar') return
@@ -144,6 +160,7 @@ export function BotonPruebatelo({
     if (enCurso.current) return
     enCurso.current = true
     setCopiadoAMano(null)
+    window.dispatchEvent(new CustomEvent(EVENTO_ABIERTO, { detail: id }))
     try {
       let tryon = preparado.current
       if (!tryon) {
@@ -223,10 +240,7 @@ export function BotonPruebatelo({
           <p>La imagen ya está lista. Pulsa «Compartir» y elige Gemini.</p>
           <button
             type="button"
-            onClick={() => {
-              const tryon = preparado.current
-              if (tryon) void compartir(tryon, copiado)
-            }}
+            onClick={() => void pulsar()}
             className={`${botonPanel} bg-papel text-tinta`}
           >
             Compartir

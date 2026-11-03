@@ -1,20 +1,19 @@
-import { useRef, useState, type ComponentProps } from 'react'
+import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Link } from 'react-router'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { TiempoHoy } from '../../componentes/TiempoHoy.tsx'
 import { ESTILOS, OCASIONES, type Estilo, type Ocasion, type Prenda } from '../../datos/modelo.ts'
 import { guardarOutfit, listarPrendas, marcarFavorito } from '../../datos/repositorio.ts'
 import { crearCollage } from '../../outfits/collage/index.ts'
-import type { ResultadoOutfits } from '../../outfits/reglas/index.ts'
 import type { TiempoHoy as DatosTiempo } from '../../tiempo/index.ts'
 import { fechaLocal } from './fecha.ts'
 import { crearAlmacenEleccionLocal, type AlmacenEleccion, type Eleccion } from './eleccion.ts'
 import { Resultado, type AccionesResultado } from './Resultado.tsx'
-import { outfitsPorReglas, type SelectorOutfits } from './selector.ts'
+import { outfitsPorReglas, type ResultadoSelector, type SelectorOutfits } from './selector.ts'
 
 /** Todo se puede cambiar en los tests; si se pasan funciones, que no cambien en cada render. */
 interface Props extends Partial<AccionesResultado> {
-  /** Quién elige los outfits: por defecto las reglas; T2.5 pasará aquí el de la IA. */
+  /** Quién elige los outfits: por defecto las reglas; la app pasa `outfitsConIAoReglas`. */
   elegir?: SelectorOutfits
   listar?: () => Promise<Prenda[]>
   almacenEleccion?: AlmacenEleccion
@@ -22,11 +21,19 @@ interface Props extends Partial<AccionesResultado> {
   hoy?: () => Date
 }
 
+interface Listo {
+  fase: 'listo'
+  tanda: number
+  resultado: ResultadoSelector
+  armarioVacio: boolean
+}
+
+/** Mientras se genera se guarda la tanda anterior: si se cancela, vuelve tal cual (con lo guardado). */
 type Estado =
   | { fase: 'inicio' }
-  | { fase: 'generando' }
+  | { fase: 'generando'; conIA: boolean; anterior: Listo | null }
   | { fase: 'error' }
-  | { fase: 'listo'; tanda: number; resultado: ResultadoOutfits<Prenda>; armarioVacio: boolean }
+  | Listo
 
 const almacenPorDefecto = crearAlmacenEleccionLocal()
 const compartidorPorDefecto = typeof navigator === 'undefined' ? {} : navigator
@@ -51,6 +58,10 @@ export function Outfits({
   const [estado, setEstado] = useState<Estado>({ fase: 'inicio' })
   const [guardando, setGuardando] = useState(false)
   const intentos = useRef(0)
+  const controlador = useRef<AbortController | null>(null)
+
+  // Salir de la pantalla cancela la petición a Gemini: no gasta cupo en una respuesta que nadie verá.
+  useEffect(() => () => controlador.current?.abort(), [])
 
   function elegirValor(cambio: Partial<Eleccion>) {
     const nueva = { ...eleccion, ...cambio }
@@ -59,22 +70,48 @@ export function Outfits({
   }
 
   async function generar() {
+    controlador.current?.abort()
+    const actual = new AbortController()
+    controlador.current = actual
+    const { signal } = actual
+    // Cada pulsación es otra semilla para las reglas y para Gemini: así «Generar otros» da otra tanda.
     const intento = ++intentos.current
-    setEstado({ fase: 'generando' })
+    setEstado((antes) => ({
+      fase: 'generando',
+      conIA: false,
+      anterior: antes.fase === 'listo' ? antes : antes.fase === 'generando' ? antes.anterior : null,
+    }))
     try {
       const prendas = await listar()
       const fecha = tiempo?.fecha ?? fechaLocal(hoy())
-      const resultado = await elegir({ prendas, ...eleccion, tiempo, fecha }, intento)
-      if (intento !== intentos.current) return
+      const resultado = await elegir({ prendas, ...eleccion, tiempo, fecha }, intento, {
+        signal,
+        alPreguntarIA: () => {
+          if (signal.aborted) return
+          setEstado((antes) => (antes.fase === 'generando' ? { ...antes, conIA: true } : antes))
+        },
+      })
+      if (signal.aborted) return
       setEstado({ fase: 'listo', tanda: intento, resultado, armarioVacio: prendas.length === 0 })
     } catch (fallo) {
+      if (signal.aborted) return
       console.error(fallo)
-      if (intento === intentos.current) setEstado({ fase: 'error' })
+      setEstado({ fase: 'error' })
     }
+  }
+
+  function cancelar() {
+    controlador.current?.abort()
+    setEstado((antes) =>
+      antes.fase === 'generando' ? (antes.anterior ?? { fase: 'inicio' }) : antes,
+    )
   }
 
   const generando = estado.fase === 'generando'
   const listo = estado.fase === 'listo' ? estado : null
+  // Durante la espera, la tanda anterior sigue montada (oculta) para no perder lo guardado si se cancela.
+  const mostrado = estado.fase === 'generando' ? estado.anterior : listo
+  const conIA = estado.fase === 'generando' && estado.conIA
 
   return (
     <Pantalla titulo="Outfits">
@@ -116,14 +153,31 @@ export function Outfits({
       <TiempoHoy {...propsTiempo} alCambiar={setTiempo} />
 
       <div className="flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={() => void generar()}
-          disabled={generando || guardando}
-          className="min-h-12 rounded-xl bg-tinta px-4 text-lg font-semibold text-papel disabled:opacity-60"
-        >
-          {generando ? 'Generando…' : listo?.resultado.outfits.length ? 'Generar otros' : 'Generar'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void generar()}
+            disabled={generando || guardando}
+            className="min-h-12 min-w-0 flex-1 rounded-xl bg-tinta px-4 text-lg font-semibold text-papel disabled:opacity-60"
+          >
+            {conIA
+              ? 'Gemini está eligiendo…'
+              : generando
+                ? 'Generando…'
+                : listo?.resultado.outfits.length
+                  ? 'Generar otros'
+                  : 'Generar'}
+          </button>
+          {conIA && (
+            <button
+              type="button"
+              onClick={cancelar}
+              className="min-h-12 shrink-0 rounded-xl border border-tinta px-4 font-medium"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
         {!tiempo && (
           <p className="text-sm text-suave">
             Sin el tiempo de hoy, los outfits no tienen en cuenta la temperatura ni la lluvia.
@@ -135,20 +189,27 @@ export function Outfits({
         {estado.fase === 'error' && (
           <p role="alert">No se han podido generar los outfits. Prueba otra vez.</p>
         )}
+        {listo?.resultado.avisoIA && (
+          <p className="rounded-2xl border border-black/10 bg-white/60 p-4">
+            {conMayuscula(listo.resultado.avisoIA)}
+          </p>
+        )}
         {listo && <Avisos avisos={listo.resultado.avisos} armarioVacio={listo.armarioVacio} />}
       </div>
 
-      {listo && listo.resultado.outfits.length > 0 && (
-        <Resultado
-          key={listo.tanda}
-          resultado={listo.resultado}
-          nombreFichero={`percha-outfits-${fechaLocal(hoy())}.jpg`}
-          componer={componer}
-          guardar={guardar}
-          marcar={marcar}
-          compartidor={compartidor}
-          alOcupar={setGuardando}
-        />
+      {mostrado && mostrado.resultado.outfits.length > 0 && (
+        <div hidden={generando}>
+          <Resultado
+            key={mostrado.tanda}
+            resultado={mostrado.resultado}
+            nombreFichero={`percha-outfits-${fechaLocal(hoy())}.jpg`}
+            componer={componer}
+            guardar={guardar}
+            marcar={marcar}
+            compartidor={compartidor}
+            alOcupar={setGuardando}
+          />
+        </div>
       )}
     </Pantalla>
   )

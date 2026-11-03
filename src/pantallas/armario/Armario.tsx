@@ -33,6 +33,9 @@ const PARAMETRO_EDITAR = 'editar'
 const botonAñadir =
   'flex min-h-12 items-center justify-center gap-2 rounded-xl bg-oliva px-4 font-medium text-papel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 
+const botonVarias =
+  'flex min-h-12 items-center justify-center rounded-xl border border-oliva/40 bg-white px-4 font-medium text-oliva-oscuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
+
 function esEstadoCon(estado: unknown, clave: string): boolean {
   return (
     typeof estado === 'object' &&
@@ -183,17 +186,25 @@ export function Armario({
           <Link to="/prendas/nueva" className={`${botonAñadir} mt-2`}>
             Añadir prenda
           </Link>
+          <Link to="/prendas/varias" className={`${botonVarias} mt-1`}>
+            Añadir muchas a la vez
+          </Link>
         </div>
       )}
 
       {todas && todas.length > 0 && (
         <div inert={idDetalle !== null} className="contents">
-          <Link to="/prendas/nueva" className={botonAñadir}>
-            <span aria-hidden="true" className="text-xl leading-none">
-              +
-            </span>
-            Añadir prenda
-          </Link>
+          <div className="grid grid-cols-[2fr_1fr] gap-2">
+            <Link to="/prendas/nueva" className={botonAñadir}>
+              <span aria-hidden="true" className="text-xl leading-none">
+                +
+              </span>
+              Añadir prenda
+            </Link>
+            <Link to="/prendas/varias" className={botonVarias}>
+              Muchas
+            </Link>
+          </div>
 
           <FiltrosArmario prendas={todas} filtros={filtros} onCambiar={cambiarFiltros} />
 

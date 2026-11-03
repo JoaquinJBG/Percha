@@ -1,4 +1,5 @@
 import { Dexie, type EntityTable, type Table } from 'dexie'
+import type { ElementoCola } from './cola.ts'
 import type { Ajustes, Outfit, Perfil, Prenda } from './modelo.ts'
 
 /** Clave de la única fila de `perfil` y de `ajustes`. */
@@ -9,6 +10,7 @@ export class BaseDatos extends Dexie {
   declare outfits: EntityTable<Outfit, 'id'>
   declare perfil: Table<Perfil, string>
   declare ajustes: Table<Ajustes, string>
+  declare cola: EntityTable<ElementoCola, 'id'>
 
   constructor(nombre = 'percha') {
     super(nombre)
@@ -18,6 +20,8 @@ export class BaseDatos extends Dexie {
       perfil: '',
       ajustes: '',
     })
+    // Fotos de la alta masiva que aún no son prendas. No van en la copia.
+    this.version(2).stores({ cola: 'id, orden' })
   }
 }
 

@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { Ajustes } from '../pantallas/Ajustes.tsx'
+import { AltaMasiva } from '../pantallas/alta-masiva/AltaMasiva.tsx'
 import { Armario } from '../pantallas/armario/Armario.tsx'
 import { NuevaPrenda } from '../pantallas/nueva-prenda/NuevaPrenda.tsx'
 import { Outfits } from '../pantallas/outfits/Outfits.tsx'
@@ -13,6 +14,7 @@ export const rutas: RouteObject[] = [
     children: [
       { index: true, element: <Armario /> },
       { path: 'prendas/nueva', element: <NuevaPrenda /> },
+      { path: 'prendas/varias', element: <AltaMasiva /> },
       { path: 'outfits', element: <Outfits elegir={outfitsConIAoReglas} /> },
       { path: 'perfil', element: <Perfil /> },
       { path: 'ajustes', element: <Ajustes /> },

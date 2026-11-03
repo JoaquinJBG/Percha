@@ -71,7 +71,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ✅ |
 | T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ✅ |
 | T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ✅ |
-| T1.6 | Alta en lote: «Añadir varias», hasta 5 prendas etiquetadas en una sola petición (D9) | T1.5 | ⏳ |
+| T1.6 | Alta masiva: muchas fotos de golpe, cola persistente y etiquetado de 5 en 5 (D16) | T1.5 | 👀 |
 
 T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:
 
@@ -85,12 +85,11 @@ T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las 
 Cada una puede añadir **una línea** a la navegación (`src/app/`) si la necesita. Lo que haga falta coser entre
 ellas va a T1.5.
 
-### T1.6 — Alta en lote
-- **Qué:** botón «Añadir varias» junto a «Añadir prenda»: elegir hasta 5 fotos de la galería (una por prenda),
-  recortarlas, etiquetarlas en **una** petición (`etiquetarPrendas` con 5 prendas, D9) y revisarlas una a una
-  con `FormularioPrenda` antes de guardar. Si la IA devuelve `null` para alguna, esa va vacía con aviso.
-- **Por qué aparte:** T1.5 deja el flujo de una prenda; el lote necesita su propia pantalla (cola de revisión,
-  qué pasa si se cancela a medias) y una petición de 5 tarda ~40 s (S2).
+### T1.6 — Alta masiva
+- **Qué:** «Añadir muchas» (`/prendas/varias`): muchas fotos de golpe, una prenda por foto, en una cola guardada
+  en el móvil que se procesa de 5 en 5 y guarda cada prenda sin revisarla una a una (D16). Las que la IA no
+  reconoce quedan en la cola para reintentar o descartar. Sustituye a la idea anterior de revisar un lote de 5.
+- **Código:** `src/importacion/`, `src/datos/cola.ts`, `src/pantallas/alta-masiva/`.
 
 ## Fase 2 — Outfits
 

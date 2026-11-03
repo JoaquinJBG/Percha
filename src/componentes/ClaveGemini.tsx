@@ -10,8 +10,8 @@ interface Props {
 type Aviso = { tipo: 'bien' | 'error'; texto: string } | null
 
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
-const botonPrincipal = `${boton} bg-tinta text-papel`
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
+const botonPrincipal = `${boton} bg-oliva text-papel`
 const botonSecundario = `${boton} border border-tinta/25 text-tinta`
 const enlace = 'font-medium underline underline-offset-2'
 
@@ -130,7 +130,7 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
 
   return (
     <section aria-labelledby="titulo-clave" className="flex flex-col gap-3">
-      <h2 id="titulo-clave" className="text-lg font-semibold">
+      <h2 id="titulo-clave" className="font-titulo text-xl font-semibold">
         Clave de Gemini
       </h2>
       <p className="text-sm text-suave">
@@ -139,7 +139,7 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
       </p>
 
       {guardada && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-tinta/15 bg-white/60 p-4">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white shadow-tarjeta p-4">
           <p className="font-medium">Tienes una clave guardada.</p>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -171,7 +171,7 @@ export function ClaveGemini({ crearProveedor = proveedorGemini }: Props) {
             autoCorrect="off"
             spellCheck={false}
             placeholder="Pega aquí tu clave"
-            className="min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-tinta"
+            className="min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-oliva"
           />
         </label>
         <button type="submit" className={botonPrincipal} disabled={ocupada || !ajustes}>

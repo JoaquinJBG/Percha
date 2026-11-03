@@ -4,8 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 import type { Plugin } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 
-const colorTema = '#3f3a36'
-const colorFondo = '#faf7f2'
+const colorTema = '#5b6b35'
+const colorFondo = '#f8f6ef'
 
 // Aislamiento entre orígenes: sin él, el recorte en WASM va con un solo hilo. En producción lo pone
 // `public/_headers`.

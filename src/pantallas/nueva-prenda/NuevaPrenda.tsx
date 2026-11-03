@@ -35,11 +35,11 @@ type Paso = 'fotos' | 'etiquetando' | 'revisar'
 const MAX_FOTOS = 2
 
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
-const botonPrincipal = `${boton} bg-tinta text-papel`
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
+const botonPrincipal = `${boton} bg-oliva text-papel`
 const botonSecundario = `${boton} flex items-center justify-center border border-tinta/25 text-tinta`
-const botonFichero = `${botonSecundario} cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-tinta`
-const titulo = 'text-lg font-semibold outline-none'
+const botonFichero = `${botonSecundario} cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-oliva`
+const titulo = 'font-titulo text-xl font-semibold outline-none'
 
 const AVISO_SIN_CLAVE_AL_EMPEZAR: AvisoIA = {
   titulo: 'Sin clave de Gemini',
@@ -419,8 +419,8 @@ export function NuevaPrenda({
             <p>Gemini está mirando la prenda…</p>
             <p className="text-sm text-suave">Suele tardar unos segundos.</p>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-tinta/10">
-            <div className="h-full w-1/3 animate-pulse bg-tinta" />
+          <div className="h-1.5 overflow-hidden rounded-full bg-oliva-claro">
+            <div className="h-full w-1/3 animate-pulse bg-oliva" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -449,7 +449,7 @@ export function NuevaPrenda({
         >
           <button
             type="button"
-            className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-tinta disabled:opacity-50"
+            className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-oliva disabled:opacity-50"
             disabled={guardando}
             onClick={() => {
               setAviso(null)

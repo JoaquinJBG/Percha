@@ -8,7 +8,7 @@ interface Props {
 export function Pantalla({ titulo, children }: Props) {
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{titulo}</h1>
+      <h1 className="font-titulo text-3xl font-semibold tracking-tight">{titulo}</h1>
       {children}
     </section>
   )

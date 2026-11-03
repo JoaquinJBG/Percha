@@ -44,15 +44,16 @@ export interface RecuadroCollage {
 }
 
 export const COLORES_COLLAGE = {
-  fondo: '#faf7f2',
+  fondo: '#f8f6ef',
   recuadro: '#ffffff',
-  borde: '#e7e1d8',
-  hueco: '#f1ece4',
-  tinta: '#3f3a36',
-  suave: '#6f6760',
+  borde: '#e3e5d6',
+  hueco: '#efeadc',
+  oliva: '#5b6b35',
+  tinta: '#2b301f',
+  suave: '#6b7060',
 }
 
-const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+const FUENTE = '"DM Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
 const RELLENO = 16
 const SEPARACION = 8
 const RADIO = 24
@@ -160,7 +161,7 @@ function dibujarRecuadro(pincel: Pincel, recuadro: RecuadroCollage, celda: Rect,
   // esquina, para no tapar la parte de arriba.
   const arriba = celda.y + celda.alto - RELLENO - ALTO_TEXTO + 12
   const centro = { x: celda.x + RELLENO + 24, y: arriba + 37 }
-  pincel.fillStyle = COLORES_COLLAGE.tinta
+  pincel.fillStyle = COLORES_COLLAGE.oliva
   pincel.beginPath()
   pincel.arc(centro.x, centro.y, 24, 0, Math.PI * 2)
   pincel.fill()

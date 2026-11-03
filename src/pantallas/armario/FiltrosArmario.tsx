@@ -10,9 +10,9 @@ interface Props {
 }
 
 const chip =
-  'flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 const selector =
-  'min-h-12 w-full rounded-xl border border-tinta/25 bg-white/60 px-3 text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'min-h-12 w-full rounded-xl border border-tinta/15 bg-white px-3 text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 
 export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
   const idEstilo = useId()
@@ -36,7 +36,7 @@ export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
         type="button"
         aria-pressed={activo}
         className={`${chip} ${
-          activo ? 'border-tinta bg-tinta text-papel' : 'border-tinta/25 bg-white/60 text-tinta'
+          activo ? 'border-oliva bg-oliva text-papel' : 'border-tinta/15 bg-white text-tinta'
         }`}
         onClick={() => {
           onCambiar({ ...filtros, categoria })

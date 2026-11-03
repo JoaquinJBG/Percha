@@ -13,10 +13,10 @@ interface Props {
 }
 
 const boton =
-  'min-h-11 rounded-xl px-3 text-sm font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'min-h-11 rounded-xl px-3 text-sm font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 const botonSecundario = `${boton} border border-tinta/25 text-tinta`
 const botonPeligro = `${boton} bg-red-800 text-white`
-const botonFichero = `${botonSecundario} flex cursor-pointer items-center justify-center has-[:disabled]:cursor-default has-[:disabled]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-tinta`
+const botonFichero = `${botonSecundario} flex cursor-pointer items-center justify-center has-[:disabled]:cursor-default has-[:disabled]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-oliva`
 
 export function FotoPerfil({ id, titulo, foto, camara, ocupada, onElegir, onBorrar }: Props) {
   // Se guarda qué foto se iba a borrar: si cambia o se borra, la confirmación desaparece sola.
@@ -52,7 +52,7 @@ export function FotoPerfil({ id, titulo, foto, camara, ocupada, onElegir, onBorr
         )}
         {ocupada && (
           <div className="absolute inset-x-2 bottom-2 h-1.5 overflow-hidden rounded-full bg-papel/80">
-            <div className="h-full w-1/3 animate-pulse bg-tinta" />
+            <div className="h-full w-1/3 animate-pulse bg-oliva" />
           </div>
         )}
       </div>

@@ -18,28 +18,33 @@ export function RejillaPrendas({ prendas, onAbrir }: Props) {
         <section key={categoria} aria-labelledby={`grupo-${categoria}`}>
           <h2
             id={`grupo-${categoria}`}
-            className="mb-2 flex items-baseline gap-2 text-sm font-semibold text-suave"
+            className="mb-3 flex items-baseline gap-2 text-xs font-semibold tracking-widest text-suave uppercase"
           >
-            {ETIQUETA_CATEGORIA[categoria]} <span className="font-normal">{delGrupo.length}</span>
+            {ETIQUETA_CATEGORIA[categoria]}{' '}
+            <span className="rounded-full bg-oliva-claro px-2 py-0.5 font-medium tracking-normal text-oliva-oscuro">
+              {delGrupo.length}
+            </span>
           </h2>
-          <ul className="grid grid-cols-3 gap-2">
+          <ul className="grid grid-cols-2 gap-3">
             {delGrupo.map((prenda) => {
               const portada = fotoPortada(prenda)
               return (
                 <li key={prenda.id}>
                   <button
                     type="button"
-                    className="flex w-full flex-col gap-1 rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+                    className="flex w-full flex-col gap-2 rounded-2xl text-left transition active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva"
                     onClick={() => {
                       onAbrir(prenda)
                     }}
                   >
-                    <span className="block aspect-square w-full overflow-hidden rounded-xl border border-tinta/10 bg-white">
+                    <span className="block aspect-[4/5] w-full overflow-hidden rounded-2xl bg-white shadow-tarjeta">
                       {portada && (
-                        <FotoBlob blob={portada} className="size-full object-contain p-1" />
+                        <FotoBlob blob={portada} className="size-full object-contain p-3" />
                       )}
                     </span>
-                    <span className="truncate px-0.5 text-xs">{nombrePrenda(prenda)}</span>
+                    <span className="truncate px-1 text-sm font-medium">
+                      {nombrePrenda(prenda)}
+                    </span>
                   </button>
                 </li>
               )

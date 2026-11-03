@@ -15,8 +15,8 @@ type Estado =
   | { fase: 'error'; texto: string }
 
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
-const botonPrincipal = `${boton} bg-tinta text-papel`
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
+const botonPrincipal = `${boton} bg-oliva text-papel`
 const botonSecundario = `${boton} border border-tinta/25 text-tinta`
 
 function descargar(blob: Blob, nombre: string) {
@@ -70,7 +70,7 @@ export function CopiaArmario() {
 
   return (
     <section aria-labelledby="titulo-copia" className="flex flex-col gap-3">
-      <h2 id="titulo-copia" className="text-lg font-semibold">
+      <h2 id="titulo-copia" className="font-titulo text-xl font-semibold">
         Copia del armario
       </h2>
       <p className="text-sm text-suave">
@@ -111,7 +111,7 @@ export function CopiaArmario() {
         <div
           role="group"
           aria-labelledby="titulo-modo"
-          className="flex flex-col gap-3 rounded-2xl border border-tinta/15 bg-white/60 p-4"
+          className="flex flex-col gap-3 rounded-2xl bg-white shadow-tarjeta p-4"
         >
           <p id="titulo-modo" className="font-medium break-words">
             ¿Cómo importas «{estado.fichero.name}»?

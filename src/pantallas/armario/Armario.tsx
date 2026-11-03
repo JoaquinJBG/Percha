@@ -31,7 +31,7 @@ const PARAMETRO_PRENDA = 'prenda'
 const PARAMETRO_EDITAR = 'editar'
 
 const botonAñadir =
-  'flex min-h-12 items-center justify-center gap-2 rounded-xl bg-tinta px-4 font-medium text-papel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'flex min-h-12 items-center justify-center gap-2 rounded-xl bg-oliva px-4 font-medium text-papel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 
 function esEstadoCon(estado: unknown, clave: string): boolean {
   return (

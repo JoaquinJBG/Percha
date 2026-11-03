@@ -133,10 +133,10 @@ export function TiempoHoy({
   return (
     <section
       aria-labelledby="tiempo-hoy"
-      className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white/60 p-4"
+      className="flex flex-col gap-3 rounded-2xl bg-white shadow-tarjeta p-4"
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="tiempo-hoy" className="text-lg font-semibold">
+        <h2 id="tiempo-hoy" className="font-titulo text-xl font-semibold">
           Tiempo hoy
         </h2>
         {tiempo && !eligiendo && (
@@ -160,7 +160,7 @@ export function TiempoHoy({
             type="button"
             onClick={() => void usarUbicacion()}
             disabled={cargando}
-            className="min-h-11 rounded-xl bg-tinta px-4 font-medium text-papel disabled:opacity-60"
+            className="min-h-11 rounded-xl bg-oliva px-4 font-medium text-papel disabled:opacity-60"
           >
             Usar mi ubicación
           </button>
@@ -179,7 +179,7 @@ export function TiempoHoy({
                   setTexto(e.target.value)
                 }}
                 placeholder="Madrid, Sevilla…"
-                className="min-h-11 min-w-0 flex-1 rounded-xl border border-black/15 bg-white px-3"
+                className="min-h-11 min-w-0 flex-1 rounded-xl border border-tinta/20 bg-white px-3"
               />
               <button
                 type="submit"
@@ -219,7 +219,7 @@ export function TiempoHoy({
                   type="button"
                   onClick={() => void elegirCiudad(sitio)}
                   disabled={cargando}
-                  className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-left disabled:opacity-60"
+                  className="min-h-11 w-full rounded-xl bg-white shadow-tarjeta px-3 py-2 text-left disabled:opacity-60"
                 >
                   <span className="font-medium">{sitio.nombre}</span>
                   {sitio.detalle && (

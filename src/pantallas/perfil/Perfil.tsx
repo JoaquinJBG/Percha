@@ -25,8 +25,8 @@ const NOMBRE_FOTO: Record<CampoFoto, string> = {
 }
 
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
-const botonPrincipal = `${boton} bg-tinta text-papel`
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
+const botonPrincipal = `${boton} bg-oliva text-papel`
 
 export function Perfil({
   leer = leerPerfil,
@@ -192,7 +192,7 @@ export function Perfil({
   return (
     <Pantalla titulo="Perfil">
       <section aria-labelledby="titulo-fotos" className="flex flex-col gap-3">
-        <h2 id="titulo-fotos" className="text-lg font-semibold">
+        <h2 id="titulo-fotos" className="font-titulo text-xl font-semibold">
           Tus fotos
         </h2>
         <p className="text-sm text-suave">
@@ -224,7 +224,7 @@ export function Perfil({
         {avisoDe('fotoCuerpo')}
         {avisoDe('fotoCara')}
 
-        <div className="flex flex-col gap-1 rounded-2xl border border-tinta/15 bg-white/60 p-4 text-sm">
+        <div className="flex flex-col gap-1 rounded-2xl bg-white shadow-tarjeta p-4 text-sm">
           <p className="font-medium">Para que el probador salga bien</p>
           <ul className="list-disc pl-5 text-suave">
             <li>De pie y de frente, con los brazos sueltos.</li>
@@ -246,7 +246,7 @@ export function Perfil({
       </section>
 
       <section aria-labelledby="titulo-ciudad" className="flex flex-col gap-3">
-        <h2 id="titulo-ciudad" className="text-lg font-semibold">
+        <h2 id="titulo-ciudad" className="font-titulo text-xl font-semibold">
           Ciudad por defecto
         </h2>
         <form
@@ -267,7 +267,7 @@ export function Perfil({
               onChange={(evento) => {
                 setCiudad(evento.target.value)
               }}
-              className="min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-tinta"
+              className="min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-oliva"
             />
           </label>
           <button
@@ -282,7 +282,7 @@ export function Perfil({
       </section>
 
       <section aria-labelledby="titulo-estilos" className="flex flex-col gap-3">
-        <h2 id="titulo-estilos" className="text-lg font-semibold">
+        <h2 id="titulo-estilos" className="font-titulo text-xl font-semibold">
           Estilos favoritos
         </h2>
         <p className="text-sm text-suave">Marca los que más te gustan. Se guardan al tocarlos.</p>
@@ -296,8 +296,8 @@ export function Perfil({
                   aria-pressed={marcado}
                   disabled={!perfil}
                   onClick={() => void cambiarEstilo(estilo)}
-                  className={`min-h-10 rounded-full border px-3 text-sm disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta ${
-                    marcado ? 'border-tinta bg-tinta text-papel' : 'border-tinta/25 text-tinta'
+                  className={`min-h-10 rounded-full border px-3 text-sm disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva ${
+                    marcado ? 'border-oliva bg-oliva text-papel' : 'border-tinta/25 text-tinta'
                   }`}
                 >
                   {estilo}

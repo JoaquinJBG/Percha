@@ -62,11 +62,11 @@ const MUESTRA_COLOR: Record<string, string> = {
 }
 
 const chip =
-  'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-tinta/25 px-3 text-sm has-checked:border-tinta has-checked:bg-tinta has-checked:text-papel has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-tinta'
+  'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-tinta/25 px-3 text-sm has-checked:border-tinta has-checked:bg-oliva has-checked:text-papel has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-oliva'
 const campo =
-  'min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-tinta'
+  'min-h-12 rounded-xl border border-tinta/25 bg-white px-3 focus-visible:outline-2 focus-visible:outline-oliva'
 const boton =
-  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
+  'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'
 
 function Grupo({
   titulo,
@@ -325,7 +325,7 @@ export function FormularioPrenda({
       </label>
 
       <div className="flex flex-col gap-3">
-        <button type="submit" className={`${boton} bg-tinta text-papel`} disabled={ocupado}>
+        <button type="submit" className={`${boton} bg-oliva text-papel`} disabled={ocupado}>
           {textoGuardar}
         </button>
         {alCancelar && (

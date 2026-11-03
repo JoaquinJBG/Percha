@@ -112,16 +112,20 @@ describe('editar una prenda', () => {
     expect(within(detalle).getByText('Beige, negro')).toBeInTheDocument()
   })
 
-  it('cancelar vuelve al detalle sin guardar', async () => {
-    const { usuario, router, actualizar } = montar(chino())
-    const edicion = await abrirEdicion(usuario, 'Chino')
+  it.each(['Cancelar', 'Volver sin guardar'])(
+    '«%s» vuelve al detalle sin guardar',
+    async (boton) => {
+      const { usuario, router, actualizar } = montar(chino())
+      const edicion = await abrirEdicion(usuario, 'Chino')
+      await usuario.click(within(edicion).getByRole('checkbox', { name: 'negro' }))
 
-    await usuario.click(within(edicion).getByRole('button', { name: 'Cancelar' }))
+      await usuario.click(within(edicion).getByRole('button', { name: boton }))
 
-    expect(await screen.findByRole('dialog', { name: 'Chino' })).toBeInTheDocument()
-    expect(router.state.location.search).toBe('?prenda=p1')
-    expect(actualizar).not.toHaveBeenCalled()
-  })
+      expect(await screen.findByRole('dialog', { name: 'Chino' })).toBeInTheDocument()
+      expect(router.state.location.search).toBe('?prenda=p1')
+      expect(actualizar).not.toHaveBeenCalled()
+    },
+  )
 
   it('«atrás» del móvil cierra la edición y deja el detalle', async () => {
     const { usuario, router } = montar(chino())

@@ -82,6 +82,27 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
       className="fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-papel"
     >
       <div className="mx-auto flex max-w-lg flex-col gap-4 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <button
+          type="button"
+          className="-ml-2 flex min-h-12 items-center gap-1 self-start rounded-xl px-2 font-medium focus-visible:outline-2 focus-visible:outline-tinta disabled:opacity-50"
+          disabled={guardando}
+          onClick={onVolver}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="size-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 5-7 7 7 7" />
+          </svg>
+          Volver sin guardar
+        </button>
+
         <h2
           id="titulo-editar"
           ref={titulo}

@@ -66,7 +66,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | ⏳ |
+| T1.1 | Modelo de datos con Dexie (IndexedDB) + exportar/importar copia | T0.1 | 👀 |
 | T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ⏳ |
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ⏳ |
 | T1.4 | Lista del armario con filtros, editar y borrar | T1.1 | ⏳ |

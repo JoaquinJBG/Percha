@@ -89,11 +89,21 @@ ellas va a T1.5.
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
 | T2.1 | Tiempo: geolocalización o ciudad, con Open-Meteo | T0.1 | ✅ |
-| T2.2 | Motor de candidatos por reglas (tiempo, ocasión, formalidad) + 4 outfits sin IA | T1.1 | 👀 |
-| T2.3 | Selección de 4 outfits con IA y su explicación | T2.2, T1.3 | ⏳ |
-| T2.4 | Collage 2×2 en canvas; guardar, descargar y compartir | T2.2 | ⏳ |
+| T2.2 | Motor de candidatos por reglas (tiempo, ocasión, formalidad) + 4 outfits sin IA | T1.1 | ✅ |
+| T2.3 | Selección de 4 outfits con IA y su explicación (lógica, sin UI) | T2.2, T1.3 | ⏳ |
+| T2.4 | Pantalla Outfits: estilo, ocasión, tiempo, generar con reglas; collage 2×2; guardar, descargar y compartir | T2.2 | ⏳ |
+| T2.5 | Conectar la IA de T2.3 a la pantalla de T2.4 (con las reglas de respaldo) | T2.3, T2.4 | ⏳ |
 
-T2.1 puede empezar ya en la fase 1.
+**Tanda siguiente, en paralelo:** T1.5, T2.3, T2.4 y T3.1, cada una en su zona:
+
+- **T1.5:** `src/pantallas/nueva-prenda/`, `src/pantallas/armario/` (botones «Añadir prenda» y «Editar») y el
+  montaje de `src/componentes/formulario-prenda/`.
+- **T2.3:** `src/outfits/ia/` y lo que añada a `src/ia/` (nuevo método del proveedor, sin cambiar los que hay).
+- **T2.4:** `src/pantallas/outfits/` y `src/outfits/collage/`. El selector de outfits se pasa como función, con
+  las reglas por defecto.
+- **T3.1:** `src/pantallas/perfil/`.
+
+Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 
 ## Fase 3 — Perfil y try-on
 

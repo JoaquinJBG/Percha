@@ -70,7 +70,7 @@ viven en `spikes/<nombre>/` y no tocan `src/`.
 | T1.2 | Alta de prenda: cámara/galería, 1–2 fotos, recorte | T1.1, S1 | ✅ |
 | T1.3 | Ajustes (clave Gemini) + etiquetado con IA y edición manual | T1.1, S2 | ✅ |
 | T1.4 | Lista del armario con filtros, detalle y borrar | T1.1 | ✅ |
-| T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | 👀 |
+| T1.5 | Unir el flujo: alta → recorte → etiquetado con IA → revisar y guardar; editar desde el detalle | T1.2, T1.3, T1.4 | ✅ |
 | T1.6 | Alta en lote: «Añadir varias», hasta 5 prendas etiquetadas en una sola petición (D9) | T1.5 | ⏳ |
 
 T1.2, T1.3, T1.4 y T2.2 van **en paralelo**, cada una en su zona, sin tocar las de las otras:
@@ -117,7 +117,7 @@ Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
-| T3.1 | Perfil con fotos de cara y cuerpo | T1.1 | 👀 |
+| T3.1 | Perfil con fotos de cara y cuerpo | T1.1 | ✅ |
 | T3.2 | Botón «Pruébatelo en Gemini» | T3.1, T2.4, S3 | ⏳ |
 
 ## Fase 4 — Publicar y probar con amigos

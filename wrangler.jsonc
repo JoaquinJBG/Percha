@@ -6,6 +6,6 @@
   "assets": {
     "directory": "./dist",
     // Rutas como /prendas/nueva sirven index.html y las resuelve React Router.
-    "not_found_handling": "single-page-application"
-  }
+    "not_found_handling": "single-page-application",
+  },
 }

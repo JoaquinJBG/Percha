@@ -1,6 +1,7 @@
 import {
   AutoModel,
   AutoProcessor,
+  env,
   RawImage,
   type PreTrainedModel,
   type Processor,
@@ -12,6 +13,11 @@ import type { ProgresoCarga } from './tipos.ts'
 // Solo se usa dentro del worker: importa Transformers.js, que pesa medio mega.
 
 const MODELO = 'briaai/RMBG-1.4'
+
+// Hugging Face responde 404 sin CORS si el Referer es de *.workers.dev. `public/_headers` ya lo quita, pero
+// la PWA instalada sirve este worker desde su caché con las cabeceras de antes.
+env.fetch = (url, opciones?: RequestInit) =>
+  fetch(url, { ...opciones, referrerPolicy: 'no-referrer' })
 
 interface Motor {
   device: 'webgpu' | 'wasm'

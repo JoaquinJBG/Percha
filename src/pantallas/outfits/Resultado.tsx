@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { BotonPruebatelo } from '../../componentes/BotonPruebatelo.tsx'
 import type { NuevoOutfit, Outfit, Prenda } from '../../datos/modelo.ts'
 import { TIPO_COLLAGE, type OutfitCollage } from '../../outfits/collage/index.ts'
 import type { ResultadoOutfits } from '../../outfits/reglas/index.ts'
@@ -204,6 +205,7 @@ export function Resultado({
                 {i + 1}
               </span>
               <p className="min-w-0 flex-1">{conMayuscula(outfit.motivo)}</p>
+              <BotonPruebatelo prendas={outfit.prendas} numero={i + 1} />
               <button
                 type="button"
                 onClick={() => void cambiarFavorito(i)}

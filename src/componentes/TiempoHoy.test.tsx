@@ -115,6 +115,21 @@ describe('TiempoHoy', () => {
     expect(screen.queryByLabelText('O escribe tu ciudad')).not.toBeInTheDocument()
   })
 
+  it('avisa del tiempo que muestra con `alCambiar`', async () => {
+    const alCambiar = vi.fn()
+    render(
+      <TiempoHoy
+        consultar={(sitio) => Promise.resolve(datos(sitio))}
+        almacenSitio={almacen({ tipo: 'ciudad', sitio: valenciaES })}
+        alCambiar={alCambiar}
+      />,
+    )
+
+    await screen.findByText('frío y lluvia')
+    expect(alCambiar).toHaveBeenNthCalledWith(1, null)
+    expect(alCambiar).toHaveBeenLastCalledWith(datos(valenciaES))
+  })
+
   it('vuelve a pedir el sitio si falla la red al cargar el último', async () => {
     const consultar = () => Promise.reject(new ErrorTiempo('sin-red', 'Sin conexión.'))
     render(

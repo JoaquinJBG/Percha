@@ -9,7 +9,13 @@ import { pincelFalso } from './pincelFalso.ts'
 const caja = { x: 0, y: 0, ancho: 500, alto: 500 }
 
 function imagenPrenda(categoria: Categoria, ancho = 100, alto = 100): ImagenPrenda {
-  return { categoria, imagen: { categoria } as unknown as ImageBitmap, ancho, alto, nombre: categoria }
+  return {
+    categoria,
+    imagen: { categoria } as unknown as ImageBitmap,
+    ancho,
+    alto,
+    nombre: categoria,
+  }
 }
 
 function outfit(motivo: string, ...categorias: Categoria[]): RecuadroCollage {
@@ -109,7 +115,9 @@ describe('dibujarCollage', () => {
 
   it('cada prenda cae dentro de su recuadro', () => {
     const { pincel, de } = pincelFalso()
-    const outfits = [1, 2, 3, 4].map((n) => outfit(`o${String(n)}`, 'superior', 'inferior', 'calzado'))
+    const outfits = [1, 2, 3, 4].map((n) =>
+      outfit(`o${String(n)}`, 'superior', 'inferior', 'calzado'),
+    )
 
     dibujarCollage(pincel, outfits)
 

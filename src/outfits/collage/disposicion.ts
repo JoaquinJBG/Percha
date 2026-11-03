@@ -55,7 +55,7 @@ function apilar(indices: number[], categorias: readonly Categoria[], caja: Rect,
 export function disponer(categorias: readonly Categoria[], caja: Rect): Rect[] {
   const lado = categorias.flatMap((c, i) => (c === 'abrigo' || c === 'accesorio' ? [i] : []))
   const centro = categorias
-    .flatMap((c, i) => (lado.includes(i) ? [] : [i]))
+    .flatMap((_, i) => (lado.includes(i) ? [] : [i]))
     .sort((a, b) => {
       const orden = (i: number) => ORDEN_CENTRAL.indexOf(categorias[i] ?? 'superior')
       return orden(a) - orden(b) || a - b
@@ -67,7 +67,12 @@ export function disponer(categorias: readonly Categoria[], caja: Rect): Rect[] {
   const anchoCentro =
     lado.length === 0 ? caja.ancho : centro.length === 0 ? 0 : caja.ancho * COLUMNA_CENTRAL
   apilar(centro, categorias, { ...caja, ancho: anchoCentro }, rects)
-  apilar(lado, categorias, { ...caja, x: caja.x + anchoCentro, ancho: caja.ancho - anchoCentro }, rects)
+  apilar(
+    lado,
+    categorias,
+    { ...caja, x: caja.x + anchoCentro, ancho: caja.ancho - anchoCentro },
+    rects,
+  )
   return rects
 }
 

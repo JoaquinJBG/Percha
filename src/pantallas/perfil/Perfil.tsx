@@ -1,4 +1,4 @@
-import { useEffect, useState, type SubmitEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { ESTILOS, type Estilo, type Perfil as DatosPerfil } from '../../datos/modelo.ts'
 import { guardarPerfil, leerPerfil } from '../../datos/repositorio.ts'
@@ -12,8 +12,12 @@ interface Props {
 }
 
 type CampoFoto = 'fotoCuerpo' | 'fotoCara'
-type Seccion = 'fotos' | 'ciudad' | 'estilos'
-type Aviso = { seccion: Seccion; tipo: 'bien' | 'error'; texto: string } | null
+// Cada parte lleva su aviso, para que un error no quede tapado por el «guardado» de otra.
+type Seccion = 'lectura' | CampoFoto | 'ciudad' | 'estilos'
+interface Aviso {
+  tipo: 'bien' | 'error'
+  texto: string
+}
 
 const NOMBRE_FOTO: Record<CampoFoto, string> = {
   fotoCuerpo: 'de cuerpo entero',
@@ -36,7 +40,9 @@ export function Perfil({
     fotoCara: false,
   })
   const [guardandoCiudad, setGuardandoCiudad] = useState(false)
-  const [aviso, setAviso] = useState<Aviso>(null)
+  const [avisos, setAvisos] = useState<Partial<Record<Seccion, Aviso>>>({})
+  // Cuántos toques de estilos van: si falla uno pero llega otro detrás, el último guarda la lista entera.
+  const toquesEstilos = useRef(0)
 
   useEffect(() => {
     let vigente = true
@@ -49,7 +55,7 @@ export function Perfil({
       (error: unknown) => {
         console.error(error)
         if (vigente) {
-          setAviso({ seccion: 'fotos', tipo: 'error', texto: 'No se ha podido leer tu perfil.' })
+          avisar('lectura', { tipo: 'error', texto: 'No se ha podido leer tu perfil.' })
         }
       },
     )
@@ -63,21 +69,24 @@ export function Perfil({
     setPerfil((actual) => actual && { ...actual, [campo]: valor })
   }
 
+  function avisar(seccion: Seccion, aviso: Aviso | null) {
+    setAvisos((actuales) => ({ ...actuales, [seccion]: aviso ?? undefined }))
+  }
+
   function ocupar(campo: CampoFoto, ocupada: boolean) {
     setOcupadas((actuales) => ({ ...actuales, [campo]: ocupada }))
   }
 
   async function cambiarFoto(campo: CampoFoto, fichero: File) {
     ocupar(campo, true)
-    setAviso(null)
+    avisar(campo, null)
     try {
       let foto: Blob
       try {
         foto = await normalizar(fichero)
       } catch (error) {
         if (!(error instanceof ErrorFoto)) console.error(error)
-        setAviso({
-          seccion: 'fotos',
+        avisar(campo, {
           tipo: 'error',
           texto: error instanceof ErrorFoto ? error.message : 'No se pudo abrir la foto.',
         })
@@ -87,14 +96,13 @@ export function Perfil({
         aplicar(campo, (await guardar({ [campo]: foto }))[campo])
       } catch (error) {
         console.error(error)
-        setAviso({
-          seccion: 'fotos',
+        avisar(campo, {
           tipo: 'error',
           texto: `No se ha podido guardar la foto ${NOMBRE_FOTO[campo]}.`,
         })
         return
       }
-      setAviso({ seccion: 'fotos', tipo: 'bien', texto: `Foto ${NOMBRE_FOTO[campo]} guardada.` })
+      avisar(campo, { tipo: 'bien', texto: `Foto ${NOMBRE_FOTO[campo]} guardada.` })
     } finally {
       ocupar(campo, false)
     }
@@ -102,14 +110,13 @@ export function Perfil({
 
   async function borrarFoto(campo: CampoFoto) {
     ocupar(campo, true)
-    setAviso(null)
+    avisar(campo, null)
     try {
       aplicar(campo, (await guardar({ [campo]: null }))[campo])
-      setAviso({ seccion: 'fotos', tipo: 'bien', texto: `Foto ${NOMBRE_FOTO[campo]} borrada.` })
+      avisar(campo, { tipo: 'bien', texto: `Foto ${NOMBRE_FOTO[campo]} borrada.` })
     } catch (error) {
       console.error(error)
-      setAviso({
-        seccion: 'fotos',
+      avisar(campo, {
         tipo: 'error',
         texto: `No se ha podido borrar la foto ${NOMBRE_FOTO[campo]}.`,
       })
@@ -122,19 +129,18 @@ export function Perfil({
     evento.preventDefault()
     if (!perfil) return
     setGuardandoCiudad(true)
-    setAviso(null)
+    avisar('ciudad', null)
     try {
       const guardada = (await guardar({ ciudad })).ciudad
       aplicar('ciudad', guardada)
       setCiudad(guardada)
-      setAviso({
-        seccion: 'ciudad',
+      avisar('ciudad', {
         tipo: 'bien',
         texto: guardada ? 'Ciudad guardada.' : 'Ciudad quitada.',
       })
     } catch (error) {
       console.error(error)
-      setAviso({ seccion: 'ciudad', tipo: 'error', texto: 'No se ha podido guardar la ciudad.' })
+      avisar('ciudad', { tipo: 'error', texto: 'No se ha podido guardar la ciudad.' })
     } finally {
       setGuardandoCiudad(false)
     }
@@ -147,20 +153,18 @@ export function Perfil({
     else marcados.add(estilo)
     const estilos = ESTILOS.filter((uno) => marcados.has(uno))
     aplicar('estilosFavoritos', estilos)
-    setAviso(null)
+    avisar('estilos', null)
+    const toque = ++toquesEstilos.current
     try {
       await guardar({ estilosFavoritos: estilos })
     } catch (error) {
       console.error(error)
-      setAviso({
-        seccion: 'estilos',
-        tipo: 'error',
-        texto: 'No se han podido guardar los estilos.',
-      })
+      avisar('estilos', { tipo: 'error', texto: 'No se han podido guardar los estilos.' })
+      if (toque !== toquesEstilos.current) return
       // Lo guardado manda: se vuelve a leer para no enseñar una marca que no está en el móvil.
       leer().then(
         (leido) => {
-          aplicar('estilosFavoritos', leido.estilosFavoritos)
+          if (toque === toquesEstilos.current) aplicar('estilosFavoritos', leido.estilosFavoritos)
         },
         (otro: unknown) => {
           console.error(otro)
@@ -170,7 +174,8 @@ export function Perfil({
   }
 
   function avisoDe(seccion: Seccion) {
-    if (aviso?.seccion !== seccion) return null
+    const aviso = avisos[seccion]
+    if (!aviso) return null
     return aviso.tipo === 'bien' ? (
       <p role="status" className="text-sm">
         {aviso.texto}
@@ -193,6 +198,7 @@ export function Perfil({
         <p className="text-sm text-suave">
           Son opcionales. Sirven para probarte los outfits con Gemini.
         </p>
+        {avisoDe('lectura')}
         {perfil && (
           <ul className="grid grid-cols-2 gap-3">
             <FotoPerfil
@@ -215,7 +221,8 @@ export function Perfil({
             />
           </ul>
         )}
-        {avisoDe('fotos')}
+        {avisoDe('fotoCuerpo')}
+        {avisoDe('fotoCara')}
 
         <div className="flex flex-col gap-1 rounded-2xl border border-tinta/15 bg-white/60 p-4 text-sm">
           <p className="font-medium">Para que el probador salga bien</p>
@@ -256,7 +263,7 @@ export function Perfil({
               maxLength={80}
               autoComplete="address-level2"
               placeholder="Por ejemplo, Valencia"
-              disabled={!perfil}
+              disabled={!perfil || guardandoCiudad}
               onChange={(evento) => {
                 setCiudad(evento.target.value)
               }}

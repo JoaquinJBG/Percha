@@ -231,6 +231,104 @@ describe('Perfil', () => {
     })
   })
 
+  describe('a la vez y con fallos', () => {
+    it('cada foto tiene su aviso: el error de una no lo tapa el «guardada» de la otra', async () => {
+      const { usuario, guardar } = montar()
+      guardar.mockRejectedValueOnce(new Error('cuota llena'))
+
+      await usuario.upload(
+        within(await screen.findByRole('listitem', { name: 'Cuerpo entero' })).getByLabelText(
+          'Galería',
+        ),
+        ficheroFoto('cuerpo.jpg'),
+      )
+      await usuario.upload(
+        within(tarjeta('Cara')).getByLabelText('Galería'),
+        ficheroFoto('cara.jpg'),
+      )
+
+      expect(await screen.findByText('Foto de cara guardada.')).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'No se ha podido guardar la foto de cuerpo entero.',
+      )
+      expect(within(tarjeta('Cuerpo entero')).getByText('Sin foto')).toBeInTheDocument()
+    })
+
+    it('si falla un error raro al abrir la foto, da un mensaje genérico', async () => {
+      const { usuario, normalizar, guardar } = montar()
+      normalizar.mockRejectedValueOnce(new TypeError('raro'))
+
+      await usuario.upload(
+        within(await screen.findByRole('listitem', { name: 'Cara' })).getByLabelText('Galería'),
+        ficheroFoto(),
+      )
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo abrir la foto.')
+      expect(guardar).not.toHaveBeenCalled()
+    })
+
+    it('si no se puede borrar, lo dice y la foto sigue', async () => {
+      const { usuario, guardar } = montar({ fotoCara: normalizada('cara') })
+      guardar.mockRejectedValueOnce(new Error('rota'))
+      const cara = within(await screen.findByRole('listitem', { name: 'Cara' }))
+
+      await usuario.click(cara.getByRole('button', { name: 'Borrar' }))
+      await usuario.click(cara.getByRole('button', { name: 'Sí, borrar' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se ha podido borrar la foto de cara.',
+      )
+      expect(cara.getByRole('img')).toBeInTheDocument()
+    })
+
+    it('no deja escribir la ciudad mientras se guarda', async () => {
+      const { usuario, guardar } = montar()
+      let terminar: () => void = () => undefined
+      guardar.mockImplementationOnce(
+        (cambios) =>
+          new Promise((resolver) => {
+            terminar = () => {
+              resolver({ ...PERFIL_VACIO, ciudad: (cambios.ciudad ?? '').trim() })
+            }
+          }),
+      )
+      const campo = await screen.findByRole('textbox', { name: 'Tu ciudad' })
+
+      await usuario.type(campo, 'Valencia')
+      await usuario.click(screen.getByRole('button', { name: 'Guardar ciudad' }))
+
+      expect(campo).toBeDisabled()
+      terminar()
+      expect(await screen.findByText('Ciudad guardada.')).toBeInTheDocument()
+      expect(campo).toBeEnabled()
+      expect(campo).toHaveValue('Valencia')
+    })
+
+    it('si falla un estilo pero ya has tocado otro, no deshace el segundo', async () => {
+      const { usuario, guardar, leer } = montar()
+      let fallar: () => void = () => undefined
+      guardar.mockImplementationOnce(
+        () =>
+          new Promise((_, rechazar) => {
+            fallar = () => {
+              rechazar(new Error('lenta y rota'))
+            }
+          }),
+      )
+
+      await usuario.click(await screen.findByRole('button', { name: 'casual' }))
+      await usuario.click(screen.getByRole('button', { name: 'boho' }))
+      fallar()
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No se han podido guardar los estilos.',
+      )
+      expect(leer).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('button', { name: 'boho' })).toHaveAttribute('aria-pressed', 'true')
+      expect(guardar).toHaveBeenLastCalledWith({ estilosFavoritos: ['casual', 'boho'] })
+    })
+  })
+
   it('si no se puede leer el perfil, lo dice', async () => {
     render(<Perfil leer={() => Promise.reject(new Error('rota'))} />)
 

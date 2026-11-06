@@ -149,6 +149,42 @@ imagen de la prenda puesta la daría el probador (§1) o Gemini (D13), sin ajust
 - **Privacidad:** el probador local es la única vía en la que las fotos del cuerpo no salen de los
   dispositivos del usuario.
 
+## Fase A — Resultado de la prueba en el PC (2026-11-06)
+
+FASHN VTON v1.5 instalado en `C:/Users/dotoy/proyectos/Percha-vton` (fuera del repo), con Python 3.11 nativo en
+Windows, sin WSL. Lo probé con la foto de cuerpo del perfil del usuario y 9 pasadas de sus prendas de Percha. Las
+fotos y los resultados se quedan en esa carpeta, no en el repo.
+
+| Dato | Medido |
+|---|---|
+| Disco | **7,1 GB**: entorno de Python 4,7 GB, pesos 2,2 GB, parser 0,25 GB |
+| Carga del modelo | 11–19 s |
+| Tiempo por imagen | **57–61 s** (30 pasos). La pose va en CPU porque `onnxruntime-gpu` pide CUDA 13 (`cublasLt64_13.dll`) |
+| VRAM | 3,0 GB de pico en PyTorch; ~5,4 GB por encima de la base según `nvidia-smi` |
+| Resolución | 576 × 771 |
+
+**Calidad con su foto** (cuerpo entero, de frente, fondo blanco, camiseta y bermuda):
+- **Prendas de arriba abiertas o con estampado: bien.** La sobrecamisa marrón, las camisas de rayas y de pájaros
+  y el abrigo camel salen con su cara, sus tatuajes y su complexión. El estampado se conserva y, como bonus, las
+  prendas abiertas dejan ver una camiseta blanca debajo: una capa «gratis».
+- **Fallos:**
+  - La percha o el soporte de la foto de la prenda se cuelan en el cuello.
+  - La camiseta blanca de manga larga, recortada sobre una silla blanca, sale sin mangas. Con la foto original sale
+    de manga corta y lisa: pierde la manga larga.
+- **Pantalones: mal.** Con la foto en bermuda, vaqueros y pinzas salen por la rodilla, y los vaqueros pierden el
+  color. El modo con máscara (`segmentation_free=False`) no lo arregla.
+
+**Veredicto de la fase A:** el probador **funciona en este PC** a ~1 min por prenda y cabe con holgura en la
+3060. **Sirve para prendas de arriba**, no para pantalones si la foto del perfil es en bermuda.
+
+**Si se sigue:**
+1. Pedir en el perfil una foto de cuerpo con **pantalón largo** y camiseta lisa y ajustada, y repetir la prueba
+   de los pantalones.
+2. Fotos de prenda sin percha ni soporte (en plano sobre la cama o una pared), o la foto de catálogo de la fase D.
+3. Mover la pose a GPU (bajar `onnxruntime-gpu` a una versión para CUDA 12, o añadir las DLL de CUDA 13) y probar
+   20 pasos para bajar de ~45 s.
+4. Solo después, B y C (Tailscale y el botón en Percha).
+
 ## Plan propuesto por fases
 
 | Fase | Qué | Esfuerzo | Necesita | Criterio de corte |

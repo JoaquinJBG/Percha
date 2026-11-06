@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ErrorIA } from './errores.ts'
 import { esquemaEtiquetaParaGemini, leerRespuestaEtiqueta } from './esquema-etiqueta.ts'
 import { crearProveedorFalso, ETIQUETA_DE_PRUEBA } from './falso.ts'
-import { LADO_MAXIMO_ETIQUETA } from './fotos.ts'
+import { LADO_MAXIMO_ETIQUETA, type FotoParaIA } from './fotos.ts'
 import { crearProveedorGemini } from './gemini.ts'
 import { INSTRUCCION_ETIQUETA } from './prompt-etiqueta.ts'
 
@@ -11,7 +11,7 @@ const foto = new Blob(['etiqueta'], { type: 'image/jpeg' })
 
 function montar(responder: () => Promise<unknown>) {
   const peticiones: GenerateContentParameters[] = []
-  const prepararFoto = vi.fn((_foto: Blob, _lado?: number) =>
+  const prepararFoto = vi.fn<(foto: Blob, lado?: number) => Promise<FotoParaIA>>(() =>
     Promise.resolve({ datos: 'QUJD', tipo: 'image/jpeg' }),
   )
   const proveedor = crearProveedorGemini({

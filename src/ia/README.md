@@ -9,6 +9,11 @@ todo desde `src/ia/index.ts`.
     (`{ prendas: string[], porque: string }`) elegidos entre las prendas recibidas, que van **en texto y
     sin fotos** (id y etiquetas). No comprueba que el outfit valga: eso lo hace `src/outfits/ia/`. Si no
     llega ninguno con forma válida, lanza `ErrorIA('respuesta')`.
+  - `leerEtiqueta(foto, { signal }?)`: lee la foto de la etiqueta cosida y devuelve
+    `{ marca?, referencia?, talla?, composicion? }` (T5.1). Solo lo que se ve; `{}` si no se lee nada. La
+    foto va a 1536 px (la letra es pequeña). Prompt en `prompt-etiqueta.ts` y esquema en
+    `esquema-etiqueta.ts`: para Gemini todo es obligatorio y «no se ve» es vacío; al leer se quitan los
+    vacíos y un campo raro no tira el resto.
   - `comprobarClave({ signal }?)`: se resuelve si la clave y el modelo valen.
 - `proveedorDesdeAjustes()`: el proveedor Gemini con la clave y el modelo guardados. Sin clave, sus llamadas
   lanzan `ErrorIA('sin-clave')`.
@@ -19,8 +24,8 @@ todo desde `src/ia/index.ts`.
   prenda va como una línea con una referencia corta (`P1`, `P2`…) en vez de su UUID, que se traduce de
   vuelta al leer; una referencia que no se envió se deja tal cual para que se vea que no existe. La
   `semilla` va como `seed`.
-- `crearProveedorFalso({ etiquetas?, outfits?, error? })`, `ETIQUETAS_DE_PRUEBA` y `outfitsDePrueba`: sin
-  red, para tests y pantallas.
+- `crearProveedorFalso({ etiquetas?, outfits?, etiqueta?, error? })`, `ETIQUETAS_DE_PRUEBA`,
+  `ETIQUETA_DE_PRUEBA` (una de Zara) y `outfitsDePrueba`: sin red, para tests y pantallas.
 - `ErrorIA`: `tipo` (`sin-clave`, `clave-mala`, `sin-cupo`, `sin-red`, `modelo`, `no-disponible`,
   `respuesta`, `otro`) y `message` listo para enseñar. No guarda el error de Google ni la clave. Una
   cancelación con `signal` llega como el `AbortError` de siempre.

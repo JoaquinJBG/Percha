@@ -35,4 +35,35 @@ describe('detalle de una prenda', () => {
     expect(onEditar).toHaveBeenCalledWith(prenda)
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument()
   })
+
+  it('enseña los datos de la etiqueta y los enlaces para buscarla', () => {
+    const conEtiqueta = {
+      ...prenda,
+      marca: 'H&M',
+      referencia: '0970819001',
+      talla: 'S',
+      composicion: [{ material: 'lino', porcentaje: 100 }],
+      enlace: 'https://www2.hm.com/es_es/productpage.0970819001.html',
+    }
+    render(<DetallePrenda prenda={conEtiqueta} onVolver={vi.fn()} onBorrar={vi.fn()} />)
+
+    expect(screen.getByText('H&M')).toBeInTheDocument()
+    expect(screen.getByText('0970819001')).toBeInTheDocument()
+    expect(screen.getByText('100 % lino')).toBeInTheDocument()
+    const enlaces = screen.getByRole('list', { name: 'Buscar la prenda' })
+    expect(enlaces).toHaveTextContent('Abrir la ficha')
+    expect(enlaces).toHaveTextContent('Buscar en Google')
+    expect(screen.getByRole('link', { name: /En la tienda de H&M/ })).toHaveAttribute(
+      'href',
+      'https://www2.hm.com/es_es/productpage.0970819001.html',
+    )
+  })
+
+  it('sin datos de etiqueta no enseña filas vacías ni enlaces', () => {
+    render(<DetallePrenda prenda={prenda} onVolver={vi.fn()} onBorrar={vi.fn()} />)
+
+    expect(screen.queryByText('Marca')).not.toBeInTheDocument()
+    expect(screen.queryByText('Composición')).not.toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Buscar la prenda' })).not.toBeInTheDocument()
+  })
 })

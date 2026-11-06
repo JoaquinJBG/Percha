@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import {
   AvisoEtiquetado,
   BASE_VACIA,
@@ -15,6 +15,7 @@ import { FormularioPrenda } from '../../componentes/formulario-prenda/index.ts'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import type { NuevaPrenda as DatosPrenda, EtiquetasPrenda, FotoPrenda } from '../../datos/modelo.ts'
 import { crearPrenda } from '../../datos/repositorio.ts'
+import { datosDesdeTienda } from '../../etiqueta/compartido.ts'
 import {
   ErrorFoto,
   normalizarFoto,
@@ -112,6 +113,9 @@ export function NuevaPrenda({
   const [guardada, setGuardada] = useState(false)
   const ia = useEtiquetadoIA(obtenerProveedor)
   const navegar = useNavigate()
+  const ubicacion = useLocation()
+  // Si se llega desde «Compartir» de una tienda: el enlace y lo que diga su URL (T5.1).
+  const [desdeTienda, setDesdeTienda] = useState(() => datosDesdeTienda(ubicacion.state))
   const siguienteId = useRef(1)
   // Fotos que siguen en pantalla: lo que llegue tarde de una foto quitada (o de una pantalla cerrada)
   // se descarta sin crear URLs que nadie liberaría.
@@ -268,6 +272,7 @@ export function NuevaPrenda({
     for (const { id } of fotos) quitarFoto(id)
     etiquetadasPara.current = null
     setBase(null)
+    setDesdeTienda({})
     setAvisoIA(null)
     setAviso(null)
     setPaso('fotos')
@@ -332,6 +337,13 @@ export function NuevaPrenda({
               aviso={{ ...AVISO_SIN_CLAVE_AL_EMPEZAR, ajustes: fotos.length === 0 }}
               discreto
             />
+          )}
+
+          {desdeTienda.enlace && (
+            <p role="status" className="rounded-xl bg-oliva-claro p-3 text-sm text-oliva-oscuro">
+              Se guardará con el enlace de {desdeTienda.marca ?? 'la tienda'}. Como foto vale una
+              captura de la ficha.
+            </p>
           )}
 
           <section aria-labelledby="titulo-fotos" className="flex flex-col gap-3">
@@ -500,11 +512,12 @@ export function NuevaPrenda({
           {alerta}
           <FormularioPrenda
             key={versionFormulario}
-            iniciales={base.etiquetas}
+            iniciales={{ ...base.etiquetas, ...desdeTienda }}
             ocupado={guardando}
             textoGuardar={guardando ? 'Guardando…' : 'Guardar'}
             alGuardar={(etiquetas) => void guardarPrenda(etiquetas)}
             alCancelar={() => void navegar('/')}
+            obtenerProveedor={obtenerProveedor}
           />
         </section>
       )}

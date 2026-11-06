@@ -48,10 +48,17 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
       return
     }
     // Las notas suelen ser del usuario («con qué combina»): si la IA no dice nada, se quedan.
+    // La IA no ve la etiqueta cosida: marca, referencia, talla, composición y enlace se quedan.
     const { etiquetas } = resultado
+    const { marca, referencia, talla, composicion, enlace } = prenda
     setBase({
       etiquetas: {
         ...etiquetas,
+        marca,
+        referencia,
+        talla,
+        composicion,
+        enlace,
         notas: etiquetas.notas.trim() === '' ? prenda.notas : etiquetas.notas,
       },
       por: 'ia',
@@ -173,6 +180,7 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
           textoGuardar={guardando ? 'Guardando…' : 'Guardar cambios'}
           alGuardar={(etiquetas) => void guardar(etiquetas)}
           alCancelar={onVolver}
+          obtenerProveedor={obtenerProveedor}
         />
       </div>
     </div>

@@ -11,5 +11,6 @@ export {
   type Etiquetador,
   type ObtenerProveedor,
   type ResultadoIA,
+  type ResultadoLectura,
 } from './etiquetado.ts'
-export { useEtiquetadoIA } from './useEtiquetadoIA.ts'
+export { useEtiquetadoIA, useLecturaEtiqueta } from './useEtiquetadoIA.ts'

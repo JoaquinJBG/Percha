@@ -8,9 +8,11 @@ import {
   TEMPORADAS,
   type EtiquetasPrenda,
 } from '../../datos/modelo.ts'
+import type { ObtenerProveedor } from '../etiquetado-ia/index.ts'
 import {
   alternar,
   borradorInicial,
+  conDatosEtiqueta,
   conExtras,
   DESCRIPCION_ABRIGO,
   DESCRIPCION_FORMALIDAD,
@@ -18,6 +20,7 @@ import {
   type Borrador,
   type ErroresBorrador,
 } from './borrador.ts'
+import { SeccionEtiqueta } from './SeccionEtiqueta.tsx'
 
 interface Props {
   /** Valores con los que empieza (de la IA, de una prenda o nada). Para cambiarlos, cambia la `key`. */
@@ -26,6 +29,8 @@ interface Props {
   alCancelar?: () => void
   textoGuardar?: string
   ocupado?: boolean
+  /** Con él aparece «Foto de la etiqueta», que la lee con la IA (T5.1). */
+  obtenerProveedor?: ObtenerProveedor
 }
 
 const ETIQUETA_CATEGORIA: Record<(typeof CATEGORIAS)[number], string> = {
@@ -179,6 +184,7 @@ export function FormularioPrenda({
   alCancelar,
   textoGuardar = 'Guardar',
   ocupado = false,
+  obtenerProveedor,
 }: Props) {
   const [borrador, setBorrador] = useState(() => borradorInicial(iniciales))
   // Los colores fuera de la lista siguen a la vista aunque se desmarquen, para poder volver a marcarlos.
@@ -309,6 +315,18 @@ export function FormularioPrenda({
         elegidas={borrador.temporadas}
         cambiar={(temporadas) => {
           cambiar('temporadas', temporadas)
+        }}
+      />
+
+      <SeccionEtiqueta
+        valores={borrador}
+        errores={errores}
+        cambiar={cambiar}
+        obtenerProveedor={obtenerProveedor}
+        ocupado={ocupado}
+        alLeer={(datos) => {
+          setBorrador((anterior) => conDatosEtiqueta(anterior, datos))
+          setErrores((anteriores) => ({ ...anteriores, composicion: undefined }))
         }}
       />
 

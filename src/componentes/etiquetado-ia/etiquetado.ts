@@ -1,4 +1,4 @@
-import type { EtiquetasPrenda, Prenda } from '../../datos/modelo.ts'
+import type { DatosEtiqueta, EtiquetasPrenda, Prenda } from '../../datos/modelo.ts'
 import { leerAjustes } from '../../datos/repositorio.ts'
 import {
   crearProveedorFalso,
@@ -45,6 +45,10 @@ function proveedorFalsoDeDesarrollo(): ProveedorIA | null {
     async etiquetarPrendas(prendas, opciones) {
       await new Promise((listo) => setTimeout(listo, 1500))
       return falso.etiquetarPrendas(prendas, opciones)
+    },
+    async leerEtiqueta(foto, opciones) {
+      await new Promise((listo) => setTimeout(listo, 1500))
+      return falso.leerEtiqueta(foto, opciones)
     },
     async elegirOutfits(peticion, opciones) {
       opciones?.signal?.throwIfAborted()
@@ -122,11 +126,11 @@ export const AVISO_SIN_CLAVE: AvisoIA = {
   reintentar: false,
 }
 
-export function avisoDeError(error: unknown): AvisoIA {
+export function avisoDeError(error: unknown, titulo = 'La IA no ha podido etiquetarla'): AvisoIA {
   const deIA = error instanceof ErrorIA ? error : new ErrorIA('otro')
   if (deIA.tipo === 'sin-clave') return AVISO_SIN_CLAVE
   return {
-    titulo: 'La IA no ha podido etiquetarla',
+    titulo,
     texto: deIA.message,
     ajustes: DE_AJUSTES.includes(deIA.tipo),
     reintentar: !DE_AJUSTES.includes(deIA.tipo),
@@ -135,8 +139,35 @@ export function avisoDeError(error: unknown): AvisoIA {
 
 export type ResultadoIA = { etiquetas: EtiquetasPrenda } | { aviso: AvisoIA }
 
+/** `datos` puede venir vacío: la etiqueta no decía nada legible. */
+export type ResultadoLectura = { datos: DatosEtiqueta } | { aviso: AvisoIA }
+
+const NO_SE_LEYO = 'No se ha podido leer la etiqueta'
+
 function esCancelacion(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
+}
+
+/** Lee la foto de la etiqueta cosida (T5.1). Devuelve `null` si se cancela. */
+export async function leerEtiquetaUna(
+  obtener: ObtenerProveedor,
+  foto: Blob,
+  signal: AbortSignal,
+): Promise<ResultadoLectura | null> {
+  try {
+    const proveedor = await obtener()
+    if (!proveedor) {
+      return {
+        aviso: { ...AVISO_SIN_CLAVE, texto: 'Para que la IA lea la etiqueta, ponla en Ajustes.' },
+      }
+    }
+    const datos = await proveedor.leerEtiqueta(foto, { signal })
+    return signal.aborted ? null : { datos }
+  } catch (error) {
+    if (signal.aborted || esCancelacion(error)) return null
+    if (!(error instanceof ErrorIA)) console.error(error)
+    return { aviso: avisoDeError(error, NO_SE_LEYO) }
+  }
 }
 
 /** Etiqueta una prenda. Devuelve `null` si se cancela. */

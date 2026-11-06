@@ -5,6 +5,7 @@ import type { ProveedorIA } from './tipos.ts'
 export { ErrorIA, type TipoErrorIA } from './errores.ts'
 export {
   crearProveedorFalso,
+  ETIQUETA_DE_PRUEBA,
   ETIQUETAS_DE_PRUEBA,
   outfitsDePrueba,
   type ProveedorFalso,

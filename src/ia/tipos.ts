@@ -1,4 +1,4 @@
-import type { Estilo, EtiquetasPrenda, Ocasion, Temporada } from '../datos/modelo.ts'
+import type { DatosEtiqueta, Estilo, EtiquetasPrenda, Ocasion, Temporada } from '../datos/modelo.ts'
 import type { Precipitacion } from '../tiempo/tipos.ts'
 
 /** Lotes de hasta 5 prendas: con más, la respuesta tarda y puede degradarse (S2). */
@@ -65,6 +65,11 @@ export interface ProveedorIA {
    * comprueban: eso lo hace quien llama. Lanza `ErrorIA` si no llega ninguno con forma válida.
    */
   elegirOutfits(peticion: PeticionOutfits, opciones?: OpcionesPeticion): Promise<PropuestaOutfit[]>
+  /**
+   * Lee la foto de la etiqueta cosida: marca, referencia, talla y composición. Solo lo que se ve; puede
+   * devolver `{}`. La foto no se guarda en ningún sitio. Lanza `ErrorIA` si no se puede leer.
+   */
+  leerEtiqueta(foto: Blob, opciones?: OpcionesPeticion): Promise<DatosEtiqueta>
   /** Se resuelve si la clave y el modelo valen; si no, lanza `ErrorIA`. */
   comprobarClave(opciones?: OpcionesPeticion): Promise<void>
 }

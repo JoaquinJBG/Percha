@@ -49,6 +49,7 @@ function proveedorControlado() {
       }),
     comprobarClave: () => Promise.resolve(),
     elegirOutfits: () => Promise.resolve([]),
+    leerEtiqueta: () => Promise.resolve({}),
   }
   return { proveedor, peticiones }
 }

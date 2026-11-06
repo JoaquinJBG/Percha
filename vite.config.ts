@@ -48,6 +48,13 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
+        // T5.1: «Compartir» › Percha desde la ficha de una tienda. GET basta para el enlace; la foto
+        // vuelve como captura por el selector de fotos (D17).
+        share_target: {
+          action: '/compartido',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
         theme_color: colorTema,
         background_color: colorFondo,
         icons: [

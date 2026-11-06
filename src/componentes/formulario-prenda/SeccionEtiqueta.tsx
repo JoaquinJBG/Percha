@@ -1,22 +1,21 @@
-import { useId, useRef, useState, type ChangeEvent } from 'react'
+import { useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { esEnlaceWeb, MAX_COMPONENTES, type DatosEtiqueta } from '../../datos/modelo.ts'
 import { EnlacesBusqueda } from '../../etiqueta/EnlacesBusqueda.tsx'
+import { AvisoEtiquetado, type AvisoIA, type useLecturaEtiqueta } from '../etiquetado-ia/index.ts'
 import {
-  AvisoEtiquetado,
-  useLecturaEtiqueta,
-  type AvisoIA,
-  type ObtenerProveedor,
-} from '../etiquetado-ia/index.ts'
-import type { Borrador, ErroresBorrador, FilaComposicion } from './borrador.ts'
-
-type CamposEtiqueta = Pick<Borrador, 'marca' | 'referencia' | 'talla' | 'composicion' | 'enlace'>
+  LARGO_MAXIMO,
+  type Borrador,
+  type CamposEtiqueta,
+  type ErroresBorrador,
+  type FilaComposicion,
+} from './borrador.ts'
 
 interface Props {
   valores: CamposEtiqueta
   errores: ErroresBorrador
   cambiar: <K extends keyof Borrador>(campo: K, valor: Borrador[K]) => void
-  /** Con él aparece «Foto de la etiqueta». */
-  obtenerProveedor?: ObtenerProveedor | undefined
+  /** Con ella aparece «Foto de la etiqueta». Vive en el formulario, que no deja guardar mientras lee. */
+  lectura: ReturnType<typeof useLecturaEtiqueta> | null
   alLeer: (datos: DatosEtiqueta) => void
   ocupado: boolean
 }
@@ -45,6 +44,28 @@ function resumenLectura(datos: DatosEtiqueta): string {
   return `Leído de la etiqueta: ${lista ?? ''}. Revísalo antes de guardar.`
 }
 
+function Campo({
+  etiqueta,
+  error,
+  idError,
+  children,
+}: {
+  etiqueta: string
+  error: string | undefined
+  idError: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <label className="flex min-w-0 flex-col gap-1">
+        <span className="font-medium">{etiqueta}</span>
+        {children}
+      </label>
+      <MensajeError id={idError} texto={error} />
+    </div>
+  )
+}
+
 function MensajeError({ id, texto }: { id: string; texto: string | undefined }) {
   return texto ? (
     <p id={id} role="alert" className="text-sm font-medium text-red-800">
@@ -54,16 +75,8 @@ function MensajeError({ id, texto }: { id: string; texto: string | undefined }) 
 }
 
 /** Marca, referencia, talla, composición y enlace de la ficha (T5.1). Todo opcional. */
-export function SeccionEtiqueta({
-  valores,
-  errores,
-  cambiar,
-  obtenerProveedor,
-  alLeer,
-  ocupado,
-}: Props) {
+export function SeccionEtiqueta({ valores, errores, cambiar, lectura, alLeer, ocupado }: Props) {
   const id = useId()
-  const lectura = useLecturaEtiqueta(obtenerProveedor ?? (() => Promise.resolve(null)))
   const [resultado, setResultado] = useState<string | null>(null)
   const [aviso, setAviso] = useState<AvisoIA | null>(null)
   // La foto solo vive aquí, para «Probar otra vez»: no se guarda en la prenda.
@@ -73,6 +86,7 @@ export function SeccionEtiqueta({
     ultimaFoto.current = foto
     setResultado(null)
     setAviso(null)
+    if (!lectura) return
     const leido = await lectura.leer(foto)
     if (!leido) return
     if ('aviso' in leido) {
@@ -113,7 +127,7 @@ export function SeccionEtiqueta({
         </p>
       </div>
 
-      {obtenerProveedor && (
+      {lectura && (
         <div className="flex flex-col gap-2">
           {lectura.leyendo ? (
             <div className="flex items-center justify-between gap-3">
@@ -151,43 +165,50 @@ export function SeccionEtiqueta({
               onReintentar={() => {
                 if (ultimaFoto.current) void leer(ultimaFoto.current)
               }}
-              nota="Puedes escribir los datos a mano."
+              nota={
+                aviso.ajustes
+                  ? 'Puedes escribirlos a mano. Si vas ahora a Ajustes, lo que no hayas guardado se pierde.'
+                  : 'Puedes escribirlos a mano o probar otra vez.'
+              }
             />
           )}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex min-w-0 flex-col gap-1">
-          <span className="font-medium">Marca</span>
+        <Campo etiqueta="Marca" error={errores.marca} idError={`${id}-error-marca`}>
           <input
             className={campo}
             value={valores.marca}
+            maxLength={LARGO_MAXIMO.marca}
+            aria-describedby={errores.marca ? `${id}-error-marca` : undefined}
             autoComplete="off"
             placeholder="Zara, H&M…"
             onChange={(evento) => {
               cambiar('marca', evento.target.value)
             }}
           />
-        </label>
-        <label className="flex min-w-0 flex-col gap-1">
-          <span className="font-medium">Talla</span>
+        </Campo>
+        <Campo etiqueta="Talla" error={errores.talla} idError={`${id}-error-talla`}>
           <input
             className={campo}
             value={valores.talla}
+            maxLength={LARGO_MAXIMO.talla}
+            aria-describedby={errores.talla ? `${id}-error-talla` : undefined}
             autoComplete="off"
             placeholder="M, 42…"
             onChange={(evento) => {
               cambiar('talla', evento.target.value)
             }}
           />
-        </label>
+        </Campo>
       </div>
-      <label className="flex flex-col gap-1">
-        <span className="font-medium">Referencia</span>
+      <Campo etiqueta="Referencia" error={errores.referencia} idError={`${id}-error-referencia`}>
         <input
           className={campo}
           value={valores.referencia}
+          maxLength={LARGO_MAXIMO.referencia}
+          aria-describedby={errores.referencia ? `${id}-error-referencia` : undefined}
           autoComplete="off"
           autoCapitalize="characters"
           placeholder="4085/021, DD1391-100…"
@@ -195,7 +216,7 @@ export function SeccionEtiqueta({
             cambiar('referencia', evento.target.value)
           }}
         />
-      </label>
+      </Campo>
 
       <fieldset
         className="flex flex-col gap-2"

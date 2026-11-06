@@ -596,6 +596,29 @@ describe('Nueva prenda: etiquetas', () => {
     expect(screen.queryByText(/Se guardará con el enlace/)).not.toBeInTheDocument()
   })
 
+  it('lo leído de la etiqueta no se pierde al volver a probar con la IA', async () => {
+    const { proveedor, peticiones } = proveedorControlado()
+    proveedor.leerEtiqueta = () => Promise.resolve({ marca: 'Zara', talla: 'M' })
+    const { usuario, llamadas, guardar } = montar({ proveedor })
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    peticiones[0]?.rechazar(new ErrorIA('sin-red'))
+    const aviso = await screen.findByRole('alert')
+
+    await usuario.upload(
+      screen.getByLabelText('Foto de la etiqueta'),
+      new File(['etiqueta'], 'etiqueta.jpg', { type: 'image/jpeg' }),
+    )
+    await screen.findByText(/Leído de la etiqueta/)
+    await usuario.click(within(aviso).getByRole('button', { name: 'Probar otra vez' }))
+    peticiones[1]?.resolver([ETIQUETAS_DE_PRUEBA])
+    await screen.findByRole('heading', { name: 'Revisa las etiquetas' })
+
+    expect(screen.getByLabelText('Marca')).toHaveValue('Zara')
+    await usuario.click(botonGuardar())
+    await screen.findByText('Prenda guardada en el armario.')
+    expect(guardar.mock.calls[0]?.[0]).toMatchObject({ marca: 'Zara', talla: 'M' })
+  })
+
   it('la foto de la etiqueta se lee en el formulario y no se guarda como foto de la prenda', async () => {
     const proveedor = crearProveedorFalso()
     const { usuario, llamadas, guardar } = montar({ proveedor })

@@ -96,7 +96,9 @@ describe('datos de la etiqueta a mano', () => {
     await usuario.click(guardar())
 
     expect(alGuardar).not.toHaveBeenCalled()
-    expect(seccion().getByText('Los porcentajes van de 0 a 100.')).toBeInTheDocument()
+    expect(
+      seccion().getByText('Pon un porcentaje entre 1 y 100, o déjalo vacío.'),
+    ).toBeInTheDocument()
     expect(seccion().getByText(/empezando por https/)).toBeInTheDocument()
 
     await usuario.clear(seccion().getByLabelText('Material 1'))
@@ -109,6 +111,41 @@ describe('datos de la etiqueta a mano', () => {
     await usuario.clear(seccion().getByLabelText('Enlace a la ficha de la tienda'))
     await usuario.click(guardar())
     expect(alGuardar).toHaveBeenCalledOnce()
+  })
+
+  it('un 0 % no vale: la IA lo usa para «no lo pone»', async () => {
+    const { usuario, alGuardar } = montar()
+    await usuario.click(seccion().getByRole('button', { name: 'Añadir material' }))
+    await usuario.type(seccion().getByLabelText('Material 1'), 'lana')
+    await usuario.type(seccion().getByLabelText('Porcentaje del material 1'), '0')
+
+    await usuario.click(guardar())
+
+    expect(alGuardar).not.toHaveBeenCalled()
+  })
+
+  it('una prenda con un texto más largo de lo que cabe lo dice junto al campo', async () => {
+    const { usuario, alGuardar } = montar({
+      iniciales: { ...ETIQUETAS_DE_PRUEBA, marca: 'M'.repeat(70) },
+    })
+
+    await usuario.click(guardar())
+
+    expect(alGuardar).not.toHaveBeenCalled()
+    expect(seccion().getByLabelText('Marca')).toHaveAccessibleDescription(
+      'Como mucho 60 caracteres.',
+    )
+    expect(seccion().getByLabelText('Referencia')).toHaveAttribute('maxLength', '40')
+  })
+
+  it('enseña los decimales con coma', () => {
+    montar({
+      iniciales: {
+        ...ETIQUETAS_DE_PRUEBA,
+        composicion: [{ material: 'elastano', porcentaje: 2.5 }],
+      },
+    })
+    expect(seccion().getByLabelText('Porcentaje del material 1')).toHaveValue('2,5')
   })
 
   it('con marca y referencia salen los enlaces de búsqueda, que abren otra pestaña', async () => {
@@ -218,6 +255,21 @@ describe('foto de la etiqueta', () => {
     expect(await seccion().findByText(/Leído de la etiqueta: marca\./)).toBeInTheDocument()
     expect(leerEtiqueta).toHaveBeenLastCalledWith(fotoEtiqueta, expect.anything())
     expect(seccion().getByLabelText('Marca')).toHaveValue('Nike')
+  })
+
+  it('mientras lee no deja guardar, para no guardar sin lo que está leyendo', async () => {
+    const proveedor: ProveedorIA = {
+      ...crearProveedorFalso(),
+      leerEtiqueta: () => new Promise(() => undefined),
+    }
+    const { usuario } = montar({ proveedor })
+
+    await usuario.upload(seccion().getByLabelText('Foto de la etiqueta'), fotoEtiqueta)
+
+    expect(await seccion().findByText('Leyendo la etiqueta…')).toBeInTheDocument()
+    expect(guardar()).toBeDisabled()
+    await usuario.click(seccion().getByRole('button', { name: 'Dejarlo' }))
+    expect(guardar()).toBeEnabled()
   })
 
   it('«Dejarlo» cancela la lectura y lo que llegue tarde no cambia nada', async () => {

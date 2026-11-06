@@ -236,6 +236,23 @@ describe('datos de la etiqueta al editar', () => {
     )
   })
 
+  it('lo escrito en la etiqueta sin guardar sobrevive a volver a etiquetar con IA', async () => {
+    const { usuario, actualizar } = montar(prenda())
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+    await usuario.type(within(edicion).getByLabelText('Marca'), 'Mango')
+    await usuario.type(within(edicion).getByLabelText('Talla'), 'XL')
+
+    await usuario.click(within(edicion).getByRole('button', { name: 'Volver a etiquetar con IA' }))
+    await within(edicion).findByText(/Etiquetas nuevas de la IA/)
+
+    expect(within(edicion).getByLabelText('Marca')).toHaveValue('Mango')
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+    expect(actualizar).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ marca: 'Mango', talla: 'XL' }),
+    )
+  })
+
   it('borrar la marca la quita de la prenda', async () => {
     const { usuario, actualizar } = montar(prenda({ marca: 'Zara', talla: 'M' }))
     const edicion = await abrirEdicion(usuario, 'Camiseta')

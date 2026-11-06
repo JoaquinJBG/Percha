@@ -11,7 +11,7 @@ import {
   type BaseEtiquetas,
   type ObtenerProveedor,
 } from '../../componentes/etiquetado-ia/index.ts'
-import { FormularioPrenda } from '../../componentes/formulario-prenda/index.ts'
+import { FormularioPrenda, type CamposEtiqueta } from '../../componentes/formulario-prenda/index.ts'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import type { NuevaPrenda as DatosPrenda, EtiquetasPrenda, FotoPrenda } from '../../datos/modelo.ts'
 import { crearPrenda } from '../../datos/repositorio.ts'
@@ -116,6 +116,8 @@ export function NuevaPrenda({
   const ubicacion = useLocation()
   // Si se llega desde «Compartir» de una tienda: el enlace y lo que diga su URL (T5.1).
   const [desdeTienda, setDesdeTienda] = useState(() => datosDesdeTienda(ubicacion.state))
+  // Lo escrito o leído de la etiqueta sobrevive a que el formulario se vuelva a montar.
+  const [etiquetaEnCurso, setEtiquetaEnCurso] = useState<CamposEtiqueta>()
   const siguienteId = useRef(1)
   // Fotos que siguen en pantalla: lo que llegue tarde de una foto quitada (o de una pantalla cerrada)
   // se descarta sin crear URLs que nadie liberaría.
@@ -273,6 +275,7 @@ export function NuevaPrenda({
     etiquetadasPara.current = null
     setBase(null)
     setDesdeTienda({})
+    setEtiquetaEnCurso(undefined)
     setAvisoIA(null)
     setAviso(null)
     setPaso('fotos')
@@ -518,6 +521,8 @@ export function NuevaPrenda({
             alGuardar={(etiquetas) => void guardarPrenda(etiquetas)}
             alCancelar={() => void navegar('/')}
             obtenerProveedor={obtenerProveedor}
+            etiquetaEnCurso={etiquetaEnCurso}
+            alCambiarEtiqueta={setEtiquetaEnCurso}
           />
         </section>
       )}

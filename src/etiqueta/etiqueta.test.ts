@@ -149,6 +149,7 @@ describe('textoComposicion', () => {
     expect(
       textoComposicion([{ material: 'algodón', porcentaje: 95 }, { material: 'elastano' }]),
     ).toBe('95 % algodón, elastano')
+    expect(textoComposicion([{ material: 'elastano', porcentaje: 2.5 }])).toBe('2,5 % elastano')
     expect(textoComposicion(undefined)).toBe('')
   })
 })

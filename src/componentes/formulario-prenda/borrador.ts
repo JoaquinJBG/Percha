@@ -36,6 +36,15 @@ export interface Borrador {
   enlace: string
 }
 
+/** Lo que se escribe en «Etiqueta y tienda», tal cual. Se puede guardar fuera para volver a montar el formulario. */
+export type CamposEtiqueta = Pick<
+  Borrador,
+  'marca' | 'referencia' | 'talla' | 'composicion' | 'enlace'
+>
+
+/** Lo mismo que el modelo de datos: con más, «Guardar» fallaría. */
+export const LARGO_MAXIMO = { marca: 60, referencia: 40, talla: 20 } as const
+
 export type ErroresBorrador = Partial<Record<keyof Borrador, string | undefined>>
 
 const NIVEL_POR_DEFECTO = 3
@@ -56,7 +65,13 @@ function nivel(valor: number | undefined): number {
 }
 
 /** Copia solo los campos de etiquetas: se le puede pasar una prenda entera para editarla. */
-export function borradorInicial(iniciales: Partial<EtiquetasPrenda> = {}): Borrador {
+export function borradorInicial(
+  iniciales: Partial<EtiquetasPrenda> = {},
+  etiquetaEnCurso?: CamposEtiqueta,
+): Borrador {
+  if (etiquetaEnCurso) {
+    return { ...borradorInicial(iniciales), ...etiquetaEnCurso }
+  }
   return {
     categoria: iniciales.categoria ?? null,
     subcategoria: iniciales.subcategoria ?? '',
@@ -81,7 +96,7 @@ export function filasComposicion(
 ): FilaComposicion[] {
   return (composicion ?? []).map(({ material, porcentaje }) => ({
     material,
-    porcentaje: porcentaje === undefined ? '' : String(porcentaje),
+    porcentaje: porcentaje === undefined ? '' : String(porcentaje).replace('.', ','),
   }))
 }
 
@@ -117,8 +132,9 @@ function leerComposicion(
     const porcentaje = leerPorcentaje(fila.porcentaje)
     if (material === '' && porcentaje === undefined) continue
     if (material === '') return { valida: false, error: 'Falta el material de algún porcentaje.' }
-    if (porcentaje !== undefined && !(porcentaje >= 0 && porcentaje <= 100)) {
-      return { valida: false, error: 'Los porcentajes van de 0 a 100.' }
+    // 0 no dice nada: la IA lo usa para «no lo pone».
+    if (porcentaje !== undefined && !(porcentaje > 0 && porcentaje <= 100)) {
+      return { valida: false, error: 'Pon un porcentaje entre 1 y 100, o déjalo vacío.' }
     }
     composicion.push(porcentaje === undefined ? { material } : { material, porcentaje })
   }
@@ -137,6 +153,11 @@ export function validarBorrador(
   const errores: ErroresBorrador = {}
   const composicion = leerComposicion(borrador.composicion)
   if (!composicion.valida) errores.composicion = composicion.error
+  for (const campo of ['marca', 'referencia', 'talla'] as const) {
+    if (borrador[campo].trim().length > LARGO_MAXIMO[campo]) {
+      errores[campo] = `Como mucho ${String(LARGO_MAXIMO[campo])} caracteres.`
+    }
+  }
   const enlace = vacioAIndefinido(borrador.enlace)
   if (enlace !== undefined && !esEnlaceWeb(enlace)) {
     errores.enlace = 'Pega el enlace entero, empezando por https://'

@@ -47,9 +47,10 @@ function componentes(valor: unknown): Componente[] | undefined {
   for (const candidato of valor as unknown[]) {
     if (!candidato || typeof candidato !== 'object') continue
     const { material, porcentaje } = candidato as { material?: unknown; porcentaje?: unknown }
-    const nombre = texto(material, 40)
+    // En minúsculas antes de cortar: alguna letra crece al pasar a minúscula («İ»).
+    const nombre = texto(typeof material === 'string' ? material.toLowerCase() : material, 40)
     if (!nombre) continue
-    const componente: Componente = { material: nombre.toLowerCase() }
+    const componente: Componente = { material: nombre }
     if (typeof porcentaje === 'number' && porcentaje > 0 && porcentaje <= 100) {
       componente.porcentaje = porcentaje
     }

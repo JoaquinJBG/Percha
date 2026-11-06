@@ -8,7 +8,7 @@ import {
   type BaseEtiquetas,
   type ObtenerProveedor,
 } from '../../componentes/etiquetado-ia/index.ts'
-import { FormularioPrenda } from '../../componentes/formulario-prenda/index.ts'
+import { FormularioPrenda, type CamposEtiqueta } from '../../componentes/formulario-prenda/index.ts'
 import type { CambiosPrenda, EtiquetasPrenda, Prenda } from '../../datos/modelo.ts'
 import { nombrePrenda } from './ayudas.ts'
 import { FotoBlob } from './FotoBlob.tsx'
@@ -32,6 +32,8 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(false)
   const ia = useEtiquetadoIA(obtenerProveedor)
+  // Lo escrito o leído de la etiqueta sin guardar sobrevive a «Volver a etiquetar con IA».
+  const [etiquetaEnCurso, setEtiquetaEnCurso] = useState<CamposEtiqueta>()
   const titulo = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -181,6 +183,8 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
           alGuardar={(etiquetas) => void guardar(etiquetas)}
           alCancelar={onVolver}
           obtenerProveedor={obtenerProveedor}
+          etiquetaEnCurso={etiquetaEnCurso}
+          alCambiarEtiqueta={setEtiquetaEnCurso}
         />
       </div>
     </div>

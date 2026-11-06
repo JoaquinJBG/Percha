@@ -30,11 +30,13 @@ export function leerCompartido(parametros: URLSearchParams): Compartido {
   return { enlace: candidato ?? null, titulo: resto }
 }
 
-/** «95 % algodón, 5 % elastano». */
+const porcentaje = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 })
+
+/** «95 % algodón, 2,5 % elastano». */
 export function textoComposicion(composicion: readonly Componente[] | undefined): string {
   return (composicion ?? [])
-    .map(({ material, porcentaje }) =>
-      porcentaje === undefined ? material : `${String(porcentaje)} % ${material}`,
+    .map(({ material, porcentaje: cuanto }) =>
+      cuanto === undefined ? material : `${porcentaje.format(cuanto)} % ${material}`,
     )
     .join(', ')
 }

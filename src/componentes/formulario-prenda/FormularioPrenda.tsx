@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react'
 import {
   CATEGORIAS,
   COLORES,
@@ -8,7 +8,7 @@ import {
   TEMPORADAS,
   type EtiquetasPrenda,
 } from '../../datos/modelo.ts'
-import type { ObtenerProveedor } from '../etiquetado-ia/index.ts'
+import { useLecturaEtiqueta, type ObtenerProveedor } from '../etiquetado-ia/index.ts'
 import {
   alternar,
   borradorInicial,
@@ -18,6 +18,7 @@ import {
   DESCRIPCION_FORMALIDAD,
   validarBorrador,
   type Borrador,
+  type CamposEtiqueta,
   type ErroresBorrador,
 } from './borrador.ts'
 import { SeccionEtiqueta } from './SeccionEtiqueta.tsx'
@@ -31,6 +32,12 @@ interface Props {
   ocupado?: boolean
   /** Con él aparece «Foto de la etiqueta», que la lee con la IA (T5.1). */
   obtenerProveedor?: ObtenerProveedor
+  /**
+   * «Etiqueta y tienda» tal como estaba, para no perderla si el formulario se vuelve a montar (otra
+   * respuesta de la IA). Pisa a `iniciales` en esos campos. Se lleva con `alCambiarEtiqueta`.
+   */
+  etiquetaEnCurso?: CamposEtiqueta | undefined
+  alCambiarEtiqueta?: (campos: CamposEtiqueta) => void
 }
 
 const ETIQUETA_CATEGORIA: Record<(typeof CATEGORIAS)[number], string> = {
@@ -185,8 +192,17 @@ export function FormularioPrenda({
   textoGuardar = 'Guardar',
   ocupado = false,
   obtenerProveedor,
+  etiquetaEnCurso,
+  alCambiarEtiqueta,
 }: Props) {
-  const [borrador, setBorrador] = useState(() => borradorInicial(iniciales))
+  const [borrador, setBorrador] = useState(() => borradorInicial(iniciales, etiquetaEnCurso))
+  const lectura = useLecturaEtiqueta(obtenerProveedor ?? (() => Promise.resolve(null)))
+  const bloqueado = ocupado || lectura.leyendo
+  const { marca, referencia, talla, composicion, enlace } = borrador
+
+  useEffect(() => {
+    alCambiarEtiqueta?.({ marca, referencia, talla, composicion, enlace })
+  }, [alCambiarEtiqueta, marca, referencia, talla, composicion, enlace])
   // Los colores fuera de la lista siguen a la vista aunque se desmarquen, para poder volver a marcarlos.
   const [coloresIniciales] = useState(() => borrador.colores)
   const [errores, setErrores] = useState<ErroresBorrador>({})
@@ -322,7 +338,7 @@ export function FormularioPrenda({
         valores={borrador}
         errores={errores}
         cambiar={cambiar}
-        obtenerProveedor={obtenerProveedor}
+        lectura={obtenerProveedor ? lectura : null}
         ocupado={ocupado}
         alLeer={(datos) => {
           setBorrador((anterior) => conDatosEtiqueta(anterior, datos))
@@ -343,14 +359,14 @@ export function FormularioPrenda({
       </label>
 
       <div className="flex flex-col gap-3">
-        <button type="submit" className={`${boton} bg-oliva text-papel`} disabled={ocupado}>
+        <button type="submit" className={`${boton} bg-oliva text-papel`} disabled={bloqueado}>
           {textoGuardar}
         </button>
         {alCancelar && (
           <button
             type="button"
             className={`${boton} border border-tinta/25 text-tinta`}
-            disabled={ocupado}
+            disabled={bloqueado}
             onClick={alCancelar}
           >
             Cancelar

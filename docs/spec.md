@@ -72,13 +72,15 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
 | D14 | Colores y estampados con lista cerrada en la IA y el formulario; el modelo de datos sigue admitiendo texto libre | Los filtros por color funcionan si todos dicen «azul marino» igual; las copias y prendas a mano de antes no se rompen. «figurativo» se añade porque en S2 la camisa de conejos salió «geométrico». |
 | D15 | `etiquetadaPor` sigue en `'ia'` si el usuario solo afina lo que puso la IA (colores, estilos, notas, niveles…) y pasa a `'manual'` si cambia qué prenda es (categoría o tipo, sin contar mayúsculas ni espacios) | Revisar y retocar es lo normal y no debe borrar el origen; si la IA se equivocó de prenda, lo que queda es del usuario. Al volver a etiquetar con IA, la base pasa a ser la nueva respuesta. |
 | D16 | Alta masiva: muchas fotos de golpe (galería con selección múltiple; carpeta en el PC), **una prenda por foto**, en una cola guardada en el móvil que se procesa de 5 en 5 (recortar → una petición a Gemini → guardar) con 7 s entre peticiones | Con cientos de prendas, de una en una no tiene sentido. La cola permite salir y seguir; los lotes de 5 y la pausa respetan el nivel gratis (~10 peticiones por minuto). Chrome de Android no deja elegir carpetas. Se guarda sin revisar una a una (con cientos no es práctico); se corrige después desde el detalle. Añadir una segunda foto a una prenda ya guardada aún no se puede (pendiente). |
+| D17 | De la etiqueta a la prenda **sin scraping ni SerpAPI**: Gemini lee la foto de la etiqueta (marca, referencia, talla, composición), Percha monta enlaces de búsqueda que **abre el usuario** y él trae de vuelta la URL de la ficha (con «Compartir», `share_target` por GET) o una captura como foto normal. Percha nunca hace `fetch` a una tienda. La foto de la etiqueta no se guarda | SerpAPI no se puede llamar desde el navegador sin enseñar la clave y el scraping de Zara o Shein va contra sus condiciones y está bloqueado ([S4](spikes/s4-probador-y-etiquetas.md) §3). La referencia identifica la prenda (Zara `REF 4085/021` → `p04085021` en su URL). El `share_target` por POST, para recibir la imagen compartida, pediría pasar el *service worker* a `injectManifest`: se deja para cuando haga falta. |
 
 ## Modelo de datos (borrador)
 
 - **Prenda**: `id`, `fotos` (original y recortada, `Blob`), `categoria` (`superior`, `inferior`,
   `vestido`, `abrigo`, `calzado`, `accesorio`), `subcategoria`, `colores[]`, `estampado`, `estilos[]`,
   `abrigo` (1–5), `formalidad` (1–5), `ocasiones[]`, `temporadas[]`, `notas`, `etiquetadaPor`
-  (`ia` | `manual`), `creadaEn`.
+  (`ia` | `manual`), `creadaEn`. Opcionales (T5.1, D17): `marca`, `referencia`, `talla`,
+  `composicion[]` (`material`, `porcentaje`?) y `enlace` (solo http o https).
 - **Perfil**: `fotoCara`, `fotoCuerpo`, `ciudad`, `estilosFavoritos[]`.
 - **Outfit**: `id`, `prendas[]`, `estilo`, `ocasion`, `tiempo` (temperatura, lluvia), `explicacion`,
   `favorito`, `creadoEn`.

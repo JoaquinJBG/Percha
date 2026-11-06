@@ -66,8 +66,47 @@ const coloresSchema = z
   .array(z.string())
   .transform((colores) => [...new Set(colores.map(normalizarColor).filter(Boolean))])
 
+/** Un enlace que se puede abrir sin riesgo: solo `http:` o `https:`. */
+export function esEnlaceWeb(texto: string): boolean {
+  try {
+    const { protocol } = new URL(texto)
+    return protocol === 'https:' || protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
+export const MAX_COMPONENTES = 8
+
+/** Una línea de la composición: «60 % algodón». El porcentaje falta a veces («forro: poliéster»). */
+export const componenteSchema = z.object({
+  material: z.string().trim().toLowerCase().min(1).max(40),
+  porcentaje: z.number().min(0).max(100).optional(),
+})
+
+/**
+ * Lo que dice la etiqueta cosida (T5.1). Todo es opcional: las prendas de antes no lo tienen y una
+ * etiqueta puede no traer nada de esto. Quien escribe no guarda textos vacíos.
+ */
+export const datosEtiquetaSchema = z.object({
+  marca: z.string().trim().max(60).optional(),
+  referencia: z.string().trim().max(40).optional(),
+  talla: z.string().trim().max(20).optional(),
+  composicion: z.array(componenteSchema).max(MAX_COMPONENTES).optional(),
+})
+
+/** La ficha de la tienda que trae el usuario (compartida o pegada). Percha nunca la descarga. */
+export const enlaceSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine(esEnlaceWeb, 'Tiene que ser un enlace web (https://…).')
+  .optional()
+
 /** Campos de la prenda salvo las fotos, que en la copia van como rutas dentro del zip. */
 export const camposPrendaSchema = z.object({
+  ...datosEtiquetaSchema.shape,
+  enlace: enlaceSchema,
   id: z.string().min(1),
   categoria: categoriaSchema,
   subcategoria: z.string().trim(),
@@ -131,6 +170,8 @@ export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
 export type Perfil = z.infer<typeof perfilSchema>
 export type Ajustes = z.infer<typeof ajustesSchema>
+export type Componente = z.infer<typeof componenteSchema>
+export type DatosEtiqueta = z.infer<typeof datosEtiquetaSchema>
 
 /** Lo que pide `crearPrenda`: el `id` y la fecha los pone el repositorio. */
 export type NuevaPrenda = Omit<Prenda, 'id' | 'creadaEn'>
@@ -201,6 +242,11 @@ export const etiquetasPrendaSchema = camposPrendaSchema.pick({
   ocasiones: true,
   temporadas: true,
   notas: true,
+  marca: true,
+  referencia: true,
+  talla: true,
+  composicion: true,
+  enlace: true,
 })
 
 export type EtiquetasPrenda = z.infer<typeof etiquetasPrendaSchema>

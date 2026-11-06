@@ -156,6 +156,41 @@ describe('prendas', () => {
     expect((await leerPrenda(prenda.id))?.abrigo).toBe(1)
   })
 
+  it('guarda los datos de la etiqueta y, con undefined, los quita', async () => {
+    const prenda = await crearPrenda(
+      nuevaPrenda({
+        marca: ' Zara ',
+        talla: 'M',
+        composicion: [{ material: 'Lino', porcentaje: 100 }],
+      }),
+    )
+    expect(prenda).toMatchObject({ marca: 'Zara', composicion: [{ material: 'lino' }] })
+
+    const sinMarca = await actualizarPrenda(prenda.id, { marca: undefined })
+
+    expect(sinMarca.marca).toBeUndefined()
+    expect((await leerPrenda(prenda.id))?.marca).toBeUndefined()
+    expect(sinMarca.talla).toBe('M')
+  })
+
+  it('solo admite enlaces web', async () => {
+    const prenda = await crearPrenda(nuevaPrenda())
+
+    await expect(
+      actualizarPrenda(prenda.id, { enlace: 'javascript:alert(1)' }),
+    ).rejects.toBeInstanceOf(ZodError)
+    await expect(crearPrenda(nuevaPrenda({ enlace: 'zara.com/algo' }))).rejects.toBeInstanceOf(
+      ZodError,
+    )
+    expect(
+      (
+        await actualizarPrenda(prenda.id, {
+          enlace: 'https://www2.hm.com/es_es/productpage.0970819001.html',
+        })
+      ).enlace,
+    ).toContain('hm.com')
+  })
+
   it('actualizar una prenda que no existe da error', async () => {
     await expect(actualizarPrenda('no-existe', { notas: 'x' })).rejects.toThrow(/No existe/)
   })

@@ -92,6 +92,42 @@ describe('exportar e importar', () => {
     expect(await todo()).toEqual(antes)
   })
 
+  it('los datos de la etiqueta y el enlace van y vuelven', async () => {
+    const conEtiqueta = await crearPrenda(
+      nuevaPrenda({
+        marca: 'Zara',
+        referencia: '4085/021',
+        talla: 'M',
+        composicion: [{ material: 'algodón', porcentaje: 100 }, { material: 'forro' }],
+        enlace: 'https://www.zara.com/es/es/camiseta-p04085021.html',
+      }),
+    )
+    const copia = await exportarCopia()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await sinBlobs(await leerPrenda(conEtiqueta.id))).toEqual(await sinBlobs(conEtiqueta))
+  })
+
+  it('una copia de antes de T5.1, sin datos de etiqueta, se importa igual', async () => {
+    const { camiseta } = await sembrar()
+    const copia = await exportarCopia()
+    const json = JSON.parse(
+      strFromU8(
+        unzipSync(new Uint8Array(await copia.arrayBuffer()))['percha.json'] ?? strToU8('{}'),
+      ),
+    ) as { prendas: Record<string, unknown>[] }
+    expect(Object.keys(json.prendas[0] ?? {})).not.toContain('marca')
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    const leida = await leerPrenda(camiseta.id)
+    expect(leida?.marca).toBeUndefined()
+    expect(leida?.subcategoria).toBe('camiseta')
+  })
+
   it('reemplazar borra lo que no estaba en la copia', async () => {
     await sembrar()
     const copia = await exportarCopia()
@@ -242,6 +278,16 @@ describe('copias que no valen', () => {
       if (prenda) prenda.categoria = 'sombrero'
     })
     await esperarRechazo(copia, MENSAJE_COPIA_DANADA)
+  })
+
+  it('una prenda con un enlace que no es web', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      const [prenda] = json.prendas as Record<string, unknown>[]
+      if (prenda) prenda.enlace = 'javascript:alert(1)'
+    })
+
+    await expect(importarCopia(copia, 'reemplazar')).rejects.toBeInstanceOf(ErrorCopia)
   })
 
   it('una foto que falta en el zip', async () => {

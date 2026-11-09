@@ -37,6 +37,23 @@ describe('capas por defecto (tabla §1.2)', () => {
     ['abrigo', 'gabardina', ['exterior']],
     ['abrigo', 'plumífero', ['exterior']],
     ['abrigo', '', ['exterior']],
+    // Casos de la autorevisión: abrigos que no son base, femeninos, sinónimos y espacios.
+    ['abrigo', 'parka con capucha', ['exterior']],
+    ['abrigo', 'abrigo de punto', ['exterior']],
+    ['abrigo', 'chaqueta térmica', ['exterior']],
+    ['abrigo', 'chaqueta de traje', ['media', 'exterior']],
+    ['abrigo', 'chaqueta  tejana', ['media', 'exterior']],
+    ['abrigo', 'cazadora de denim', ['media', 'exterior']],
+    ['abrigo', 'chaleco de plumas', ['media', 'exterior']],
+    ['abrigo', 'forro polar', ['media', 'exterior']],
+    ['superior', 'chaleco', ['media']],
+    ['superior', 'chaleco de lana', ['media']],
+    ['superior', 'rebeca gruesa', ['media', 'exterior']],
+    ['superior', 'chaqueta de punto gruesa', ['media', 'exterior']],
+    ['superior', 'jersey de lana gruesa', ['media', 'exterior']],
+    ['superior', 'jersey gordo', ['media', 'exterior']],
+    ['superior', 'forro polar', ['media', 'exterior']],
+    ['superior', 'cazadora', ['exterior']],
   ])('%s «%s» → %j', (categoria, subcategoria, capas) => {
     expect(capasPorDefecto({ categoria, subcategoria })).toEqual(capas)
   })

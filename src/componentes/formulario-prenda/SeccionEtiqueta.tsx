@@ -123,7 +123,8 @@ export function SeccionEtiqueta({ valores, errores, cambiar, lectura, alLeer, oc
           Etiqueta y tienda
         </h3>
         <p className="text-sm text-suave">
-          Opcional. Con la marca y la referencia salen enlaces para buscar la prenda.
+          Opcional. Escribe la marca y la talla, o léelas de una foto de la etiqueta. Con la marca y
+          la referencia salen enlaces para buscar la prenda.
         </p>
       </div>
 

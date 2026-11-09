@@ -1,4 +1,5 @@
 import { capasPorDefecto, llevaCapas } from '../../datos/capas.ts'
+import { soloLosQueAplican, type CampoDetalle } from '../../datos/detalles.ts'
 import {
   esEnlaceWeb,
   etiquetasPrendaSchema,
@@ -38,6 +39,12 @@ export interface Borrador {
    * capas a las de por defecto, aunque vinieran de la IA: si corrige qué prenda es, también cambian.
    */
   capasTocadas: boolean
+  /** Corte y detalles (T8.1); `''` es «sin indicar». Al guardar se quitan los que no aplican al tipo. */
+  corte: string
+  tiro: string
+  largo: string
+  manga: string
+  cuello: string
   marca: string
   referencia: string
   talla: string
@@ -94,6 +101,11 @@ export function borradorInicial(
     notas: iniciales.notas ?? '',
     capas: iniciales.capas && iniciales.capas.length > 0 ? [...iniciales.capas] : null,
     capasTocadas: false,
+    corte: iniciales.corte ?? '',
+    tiro: iniciales.tiro ?? '',
+    largo: iniciales.largo ?? '',
+    manga: iniciales.manga ?? '',
+    cuello: iniciales.cuello ?? '',
     marca: iniciales.marca ?? '',
     referencia: iniciales.referencia ?? '',
     talla: iniciales.talla ?? '',
@@ -141,6 +153,13 @@ export function capasVisibles(borrador: Borrador): Capa[] {
   return (
     borrador.capas ??
     capasPorDefecto({ categoria: borrador.categoria, subcategoria: borrador.subcategoria })
+  )
+}
+
+function detallesEscritos(borrador: Borrador): Partial<Record<CampoDetalle, string>> {
+  const { corte, tiro, largo, manga, cuello } = borrador
+  return Object.fromEntries(
+    Object.entries({ corte, tiro, largo, manga, cuello }).filter(([, valor]) => valor !== ''),
   )
 }
 
@@ -198,6 +217,11 @@ export function validarBorrador(
   const capas = llevaCapas(borrador.categoria) ? capasVisibles(borrador) : undefined
   if (capas?.length === 0) errores.capas = 'Elige al menos uno.'
   if (Object.keys(errores).length > 0) return { valido: false, errores }
+  const detalles = soloLosQueAplican({
+    categoria: borrador.categoria,
+    subcategoria: borrador.subcategoria,
+    ...detallesEscritos(borrador),
+  })
 
   const leido = etiquetasPrendaSchema.safeParse({
     ...borrador,
@@ -207,6 +231,7 @@ export function validarBorrador(
     composicion: composicion.valida ? composicion.composicion : undefined,
     enlace,
     capas,
+    ...detalles,
   })
   if (leido.success) {
     const { data } = leido
@@ -222,6 +247,12 @@ export function validarBorrador(
         enlace: data.enlace,
         // Si deja de ser de arriba, `undefined` borra las capas que tuviera al editar.
         capas: data.capas,
+        // Lo que ya no aplica al tipo (p. ej. el tiro de un pantalón que pasa a falda) se borra.
+        corte: data.corte,
+        tiro: data.tiro,
+        largo: data.largo,
+        manga: data.manga,
+        cuello: data.cuello,
       },
     }
   }

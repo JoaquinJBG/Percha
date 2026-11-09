@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { CATEGORIAS, ESTILOS, type Categoria, type Prenda } from '../../datos/modelo.ts'
+import { CATEGORIAS, CORTES, ESTILOS, type Categoria, type Prenda } from '../../datos/modelo.ts'
 import { capitalizar, ETIQUETA_CATEGORIA, type Filtros } from './ayudas.ts'
 
 interface Props {
@@ -17,6 +17,7 @@ const selector =
 export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
   const idEstilo = useId()
   const idColor = useId()
+  const idCorte = useId()
   // La opción elegida se queda aunque ya no quede ninguna prenda con ella (p. ej. tras borrar).
   const categorias = CATEGORIAS.filter(
     (c) => c === filtros.categoria || prendas.some((p) => p.categoria === c),
@@ -27,6 +28,10 @@ export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
   const colores = [
     ...new Set([...prendas.flatMap((p) => p.colores), ...(filtros.color ? [filtros.color] : [])]),
   ].sort((a, b) => a.localeCompare(b, 'es'))
+  // Solo los cortes que hay en el armario; sin ninguno, el filtro no sale.
+  const cortes = CORTES.filter(
+    (c) => c === filtros.corte || prendas.some((p) => p.corte === c),
+  ).sort((a, b) => a.localeCompare(b, 'es'))
 
   function botonCategoria(categoria: Categoria | null, etiqueta: string, cuantas: number) {
     const activo = filtros.categoria === categoria
@@ -105,6 +110,29 @@ export function FiltrosArmario({ prendas, filtros, onCambiar }: Props) {
             ))}
           </select>
         </div>
+        {cortes.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor={idCorte} className="text-sm font-medium">
+              Corte
+            </label>
+            <select
+              id={idCorte}
+              className={selector}
+              value={filtros.corte ?? ''}
+              onChange={(evento) => {
+                const valor = evento.target.value
+                onCambiar({ ...filtros, corte: cortes.find((c) => c === valor) ?? null })
+              }}
+            >
+              <option value="">Todos</option>
+              {cortes.map((c) => (
+                <option key={c} value={c}>
+                  {capitalizar(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   )

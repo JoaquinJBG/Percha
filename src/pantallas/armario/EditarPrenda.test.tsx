@@ -14,6 +14,9 @@ import {
 import { Armario } from './Armario.tsx'
 import { simularUrlsDeBlob } from './urlsDePrueba.ts'
 
+// Con la suite entera en paralelo, el formulario completo pasa de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 function prenda(cambios: Partial<NuevaPrenda> = {}): Prenda {
   return { ...nuevaPrenda(cambios), id: 'p1', creadaEn: 1 }
 }

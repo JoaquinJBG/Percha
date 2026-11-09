@@ -25,6 +25,7 @@ import {
   type CamposEtiqueta,
   type ErroresBorrador,
 } from './borrador.ts'
+import { SeccionCorte } from './SeccionCorte.tsx'
 import { SeccionEtiqueta } from './SeccionEtiqueta.tsx'
 
 interface Props {
@@ -357,6 +358,8 @@ export function FormularioPrenda({
           cambiar('temporadas', temporadas)
         }}
       />
+
+      <SeccionCorte valores={borrador} cambiar={cambiar} />
 
       <SeccionEtiqueta
         valores={borrador}

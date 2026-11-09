@@ -11,6 +11,9 @@ import {
 } from '../../ia/index.ts'
 import { FormularioPrenda } from './FormularioPrenda.tsx'
 
+// Con la suite entera en paralelo, el formulario completo pasa de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 const fotoEtiqueta = new File(['etiqueta'], 'etiqueta.jpg', { type: 'image/jpeg' })
 
 function montar({

@@ -41,6 +41,36 @@ describe('detalle de una prenda', () => {
     )
   })
 
+  it('resume marca, corte y talla bajo el título y enseña los detalles', () => {
+    render(
+      <DetallePrenda
+        prenda={{
+          ...prenda,
+          categoria: 'inferior',
+          subcategoria: 'vaquero',
+          marca: 'Zara',
+          corte: 'balloon',
+          tiro: 'alto',
+          largo: 'tobillero',
+          talla: '44',
+        }}
+        onVolver={vi.fn()}
+        onBorrar={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Zara · balloon · 44')).toBeInTheDocument()
+    expect(screen.getByText('Tiro').nextElementSibling).toHaveTextContent('Alto')
+    expect(screen.getByText('Largo').nextElementSibling).toHaveTextContent('Tobillero')
+  })
+
+  it('sin marca, corte ni talla no hay resumen', () => {
+    render(<DetallePrenda prenda={prenda} onVolver={vi.fn()} onBorrar={vi.fn()} />)
+
+    expect(screen.queryByText(/ · /)).not.toBeInTheDocument()
+    expect(screen.queryByText('Corte')).not.toBeInTheDocument()
+  })
+
   it('lo que no es de arriba no tiene la línea de capas', () => {
     render(
       <DetallePrenda

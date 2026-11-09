@@ -158,7 +158,7 @@ describe('BotonPruebatelo con el probador del PC', () => {
     pasos[0]?.seguir()
     expect(await screen.findByText('Probándote la prenda 2 de 2…')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: 'Prendas probadas' })).toHaveAttribute(
-      'value',
+      'aria-valuenow',
       '1',
     )
     expect(screen.getByText(/1 de 2 hechas\. Quedan unos 2 minutos\./)).toBeInTheDocument()

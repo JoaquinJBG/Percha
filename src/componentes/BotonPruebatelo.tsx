@@ -499,12 +499,19 @@ export function BotonPruebatelo({
           </p>
           {progreso && (
             <>
-              <progress
-                value={progreso.hechas}
-                max={progreso.total}
+              <div
+                role="progressbar"
                 aria-label="Prendas probadas"
-                className="h-2 w-full accent-papel"
-              />
+                aria-valuemin={0}
+                aria-valuemax={progreso.total}
+                aria-valuenow={progreso.hechas}
+                className="h-2 w-full overflow-hidden rounded-full bg-papel/25"
+              >
+                <div
+                  className="h-full rounded-full bg-papel transition-[width]"
+                  style={{ width: `${String((progreso.hechas / progreso.total) * 100)}%` }}
+                />
+              </div>
               <p>
                 {String(progreso.hechas)} de {String(progreso.total)} hechas.{' '}
                 {textoRestante(progreso)}
@@ -534,7 +541,7 @@ export function BotonPruebatelo({
                 type="button"
                 onClick={() => void guardarPrueba(estado.blob)}
                 disabled={estado.guardado === 'guardando' || estado.guardado === 'si'}
-                className={`${botonClaro} ${typeof compartidor.share === 'function' ? '' : 'col-span-2'}`}
+                className={botonClaro}
               >
                 {estado.guardado === 'si' ? 'Guardada' : 'Guardar'}
               </button>

@@ -158,6 +158,13 @@ describe('cliente del probador', () => {
     await expect(c.crearPrueba(persona, [])).rejects.toMatchObject({ motivo: 'ocupado' })
   })
 
+  it('una foto que el PC no puede abrir: 400 «imagen» → «imagen»', async () => {
+    const malo = () => Promise.resolve(Response.json({ error: 'imagen' }, { status: 400 }))
+    const c = crearClienteProbador({ url: URL_FALSA, clave: CLAVE_FALSA }, { fetch: malo })
+
+    await expect(c.crearPrueba(persona, [])).rejects.toMatchObject({ motivo: 'imagen' })
+  })
+
   it('una respuesta que no es del probador → «servidor»', async () => {
     const raro = () => Promise.resolve(new Response('<html>', { status: 200 }))
     const c = crearClienteProbador({ url: URL_FALSA, clave: CLAVE_FALSA }, { fetch: raro })

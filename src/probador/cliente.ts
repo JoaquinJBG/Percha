@@ -12,11 +12,20 @@ export interface ConfigProbador {
  * - `red`: no responde (apagado, sin Tailscale, sin conexión o pasado el tiempo de espera);
  * - `clave`: 401, la clave no vale; `ocupado`: 409, ya está con otra prueba;
  * - `grande`: 413, las fotos pasan de 20 MB; `peticion`: 400, faltan la persona o las prendas;
+ * - `imagen`: 400, el PC no puede abrir alguna foto;
  * - `no-existe`: 404 de una prueba (el servidor se reinició o ya la borró);
  * - `prueba`: la prueba acabó en error en el PC; `servidor`: cualquier otra respuesta rara.
  */
 export type MotivoProbador =
-  'red' | 'clave' | 'ocupado' | 'grande' | 'peticion' | 'no-existe' | 'prueba' | 'servidor'
+  | 'red'
+  | 'clave'
+  | 'ocupado'
+  | 'grande'
+  | 'peticion'
+  | 'imagen'
+  | 'no-existe'
+  | 'prueba'
+  | 'servidor'
 
 export class ErrorProbador extends Error {
   readonly motivo: MotivoProbador
@@ -85,6 +94,16 @@ const MOTIVO_POR_ESTADO: Partial<Record<number, MotivoProbador>> = {
   413: 'grande',
 }
 
+async function codigoDeError(respuesta: Response): Promise<string | null> {
+  const cuerpo: unknown = await respuesta.json().catch(() => null)
+  return cuerpo &&
+    typeof cuerpo === 'object' &&
+    'error' in cuerpo &&
+    typeof cuerpo.error === 'string'
+    ? cuerpo.error
+    : null
+}
+
 /** La URL tal como la escribe el usuario, sin la barra del final. */
 export function baseProbador(url: string): string {
   return url.trim().replace(/\/+$/, '')
@@ -116,7 +135,8 @@ export function crearClienteProbador(
       throw new ErrorProbador('red', undefined, { cause: fallo })
     }
     if (!respuesta.ok) {
-      const motivo = MOTIVO_POR_ESTADO[respuesta.status] ?? 'servidor'
+      let motivo = MOTIVO_POR_ESTADO[respuesta.status] ?? 'servidor'
+      if (motivo === 'peticion' && (await codigoDeError(respuesta)) === 'imagen') motivo = 'imagen'
       throw new ErrorProbador(motivo, `HTTP ${String(respuesta.status)}`)
     }
     return respuesta

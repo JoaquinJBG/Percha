@@ -5,8 +5,9 @@ de instalación, en [`docs/probador-pc.md`](../../docs/probador-pc.md).
 - `crearClienteProbador({ url, clave }, { fetch? })` → `salud`, `crearPrueba`, `estado`, `imagen`. Todas
   las llamadas llevan `Authorization: Bearer <clave>` y su tiempo de espera (`ESPERA_MS`: 3 s para
   `/salud`). Los fallos son `ErrorProbador` con `motivo`: `red` (no responde, CORS, tiempo), `clave`
-  (401), `ocupado` (409), `grande` (413), `peticion` (400), `no-existe` (404), `prueba` (acabó en error
-  en el PC) o `servidor` (respuesta rara). Si cancela quien llama, sale su `AbortError` tal cual.
+  (401), `ocupado` (409), `grande` (413), `peticion` (400), `imagen` (400 con `"error": "imagen"`: no
+  puede abrir una foto), `no-existe` (404), `prueba` (acabó en error en el PC) o `servidor` (respuesta
+  rara). Si cancela quien llama, sale su `AbortError` tal cual.
 - `prendasParaProbador(prendas)` → `{ envio, fuera }`: el vestido solo (`entero`); si no, lo de abajo
   (`abajo`) y **una** de arriba (`arriba`), la más exterior: el abrigo y, entre las demás, la que más
   abriga (`abrigo` 1–5). Sin calzado ni accesorios. `fuera` es la ropa que se queda sin vestir, para

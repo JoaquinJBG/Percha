@@ -145,11 +145,70 @@ export const outfitSchema = z.object({
   creadoEn: z.number().int().nonnegative(),
 })
 
+export const COMPLEXIONES = ['atlética', 'grande', 'delgada', 'media'] as const
+export const TIPOS_TALLA = ['parte de arriba', 'pantalón', 'calzado'] as const
+export const TIPOS_OFICINA = ['conservadora', 'estándar', 'creativa'] as const
+export const SENSACIONES_TERMICAS = ['caluroso', 'normal', 'friolero'] as const
+
+/** Medidas del cuerpo que admite el perfil, con su unidad y el rango que se acepta. */
+export const MEDIDAS = {
+  altura: { unidad: 'cm', min: 100, max: 230 },
+  peso: { unidad: 'kg', min: 30, max: 250 },
+  pecho: { unidad: 'cm', min: 50, max: 200 },
+  cintura: { unidad: 'cm', min: 40, max: 200 },
+  cadera: { unidad: 'cm', min: 50, max: 200 },
+  largoPierna: { unidad: 'cm', min: 40, max: 120 },
+} as const
+export type Medida = keyof typeof MEDIDAS
+
+const medidaSchema = (medida: Medida) => {
+  const { unidad, min, max } = MEDIDAS[medida]
+  return z
+    .number()
+    .min(min, `Entre ${String(min)} y ${String(max)} ${unidad}.`)
+    .max(max, `Entre ${String(min)} y ${String(max)} ${unidad}.`)
+    .optional()
+}
+
+/**
+ * El cuerpo del usuario (T8.2). Todo es opcional: los perfiles y las copias de antes no lo tienen. Son
+ * datos personales que se quedan en el móvil; T8.4 decide qué parte va al prompt.
+ */
+export const cuerpoSchema = z.object({
+  altura: medidaSchema('altura'),
+  peso: medidaSchema('peso'),
+  pecho: medidaSchema('pecho'),
+  cintura: medidaSchema('cintura'),
+  cadera: medidaSchema('cadera'),
+  largoPierna: medidaSchema('largoPierna'),
+  complexion: z.enum(COMPLEXIONES).optional(),
+  /** Una línea libre: «hombros anchos, muslo grande». */
+  notas: z.string().trim().max(120).optional(),
+})
+
+export const MAX_TALLAS = 30
+
+/** La talla que usa en una marca para un tipo de prenda: «Zara · pantalón · 44». */
+export const tallaMarcaSchema = z.object({
+  marca: z.string().trim().min(1).max(40),
+  tipo: z.enum(TIPOS_TALLA),
+  talla: z.string().trim().min(1).max(20),
+})
+
+export const oficinaSchema = z.object({
+  tipo: z.enum(TIPOS_OFICINA),
+  viernesCasual: z.boolean(),
+})
+
 export const perfilSchema = z.object({
   fotoCara: blobSchema.nullable(),
   fotoCuerpo: blobSchema.nullable(),
   ciudad: z.string().trim(),
   estilosFavoritos: z.array(estiloSchema),
+  cuerpo: cuerpoSchema.optional(),
+  tallas: z.array(tallaMarcaSchema).max(MAX_TALLAS).optional(),
+  oficina: oficinaSchema.optional(),
+  sensacionTermica: z.enum(SENSACIONES_TERMICAS).optional(),
 })
 
 export const ajustesSchema = z.object({
@@ -169,6 +228,13 @@ export type FotoPrenda = z.infer<typeof fotoPrendaSchema>
 export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
 export type Perfil = z.infer<typeof perfilSchema>
+export type Cuerpo = z.infer<typeof cuerpoSchema>
+export type Complexion = (typeof COMPLEXIONES)[number]
+export type TallaMarca = z.infer<typeof tallaMarcaSchema>
+export type TipoTalla = (typeof TIPOS_TALLA)[number]
+export type Oficina = z.infer<typeof oficinaSchema>
+export type TipoOficina = (typeof TIPOS_OFICINA)[number]
+export type SensacionTermica = (typeof SENSACIONES_TERMICAS)[number]
 export type Ajustes = z.infer<typeof ajustesSchema>
 export type Componente = z.infer<typeof componenteSchema>
 export type DatosEtiqueta = z.infer<typeof datosEtiquetaSchema>

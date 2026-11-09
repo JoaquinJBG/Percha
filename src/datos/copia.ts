@@ -171,6 +171,11 @@ function fusionarPerfil(local: Perfil, copia: Perfil): Perfil {
     ciudad: copia.ciudad || local.ciudad,
     estilosFavoritos:
       copia.estilosFavoritos.length > 0 ? copia.estilosFavoritos : local.estilosFavoritos,
+    // Las medidas también van una a una: una copia sin la cadera no borra la que ya hay.
+    cuerpo: copia.cuerpo || local.cuerpo ? { ...local.cuerpo, ...copia.cuerpo } : undefined,
+    tallas: copia.tallas?.length ? copia.tallas : local.tallas,
+    oficina: copia.oficina ?? local.oficina,
+    sensacionTermica: copia.sensacionTermica ?? local.sensacionTermica,
   }
 }
 

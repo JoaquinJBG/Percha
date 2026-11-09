@@ -143,7 +143,7 @@ describe('comprobar un outfit con capas', () => {
   it('usa las capas guardadas antes que las de por defecto', () => {
     const soloMedia = {
       ...prenda({ id: 'camisa-media', subcategoria: 'camisa' }),
-      capas: ['media'],
+      capas: ['media' as const],
     }
 
     expect(

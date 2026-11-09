@@ -2,12 +2,10 @@ import type { Capa } from '../../datos/modelo.ts'
 import type { ExteriorHoy } from '../../ia/tipos.ts'
 import type { Contexto } from '../reglas/index.ts'
 
-// Los mismos umbrales que propone el §1.5 de la investigación y que usa T6.2 en las reglas: al juntar las
-// ramas, que salgan de un solo sitio.
-/** Por debajo de esta sensación media (°C), capa exterior obligatoria. */
-export const LIMITE_EXTERIOR = 14
-/** Hasta esta sensación media (°C), una capa media o exterior ligera es una tercera pieza opcional. */
-export const LIMITE_TERCERA_PIEZA = 23
+// Los umbrales salen de las reglas para que la IA y el motor nunca discrepen.
+import { LIMITE_EXTERIOR, LIMITE_TERCERA_PIEZA } from '../reglas/clima.ts'
+
+export { LIMITE_EXTERIOR, LIMITE_TERCERA_PIEZA }
 /** Por encima de esto la lluvia se lleva sin capa exterior (como en las reglas). */
 const LIMITE_CALOR = 24
 /** Una tercera pieza sin frío tiene que ser ligera: como mucho este nivel de abrigo. */

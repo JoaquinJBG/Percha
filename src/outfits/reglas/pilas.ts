@@ -14,8 +14,8 @@ export interface Pila<P extends PrendaReglas = PrendaReglas> {
   exterior: P | null
 }
 
-/** Tope de prendas por outfit; el mismo número que `MAX_PRENDAS_POR_OUTFIT` de la IA (T6.3). */
-export const MAX_PRENDAS_POR_OUTFIT = 8
+// El tope de prendas por outfit es el mismo para las reglas y para lo que acepta la IA.
+export { MAX_PRENDAS_POR_OUTFIT } from '../../ia/esquema-outfits.ts'
 export const MAX_ACCESORIOS = 3
 /** Por debajo (°C), la exterior es un abrigo largo o uno que abrigue 4 o más (§1.5: de paño o acolchada). */
 const FRIO_DE_ABRIGO = 9

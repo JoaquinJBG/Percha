@@ -164,3 +164,34 @@ Sale de la investigación de moda (`docs/investigacion/reglas-outfits.md`, en la
   y una línea en el detalle. El alta masiva las guarda con lo demás.
 - **Fuera:** usar las capas para montar outfits (T6.2) y el prompt de outfits (T6.3). `largo`, `material` y
   las subcategorías cerradas (P4, P5) tampoco entran.
+
+## Fase 8 — Ficha completa
+
+Aprobada por el usuario el 2026-11-09 junto con las fases 9 (buscar la prenda con Gemini) y 10 (ajuste de
+talla de verdad). T8.2 absorbe la T6.5.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T8.1 | Corte y detalles por tipo (corte, tiro, largo, manga, cuello) con listas cerradas, que rellena Gemini y se corrigen a mano; marca, corte y talla sin foto de la etiqueta; filtro por corte en el armario (D20) | T6.1 | 👀 |
+| T8.2 | Perfil de cuerpo: altura, peso, pecho, cintura, cadera, largo de pierna, complexión y tallas habituales por marca; oficina y sensación térmica (antes T6.5) | — | ⏳ |
+| T8.3 | Fotos del perfil: foto de referencia ajustada con guía y pose; la de ropa interior, opcional y solo para el probador del PC (nunca a Gemini, a la nube ni a la copia) | T7.1 | ⏳ |
+| T8.4 | Outfits y probador usan el corte y el cuerpo: reglas (§6 de la investigación, B1–B11), prompt de Gemini y avisos del probador | T6.2, T6.3, T8.1, T8.2 | ⏳ |
+
+### T8.1 — Corte y detalles por tipo
+- **Qué:** campos opcionales `corte`, `tiro`, `largo`, `manga` y `cuello` en la prenda, con listas cerradas
+  en `src/datos/modelo.ts`; `detallesQueAplican` (`src/datos/detalles.ts`) dice cuáles van con cada tipo:
+  - pantalón y vaquero: corte (skinny, slim, regular / recto, relaxed, baggy, wide leg, balloon, bootcut,
+    flare, tapered, cargo), tiro (bajo, medio, alto) y largo (completo, tobillero, cropped); shorts, corte y
+    tiro; faldas, nada;
+  - camiseta, sudadera, jersey y polo: corte (slim, regular, relaxed, oversize, boxy), largo (cropped,
+    regular, largo) y manga (corta, larga, sin manga);
+  - camisa y sobrecamisa de arriba: corte (slim, regular, relaxed, oversize, overshirt), manga y cuello
+    (clásico, mao, cubano);
+  - abrigo y chaqueta: corte (entallado, recto, oversize, boxy, cropped) y largo (corto, cadera, medio
+    muslo, largo).
+
+  Gemini los rellena (prompt v3); lo que no vale o no aplica se quita sin perder la prenda. Sección «Corte y
+  detalles» en el formulario, junto a «Etiqueta y tienda» (marca y talla a mano). En el detalle, «Zara ·
+  balloon · 44» bajo el título y una fila por detalle. Filtro «Corte» en el armario, con los cortes que hay.
+  El alta masiva los guarda.
+- **Fuera:** usarlos en outfits y probador (T8.4), tablas de tallas (T10.1).

@@ -12,6 +12,7 @@ import type {
 } from '../reglas/index.ts'
 import { ABRIGO_MAXIMO_OPCIONAL, exteriorDeHoy, soloEncima } from './capas.ts'
 import { comprobarConCapas, type PrendaIA } from './composicion.ts'
+import { perfilParaIA } from './perfil.ts'
 
 /** Cuántas candidatas de cada categoría ve la IA: bastan para variar y el texto sigue siendo corto. */
 export const MAX_POR_CATEGORIA = 8
@@ -105,6 +106,11 @@ function aTexto(prenda: PrendaIA, exterior: ExteriorHoy): PrendaParaOutfit {
     notas,
     ...(prenda.capas && { capas: prenda.capas }),
     ...(prenda.composicion && { composicion: prenda.composicion }),
+    ...(prenda.corte && { corte: prenda.corte }),
+    ...(prenda.tiro && { tiro: prenda.tiro }),
+    ...(prenda.largo && { largo: prenda.largo }),
+    ...(prenda.manga && { manga: prenda.manga }),
+    ...(prenda.cuello && { cuello: prenda.cuello }),
     ...(esOpcional(prenda, exterior) && { opcional: true }),
   }
 }
@@ -145,7 +151,8 @@ export async function elegirOutfitsConIA<P extends PrendaIA>(
   const { contexto } = resultado
   const exterior = exteriorDeHoy(contexto)
   const enviadas = paraLaIA(resultado.candidatos, exterior)
-  const hoy = { exterior, temperatura: contexto.temperatura }
+  const hoy = { exterior, temperatura: contexto.temperaturaVestir }
+  const perfil = perfilParaIA(peticion.perfil)
 
   let propuestas
   try {
@@ -161,6 +168,7 @@ export async function elegirOutfitsConIA<P extends PrendaIA>(
           temporada: contexto.temporada,
           exterior,
         },
+        ...(perfil && { perfil }),
         semilla,
       },
       signal ? { signal } : {},

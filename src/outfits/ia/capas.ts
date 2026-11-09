@@ -15,7 +15,12 @@ export const ABRIGO_MAXIMO_OPCIONAL = 3
 export const MAX_CAPAS = 3
 const LIMITE_CUARTA_CAPA = 3
 
-export function exteriorDeHoy({ temperatura, precipitacion, ocasion }: Contexto): ExteriorHoy {
+/** Con la temperatura de vestir (la del día con el ajuste del perfil), como las reglas. */
+export function exteriorDeHoy({
+  temperaturaVestir: temperatura,
+  precipitacion,
+  ocasion,
+}: Contexto): ExteriorHoy {
   if (precipitacion && (temperatura === null || temperatura < LIMITE_CALOR)) return 'obligatoria'
   // Sin temperatura: en casa no cuenta el tiempo de fuera; si no, no se sabe y se deja elegir.
   if (temperatura === null) return ocasion === 'casa' ? 'no' : 'opcional'

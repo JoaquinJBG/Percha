@@ -11,6 +11,7 @@ export {
   MAX_CAPAS,
 } from './capas.ts'
 export { comprobarConCapas, type Hoy, type PrendaIA } from './composicion.ts'
+export { cuerpoParaIA, oficinaParaIA, perfilParaIA } from './perfil.ts'
 export {
   elegirOutfitsConIA,
   MAX_POR_CATEGORIA,

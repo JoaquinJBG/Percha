@@ -194,7 +194,7 @@ describe('elegir outfits con Gemini', () => {
 })
 
 describe('prompt v2 de outfits', () => {
-  it('la instrucción habla de capas, formalidad, color y variedad, y aún no de perfil', () => {
+  it('la instrucción habla de capas, formalidad, color, variedad y perfil', () => {
     for (const fragmento of [
       'base, media, exterior',
       'Como mucho 2 prendas de categoría «superior» y 2 de categoría «abrigo»',
@@ -210,7 +210,8 @@ describe('prompt v2 de outfits', () => {
     ]) {
       expect(INSTRUCCION_OUTFITS).toContain(fragmento)
     }
-    expect(INSTRUCCION_OUTFITS).not.toMatch(/perfil|cuerpo|oliva/i)
+    expect(INSTRUCCION_OUTFITS).toContain('Si la petición trae «Perfil», vístelo a favor')
+    expect(INSTRUCCION_OUTFITS).not.toMatch(/oliva/i)
   })
 
   it('manda las capas de cada prenda de arriba: las guardadas o las de por defecto', () => {

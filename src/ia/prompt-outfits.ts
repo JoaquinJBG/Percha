@@ -61,8 +61,13 @@ const NO_ABURRIDOS = `Que no sean aburridos:
   fuera entre ellos, y que haya al menos uno tonal (un solo color en varios tonos y texturas) y uno con
   contraste.`
 
-// T6.5: el bloque «Si recibes un perfil de cuerpo, vístelo a favor…» (§9.1) va aquí, junto con el perfil
-// en la petición. Hasta entonces no se manda perfil y no se habla de él.
+const CUERPO = `Si la petición trae «Perfil», vístelo a favor:
+- Cuerpo grande o ancho de hombros: capas abiertas que hagan una línea vertical, tonos cercanos de arriba
+  abajo, nada de pantalón pitillo ni de todo holgado (como mucho una prenda amplia), calzado con presencia
+  (derby, mocasín, Chelsea), estampados de escala media.
+- Con cualquier cuerpo: si abajo es ancho, arriba ajustado, y al revés; lo amplio arriba y abajo a la vez
+  solo en streetwear.
+- Oficina conservadora: el extremo formal; creativa o viernes casual: el más relajado.`
 
 const PORQUE = `En «porque», una frase corta (máximo 25 palabras), de tú, que diga por qué funciona hoy: el tiempo,
 la ocasión y el truco de estilo («la sobrecamisa abierta alarga», «azul marino y marrón, clásico de
@@ -75,6 +80,7 @@ export const INSTRUCCION_OUTFITS = [
   FORMALIDAD,
   COLOR,
   NO_ABURRIDOS,
+  CUERPO,
   PORQUE,
 ].join('\n\n')
 
@@ -126,6 +132,11 @@ function textoPrenda(referencia: string, prenda: PrendaParaOutfit): string {
   ]
   const capas = capasDe(prenda)
   if (capas.length > 0) partes.push(`capas: ${capas.join(', ')}`)
+  if (prenda.corte) partes.push(`corte ${prenda.corte}`)
+  if (prenda.tiro) partes.push(`tiro ${prenda.tiro}`)
+  if (prenda.largo) partes.push(`largo ${prenda.largo}`)
+  if (prenda.manga) partes.push(`manga ${prenda.manga}`)
+  if (prenda.cuello) partes.push(`cuello ${prenda.cuello}`)
   partes.push(
     `estilos: ${prenda.estilos.join(', ') || 'cualquiera'}`,
     `abrigo ${String(prenda.abrigo)}/5`,
@@ -140,6 +151,11 @@ function textoPrenda(referencia: string, prenda: PrendaParaOutfit): string {
   return partes.join(' · ')
 }
 
+function textoPerfil({ perfil }: PeticionOutfits): string[] {
+  const partes = [perfil?.cuerpo, perfil?.oficina].filter((p) => p !== undefined && p !== '')
+  return partes.length > 0 ? [`Perfil: ${partes.join('. ')}.`] : []
+}
+
 /** La petición en texto; `referencias[i]` es la de `peticion.prendas[i]`. */
 export function textoPeticionOutfits(
   peticion: PeticionOutfits,
@@ -149,7 +165,7 @@ export function textoPeticionOutfits(
     `Estilo: ${peticion.estilo}`,
     `Ocasión: ${peticion.ocasion}`,
     `Tiempo: ${textoTiempo(peticion)}`,
-    // T6.5: aquí irá la línea «Perfil: …» (cuerpo, oficina, sensación térmica).
+    ...textoPerfil(peticion),
     'Prendas:',
     ...peticion.prendas.map((prenda, i) => textoPrenda(referencias[i] ?? '', prenda)),
   ].join('\n')

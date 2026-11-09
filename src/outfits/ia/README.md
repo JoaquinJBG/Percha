@@ -13,8 +13,12 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
 - `comprobarConCapas(ids, enviadas, { exterior, temperatura })`: el validador de los outfits de la IA
   (abajo).
 - `exteriorDeHoy(contexto)` → `obligatoria` | `opcional` | `no`, con `LIMITE_EXTERIOR` (14 °C) y
-  `LIMITE_TERCERA_PIEZA` (23 °C). **T6.2 tiene los mismos umbrales en las reglas:** al juntar las ramas,
-  que salgan de un solo sitio.
+  `LIMITE_TERCERA_PIEZA` (23 °C) de las reglas, sobre `contexto.temperaturaVestir` (con el ajuste del
+  perfil por sensación térmica).
+- `perfilParaIA(perfil)` → `{ cuerpo?, oficina? }` o `undefined`: lo que va del perfil a Gemini (T8.4).
+  El cuerpo, con `cuerpoParaIA`: altura, complexión y los trozos de las notas sin cifras. **Nunca** el
+  peso ni el pecho, la cintura, la cadera o el largo de pierna. La sensación térmica no va: ya cuenta en
+  la exterior de hoy.
 
 ## Qué hace
 
@@ -24,8 +28,8 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
 3. Manda a la IA, en texto y sin fotos, las mejores candidatas de cada categoría
    (`MAX_POR_CATEGORIA_ARRIBA` = 10 en `superior` y `abrigo`, que reparten tres capas;
    `MAX_POR_CATEGORIA` = 8 en el resto), el estilo, la ocasión y el tiempo. Cada prenda va con sus
-   `capas` (si faltan, las de por defecto de `src/datos/capas.ts`) y su composición si la hay. Como las
-   reglas: solo las de ajuste `pleno` si las hay y accesorios solo plenos. Categoría `abrigo`: nada con la
+   `capas` (si faltan, las de por defecto de `src/datos/capas.ts`), su composición y su corte y detalles
+   (`corte`, `tiro`, `largo`, `manga`, `cuello`) si los hay; con perfil, una línea «Perfil: …». Como las reglas: solo las de ajuste `pleno` si las hay y accesorios solo plenos. Categoría `abrigo`: nada con la
    exterior en `no`; con `opcional`, solo los ligeros (abrigo ≤ 3). Las de arriba van siempre (un punto
    grueso es capa media). Las ligeras que no pueden ir de base van marcadas `opcional` («tercera
    pieza»).

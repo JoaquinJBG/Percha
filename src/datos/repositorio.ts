@@ -10,6 +10,7 @@ import {
   type Ajustes,
   type CambiosPrenda,
   type Categoria,
+  type Corte,
   type Estilo,
   type NuevaPrenda,
   type NuevoOutfit,
@@ -22,6 +23,7 @@ export interface FiltrosPrendas {
   categoria?: Categoria
   estilo?: Estilo
   color?: string
+  corte?: Corte
 }
 
 /** UUID v4 con `getRandomValues`: `crypto.randomUUID` no existe fuera de un contexto seguro. */
@@ -45,7 +47,7 @@ export function leerPrenda(id: string): Promise<Prenda | undefined> {
 
 /** De la más nueva a la más antigua. Los filtros se combinan (todos tienen que cumplirse). */
 export function listarPrendas(filtros: FiltrosPrendas = {}): Promise<Prenda[]> {
-  const { categoria, estilo } = filtros
+  const { categoria, estilo, corte } = filtros
   const color = filtros.color === undefined ? '' : normalizarColor(filtros.color)
   return db.prendas
     .orderBy('creadaEn')
@@ -54,7 +56,8 @@ export function listarPrendas(filtros: FiltrosPrendas = {}): Promise<Prenda[]> {
       (prenda) =>
         (categoria === undefined || prenda.categoria === categoria) &&
         (estilo === undefined || prenda.estilos.includes(estilo)) &&
-        (color === '' || prenda.colores.includes(color)),
+        (color === '' || prenda.colores.includes(color)) &&
+        (corte === undefined || prenda.corte === corte),
     )
     .toArray()
 }

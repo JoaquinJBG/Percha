@@ -128,6 +128,14 @@ describe('prendas', () => {
       await sembrar()
       expect(await ids({ color: '  ' })).toHaveLength(3)
     })
+
+    it('por corte; las prendas sin corte no salen', async () => {
+      await sembrar()
+      const balloon = await crearPrenda(
+        nuevaPrenda({ categoria: 'inferior', subcategoria: 'vaquero', corte: 'balloon' }),
+      )
+      expect(await ids({ corte: 'balloon' })).toEqual([balloon.id])
+    })
   })
 
   it('actualiza solo lo que se pasa y conserva id y fecha', async () => {

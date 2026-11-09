@@ -49,6 +49,37 @@ export const OCASIONES = [
 
 export const TEMPORADAS = ['primavera', 'verano', 'otoño', 'invierno'] as const
 
+/** Corte y detalles por tipo (T8.1, D20). Qué lista vale para cada prenda lo dice `src/datos/detalles.ts`. */
+export const CORTES_PANTALON = [
+  'skinny',
+  'slim',
+  'regular / recto',
+  'relaxed',
+  'baggy',
+  'wide leg',
+  'balloon',
+  'bootcut',
+  'flare',
+  'tapered',
+  'cargo',
+] as const
+export const CORTES_CAMISETA = ['slim', 'regular', 'relaxed', 'oversize', 'boxy'] as const
+export const CORTES_CAMISA = ['slim', 'regular', 'relaxed', 'oversize', 'overshirt'] as const
+export const CORTES_ABRIGO = ['entallado', 'recto', 'oversize', 'boxy', 'cropped'] as const
+export const TIROS = ['bajo', 'medio', 'alto'] as const
+export const LARGOS_PANTALON = ['completo', 'tobillero', 'cropped'] as const
+export const LARGOS_CAMISETA = ['cropped', 'regular', 'largo'] as const
+export const LARGOS_ABRIGO = ['corto', 'cadera', 'medio muslo', 'largo'] as const
+export const MANGAS = ['corta', 'larga', 'sin manga'] as const
+export const CUELLOS = ['clásico', 'mao', 'cubano'] as const
+
+function union<T extends string>(...listas: (readonly T[])[]): [T, ...T[]] {
+  return [...new Set(listas.flat())] as [T, ...T[]]
+}
+
+export const CORTES = union(CORTES_PANTALON, CORTES_CAMISETA, CORTES_CAMISA, CORTES_ABRIGO)
+export const LARGOS = union(LARGOS_PANTALON, LARGOS_CAMISETA, LARGOS_ABRIGO)
+
 /** Papeles que puede hacer una prenda de arriba en un outfit con capas, de dentro afuera (D18). */
 export const CAPAS = ['base', 'media', 'exterior'] as const
 
@@ -60,6 +91,11 @@ export const ocasionSchema = z.enum(OCASIONES)
 export const temporadaSchema = z.enum(TEMPORADAS)
 export const nivelSchema = z.int().min(1).max(5)
 export const capaSchema = z.enum(CAPAS)
+export const corteSchema = z.enum(CORTES)
+export const tiroSchema = z.enum(TIROS)
+export const largoSchema = z.enum(LARGOS)
+export const mangaSchema = z.enum(MANGAS)
+export const cuelloSchema = z.enum(CUELLOS)
 
 /** Sin repetidos y siempre de dentro afuera, para que comparar y pintar sea estable. */
 export const capasSchema = z
@@ -129,6 +165,12 @@ export const camposPrendaSchema = z.object({
   notas: z.string(),
   // Opcional: las prendas y copias de antes no lo tienen; se deduce con `capasDe` (src/datos/capas.ts).
   capas: capasSchema.optional(),
+  // Opcionales (T8.1): solo los que aplican al tipo de prenda (`detallesQueAplican`).
+  corte: corteSchema.optional(),
+  tiro: tiroSchema.optional(),
+  largo: largoSchema.optional(),
+  manga: mangaSchema.optional(),
+  cuello: cuelloSchema.optional(),
   etiquetadaPor: z.enum(['ia', 'manual']),
   creadaEn: z.number().int().nonnegative(),
 })
@@ -177,6 +219,11 @@ export type Estilo = z.infer<typeof estiloSchema>
 export type Ocasion = z.infer<typeof ocasionSchema>
 export type Temporada = z.infer<typeof temporadaSchema>
 export type Capa = z.infer<typeof capaSchema>
+export type Corte = z.infer<typeof corteSchema>
+export type Tiro = z.infer<typeof tiroSchema>
+export type Largo = z.infer<typeof largoSchema>
+export type Manga = z.infer<typeof mangaSchema>
+export type Cuello = z.infer<typeof cuelloSchema>
 export type FotoPrenda = z.infer<typeof fotoPrendaSchema>
 export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
@@ -255,6 +302,11 @@ export const etiquetasPrendaSchema = camposPrendaSchema.pick({
   temporadas: true,
   notas: true,
   capas: true,
+  corte: true,
+  tiro: true,
+  largo: true,
+  manga: true,
+  cuello: true,
   marca: true,
   referencia: true,
   talla: true,

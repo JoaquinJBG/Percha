@@ -111,6 +111,30 @@ describe('exportar e importar', () => {
     expect(await sinBlobs(await leerPrenda(conEtiqueta.id))).toEqual(await sinBlobs(conEtiqueta))
   })
 
+  it('el corte y los detalles van y vuelven; las prendas de antes no los tienen', async () => {
+    const { camiseta } = await sembrar()
+    const vaquero = await crearPrenda(
+      nuevaPrenda({
+        categoria: 'inferior',
+        subcategoria: 'vaquero',
+        corte: 'balloon',
+        tiro: 'alto',
+        largo: 'tobillero',
+      }),
+    )
+    const copia = await exportarCopia()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await leerPrenda(vaquero.id)).toMatchObject({
+      corte: 'balloon',
+      tiro: 'alto',
+      largo: 'tobillero',
+    })
+    expect((await leerPrenda(camiseta.id))?.corte).toBeUndefined()
+  })
+
   it('las capas van y vuelven', async () => {
     const sobrecamisa = await crearPrenda(
       nuevaPrenda({ categoria: 'abrigo', subcategoria: 'sobrecamisa', capas: ['exterior'] }),

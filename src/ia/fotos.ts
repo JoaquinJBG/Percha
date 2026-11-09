@@ -7,11 +7,14 @@ export interface FotoParaIA {
   tipo: string
 }
 
-/** Reduce la foto a 768 px y la pasa a JPEG con fondo blanco. */
-export async function prepararFoto(foto: Blob): Promise<FotoParaIA> {
+/** Una etiqueta tiene letra pequeña: con 768 px la referencia se lee mal. */
+export const LADO_MAXIMO_ETIQUETA = 1536
+
+/** Reduce la foto (a 768 px si no se dice otra cosa) y la pasa a JPEG con fondo blanco. */
+export async function prepararFoto(foto: Blob, ladoMaximo = LADO_MAXIMO): Promise<FotoParaIA> {
   const mapa = await createImageBitmap(foto)
   try {
-    const escala = Math.min(1, LADO_MAXIMO / Math.max(mapa.width, mapa.height))
+    const escala = Math.min(1, ladoMaximo / Math.max(mapa.width, mapa.height))
     const ancho = Math.max(1, Math.round(mapa.width * escala))
     const alto = Math.max(1, Math.round(mapa.height * escala))
     const lienzo = new OffscreenCanvas(ancho, alto)

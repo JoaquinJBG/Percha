@@ -8,7 +8,7 @@ import {
   type BaseEtiquetas,
   type ObtenerProveedor,
 } from '../../componentes/etiquetado-ia/index.ts'
-import { FormularioPrenda } from '../../componentes/formulario-prenda/index.ts'
+import { FormularioPrenda, type CamposEtiqueta } from '../../componentes/formulario-prenda/index.ts'
 import type { CambiosPrenda, EtiquetasPrenda, Prenda } from '../../datos/modelo.ts'
 import { nombrePrenda } from './ayudas.ts'
 import { FotoBlob } from './FotoBlob.tsx'
@@ -32,6 +32,8 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(false)
   const ia = useEtiquetadoIA(obtenerProveedor)
+  // Lo escrito o leído de la etiqueta sin guardar sobrevive a «Volver a etiquetar con IA».
+  const [etiquetaEnCurso, setEtiquetaEnCurso] = useState<CamposEtiqueta>()
   const titulo = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -48,10 +50,17 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
       return
     }
     // Las notas suelen ser del usuario («con qué combina»): si la IA no dice nada, se quedan.
+    // La IA no ve la etiqueta cosida: marca, referencia, talla, composición y enlace se quedan.
     const { etiquetas } = resultado
+    const { marca, referencia, talla, composicion, enlace } = prenda
     setBase({
       etiquetas: {
         ...etiquetas,
+        marca,
+        referencia,
+        talla,
+        composicion,
+        enlace,
         notas: etiquetas.notas.trim() === '' ? prenda.notas : etiquetas.notas,
       },
       por: 'ia',
@@ -173,6 +182,9 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
           textoGuardar={guardando ? 'Guardando…' : 'Guardar cambios'}
           alGuardar={(etiquetas) => void guardar(etiquetas)}
           alCancelar={onVolver}
+          obtenerProveedor={obtenerProveedor}
+          etiquetaEnCurso={etiquetaEnCurso}
+          alCambiarEtiqueta={setEtiquetaEnCurso}
         />
       </div>
     </div>

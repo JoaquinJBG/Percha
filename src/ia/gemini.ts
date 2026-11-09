@@ -1,9 +1,16 @@
 import type { GenerateContentParameters, GetModelParameters, Part } from '@google/genai'
+import type { DatosEtiqueta } from '../datos/modelo.ts'
 import { ErrorIA, traducirError } from './errores.ts'
 import { esquemaParaGemini, leerRespuesta } from './esquema.ts'
+import { esquemaEtiquetaParaGemini, leerRespuestaEtiqueta } from './esquema-etiqueta.ts'
 import { esquemaOutfitsParaGemini, leerRespuestaOutfits, referencias } from './esquema-outfits.ts'
-import { prepararFoto as prepararFotoPorDefecto, type FotoParaIA } from './fotos.ts'
+import {
+  LADO_MAXIMO_ETIQUETA,
+  prepararFoto as prepararFotoPorDefecto,
+  type FotoParaIA,
+} from './fotos.ts'
 import { INSTRUCCION_ETIQUETADO, textoPrenda } from './prompt.ts'
+import { INSTRUCCION_ETIQUETA } from './prompt-etiqueta.ts'
 import { INSTRUCCION_OUTFITS, textoPeticionOutfits } from './prompt-outfits.ts'
 import {
   MAX_PRENDAS_POR_PETICION,
@@ -25,7 +32,7 @@ export interface OpcionesGemini {
   clave: string | null
   modelo: string
   crearCliente?: (clave: string) => Promise<ClienteGemini>
-  prepararFoto?: (foto: Blob) => Promise<FotoParaIA>
+  prepararFoto?: (foto: Blob, ladoMaximo?: number) => Promise<FotoParaIA>
 }
 
 // El SDK pesa ~100 KB gzip: se carga solo cuando hace falta.
@@ -116,6 +123,27 @@ export function crearProveedorGemini({
         return respuesta.text ?? ''
       })
       return leerRespuestaOutfits(texto, idPorReferencia)
+    },
+
+    async leerEtiqueta(foto: Blob, { signal }: OpcionesPeticion = {}): Promise<DatosEtiqueta> {
+      const texto = await llamar(async (cliente) => {
+        const { datos, tipo } = await prepararFoto(foto, LADO_MAXIMO_ETIQUETA).catch(() => {
+          throw new ErrorIA('foto')
+        })
+        const respuesta = await cliente.generateContent({
+          model: modelo,
+          contents: [{ role: 'user', parts: [{ inlineData: { data: datos, mimeType: tipo } }] }],
+          config: {
+            systemInstruction: INSTRUCCION_ETIQUETA,
+            responseMimeType: 'application/json',
+            responseJsonSchema: esquemaEtiquetaParaGemini(),
+            temperature: 0,
+            ...(signal && { abortSignal: signal }),
+          },
+        })
+        return respuesta.text ?? ''
+      })
+      return leerRespuestaEtiqueta(texto)
     },
 
     async comprobarClave({ signal }: OpcionesPeticion = {}): Promise<void> {

@@ -6,6 +6,8 @@ Lo que comparten «Nueva prenda» y «Editar» para etiquetar una prenda con la 
   elegir outfits, para la pantalla Outfits); no llega al build.
 - `useEtiquetadoIA(obtener)`: `etiquetar(fotos)` → `{ etiquetas }`, `{ aviso }` o `null` si se cancela;
   `cancelar()` y desmontar abortan la petición, y lo que llegue tarde se descarta.
+- `useLecturaEtiqueta(obtener)`: lo mismo para la foto de la etiqueta cosida (T5.1): `leer(foto)` →
+  `{ datos }` (puede venir vacío), `{ aviso }` o `null`. Lo usa la sección «Etiqueta y tienda» del formulario.
 - `AvisoEtiquetado`: el motivo, «Ir a Ajustes» si el arreglo está allí (sin clave, clave mala, modelo) y
   «Probar otra vez» si es pasajero (sin red, sin cupo, respuesta mala…).
 - `etiquetadaPor(base, guardadas)`: D15. Sigue en `'ia'` si solo se afinan detalles; pasa a `'manual'` si cambia

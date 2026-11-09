@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Prenda } from '../../datos/modelo.ts'
+import { textoComposicion } from '../../etiqueta/compartido.ts'
+import { EnlacesBusqueda } from '../../etiqueta/EnlacesBusqueda.tsx'
 import { capitalizar, ETIQUETA_CATEGORIA, nombrePrenda } from './ayudas.ts'
 import { FotoBlob } from './FotoBlob.tsx'
 
@@ -60,6 +62,14 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
         ['Ocasiones', lista(prenda.ocasiones)],
         ['Temporadas', lista(prenda.temporadas)],
         ...(prenda.notas.trim() === '' ? [] : [['Notas', prenda.notas] as [string, string]]),
+        ...(
+          [
+            ['Marca', prenda.marca],
+            ['Referencia', prenda.referencia],
+            ['Talla', prenda.talla],
+            ['Composición', textoComposicion(prenda.composicion)],
+          ] as [string, string | undefined][]
+        ).filter((fila): fila is [string, string] => Boolean(fila[1])),
         ['Etiquetada', prenda.etiquetadaPor === 'ia' ? 'Por la IA' : 'A mano'],
         ['Añadida', fecha.format(prenda.creadaEn)],
       ]
@@ -126,6 +136,12 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
                 </div>
               ))}
             </dl>
+
+            <EnlacesBusqueda
+              marca={prenda.marca}
+              referencia={prenda.referencia}
+              enlace={prenda.enlace}
+            />
 
             {fase === 'libre' || fase === 'error' ? (
               <div className="flex gap-3">

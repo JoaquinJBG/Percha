@@ -125,3 +125,20 @@ Cada una puede añadir **una línea** a `src/app/rutas.tsx` si la necesita.
 |---|---|---|---|
 | T4.1 | Alojar gratis en Cloudflare Workers ([`despliegue.md`](despliegue.md)) y guía para instalarla en Android ([`guia-movil.md`](guia-movil.md)) | — | ✅ |
 | T4.2 | Guía para conseguir la clave gratis de Gemini: en [`guia-movil.md`](guia-movil.md) y enlace en Ajustes | T1.3 | ✅ |
+
+## Fase 5 — De la etiqueta a la prenda
+
+Sale del estudio [S4](spikes/s4-probador-y-etiquetas.md) §3 (fase D de su plan). Las fases E (tablas de
+tallas y medidas) y F (*grounding*) quedan para después.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T5.1 | Alta desde la etiqueta: foto de la etiqueta leída por Gemini, marca, referencia, talla, composición y enlace en la prenda, enlaces de búsqueda que abre el usuario y `share_target` para volver de la tienda (D17) | T1.5 | 👀 |
+
+### T5.1 — Alta desde la etiqueta
+- **Qué:** botón «Foto de la etiqueta» en «Nueva prenda» y «Editar» (`leerEtiqueta` de `ProveedorIA`; la
+  foto no se guarda); campos opcionales `marca`, `referencia`, `talla`, `composicion` y `enlace`, editables
+  y en el detalle; enlaces «Buscar en Google», «Google Imágenes» y «En la tienda» (Zara, H&M, Nike, Adidas
+  y genérico); `share_target` GET a `/compartido` para guardar el enlace en una prenda o empezar una nueva.
+- **Fuera:** tallas y medidas (fase E), *grounding* (fase F), probador. La foto de catálogo vuelve como
+  captura por el selector de fotos de siempre; recibirla por `share_target` POST pediría `injectManifest`.

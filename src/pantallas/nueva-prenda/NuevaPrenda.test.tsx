@@ -14,6 +14,7 @@ import {
   type ProveedorIA,
 } from '../../ia/index.ts'
 import { ErrorFoto, ErrorRecorte, type OpcionesRecorte } from '../../recorte/index.ts'
+import { estadoDesdeTienda } from '../../etiqueta/compartido.ts'
 import { NuevaPrenda } from './NuevaPrenda.tsx'
 
 interface Llamada {
@@ -49,6 +50,7 @@ function proveedorControlado() {
       }),
     comprobarClave: () => Promise.resolve(),
     elegirOutfits: () => Promise.resolve([]),
+    leerEtiqueta: () => Promise.resolve({}),
   }
   return { proveedor, peticiones }
 }
@@ -58,7 +60,10 @@ const png = new Blob(['png'], { type: 'image/png' })
 const ficheroFoto = (nombre = 'foto.jpg') => new File(['bytes'], nombre, { type: 'image/jpeg' })
 
 /** Sin `proveedor`, como si no hubiera clave. */
-function montar({ proveedor = null }: { proveedor?: ProveedorIA | null } = {}) {
+function montar({
+  proveedor = null,
+  estado,
+}: { proveedor?: ProveedorIA | null; estado?: unknown } = {}) {
   const { recortar, llamadas } = recortadorControlado()
   const normalizar = vi.fn((foto: Blob) =>
     Promise.resolve(normalizada(foto instanceof File ? foto.name : 'blob')),
@@ -81,7 +86,7 @@ function montar({ proveedor = null }: { proveedor?: ProveedorIA | null } = {}) {
         ),
       },
     ],
-    { initialEntries: ['/prendas/nueva'] },
+    { initialEntries: [{ pathname: '/prendas/nueva', state: estado }] },
   )
   render(<RouterProvider router={router} />)
   return {
@@ -563,5 +568,74 @@ describe('Nueva prenda: etiquetas', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Categoría' })).not.toBeInTheDocument()
     expect(botonSiguiente()).toBeDisabled()
+  })
+
+  it('desde «Compartir» de una tienda, guarda el enlace con la marca y la referencia de su URL', async () => {
+    const ficha = 'https://www.zara.com/es/es/camiseta-p04085021.html'
+    const { usuario, llamadas, guardar } = montar({
+      proveedor: crearProveedorFalso(),
+      estado: estadoDesdeTienda(ficha),
+    })
+    expect(screen.getByText(/Se guardará con el enlace de Zara/)).toBeInTheDocument()
+
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    await screen.findByRole('heading', { name: 'Revisa las etiquetas' })
+    expect(screen.getByLabelText('Enlace a la ficha de la tienda')).toHaveValue(ficha)
+    await usuario.click(botonGuardar())
+
+    await screen.findByText('Prenda guardada en el armario.')
+    expect(guardar.mock.calls[0]?.[0]).toMatchObject({
+      enlace: ficha,
+      marca: 'Zara',
+      referencia: '4085/021',
+      etiquetadaPor: 'ia',
+    })
+
+    // La siguiente prenda ya no lleva ese enlace.
+    await usuario.click(screen.getByRole('button', { name: 'Añadir otra' }))
+    expect(screen.queryByText(/Se guardará con el enlace/)).not.toBeInTheDocument()
+  })
+
+  it('lo leído de la etiqueta no se pierde al volver a probar con la IA', async () => {
+    const { proveedor, peticiones } = proveedorControlado()
+    proveedor.leerEtiqueta = () => Promise.resolve({ marca: 'Zara', talla: 'M' })
+    const { usuario, llamadas, guardar } = montar({ proveedor })
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    peticiones[0]?.rechazar(new ErrorIA('sin-red'))
+    const aviso = await screen.findByRole('alert')
+
+    await usuario.upload(
+      screen.getByLabelText('Foto de la etiqueta'),
+      new File(['etiqueta'], 'etiqueta.jpg', { type: 'image/jpeg' }),
+    )
+    await screen.findByText(/Leído de la etiqueta/)
+    await usuario.click(within(aviso).getByRole('button', { name: 'Probar otra vez' }))
+    peticiones[1]?.resolver([ETIQUETAS_DE_PRUEBA])
+    await screen.findByRole('heading', { name: 'Revisa las etiquetas' })
+
+    expect(screen.getByLabelText('Marca')).toHaveValue('Zara')
+    await usuario.click(botonGuardar())
+    await screen.findByText('Prenda guardada en el armario.')
+    expect(guardar.mock.calls[0]?.[0]).toMatchObject({ marca: 'Zara', talla: 'M' })
+  })
+
+  it('la foto de la etiqueta se lee en el formulario y no se guarda como foto de la prenda', async () => {
+    const proveedor = crearProveedorFalso()
+    const { usuario, llamadas, guardar } = montar({ proveedor })
+    await fotoRecortadaYSiguiente(usuario, llamadas)
+    await screen.findByRole('heading', { name: 'Revisa las etiquetas' })
+
+    await usuario.upload(
+      screen.getByLabelText('Foto de la etiqueta'),
+      new File(['etiqueta'], 'etiqueta.jpg', { type: 'image/jpeg' }),
+    )
+    await screen.findByText(/Leído de la etiqueta/)
+    await usuario.click(botonGuardar())
+
+    await screen.findByText('Prenda guardada en el armario.')
+    const guardada = guardar.mock.calls[0]?.[0]
+    expect(guardada).toMatchObject({ marca: 'Zara', talla: 'M' })
+    expect(guardada?.fotos).toHaveLength(1)
+    expect(proveedor.etiquetasLeidas).toHaveLength(1)
   })
 })

@@ -208,6 +208,79 @@ describe('editar una prenda', () => {
   })
 })
 
+describe('datos de la etiqueta al editar', () => {
+  it('volver a etiquetar con IA no borra marca, referencia, talla, composición ni enlace', async () => {
+    const conEtiqueta = prenda({
+      marca: 'Zara',
+      referencia: '4085/021',
+      talla: 'M',
+      composicion: [{ material: 'algodón', porcentaje: 100 }],
+      enlace: 'https://www.zara.com/es/es/x.html',
+    })
+    const { usuario, actualizar } = montar(conEtiqueta)
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+
+    await usuario.click(within(edicion).getByRole('button', { name: 'Volver a etiquetar con IA' }))
+    await within(edicion).findByText(/Etiquetas nuevas de la IA/)
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(actualizar).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({
+        marca: 'Zara',
+        referencia: '4085/021',
+        talla: 'M',
+        composicion: [{ material: 'algodón', porcentaje: 100 }],
+        enlace: 'https://www.zara.com/es/es/x.html',
+      }),
+    )
+  })
+
+  it('lo escrito en la etiqueta sin guardar sobrevive a volver a etiquetar con IA', async () => {
+    const { usuario, actualizar } = montar(prenda())
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+    await usuario.type(within(edicion).getByLabelText('Marca'), 'Mango')
+    await usuario.type(within(edicion).getByLabelText('Talla'), 'XL')
+
+    await usuario.click(within(edicion).getByRole('button', { name: 'Volver a etiquetar con IA' }))
+    await within(edicion).findByText(/Etiquetas nuevas de la IA/)
+
+    expect(within(edicion).getByLabelText('Marca')).toHaveValue('Mango')
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+    expect(actualizar).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ marca: 'Mango', talla: 'XL' }),
+    )
+  })
+
+  it('borrar la marca la quita de la prenda', async () => {
+    const { usuario, actualizar } = montar(prenda({ marca: 'Zara', talla: 'M' }))
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+
+    await usuario.clear(within(edicion).getByLabelText('Marca'))
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+
+    const cambios = actualizar.mock.calls[0]?.[1]
+    expect(cambios).toHaveProperty('marca', undefined)
+    expect(cambios?.talla).toBe('M')
+  })
+
+  it('la foto de la etiqueta rellena los campos con el proveedor de la pantalla', async () => {
+    const proveedor = crearProveedorFalso()
+    const { usuario } = montar(prenda(), proveedor)
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+
+    await usuario.upload(
+      within(edicion).getByLabelText('Foto de la etiqueta'),
+      new File(['x'], 'etiqueta.jpg', { type: 'image/jpeg' }),
+    )
+
+    expect(await within(edicion).findByText(/Leído de la etiqueta/)).toBeInTheDocument()
+    expect(within(edicion).getByLabelText('Referencia')).toHaveValue('4085/021')
+    expect(proveedor.etiquetasLeidas).toHaveLength(1)
+  })
+})
+
 describe('volver a etiquetar con IA', () => {
   it('pide a la IA la foto recortada, rellena el formulario y guarda como de la IA', async () => {
     const proveedor = crearProveedorFalso({
@@ -270,6 +343,7 @@ describe('volver a etiquetar con IA', () => {
       },
       comprobarClave: () => Promise.resolve(),
       elegirOutfits: () => Promise.resolve([]),
+      leerEtiqueta: () => Promise.resolve({}),
     }
     const { usuario } = montar(chino(), proveedor)
     const edicion = await abrirEdicion(usuario, 'Chino')

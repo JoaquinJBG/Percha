@@ -25,7 +25,13 @@ function montar(inicial: Partial<DatosPerfil> = {}) {
     Promise.resolve(normalizada(foto instanceof File ? foto.name : 'blob')),
   )
   render(<Perfil leer={leer} guardar={guardar} normalizar={normalizar} />)
-  return { usuario: userEvent.setup(), leer, guardar, normalizar, guardado: () => guardado }
+  return {
+    usuario: userEvent.setup({ delay: null }),
+    leer,
+    guardar,
+    normalizar,
+    guardado: () => guardado,
+  }
 }
 
 const tarjeta = (nombre: 'Cuerpo entero' | 'Cara') => screen.getByRole('listitem', { name: nombre })

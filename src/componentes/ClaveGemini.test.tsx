@@ -15,7 +15,7 @@ function montar(error?: TipoErrorIA) {
   const proveedor = crearProveedorFalso(error ? { error: new ErrorIA(error) } : {})
   const crearProveedor = vi.fn(() => proveedor)
   render(<ClaveGemini crearProveedor={crearProveedor} />)
-  return { usuario: userEvent.setup(), crearProveedor, proveedor }
+  return { usuario: userEvent.setup({ delay: null }), crearProveedor, proveedor }
 }
 
 async function pegarYGuardar(usuario: ReturnType<typeof userEvent.setup>, clave = CLAVE_FALSA) {

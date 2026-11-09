@@ -32,7 +32,7 @@ function montar({
       />
     </MemoryRouter>,
   )
-  return { usuario: userEvent.setup(), alGuardar }
+  return { usuario: userEvent.setup({ delay: null }), alGuardar }
 }
 
 const seccion = () => within(screen.getByRole('region', { name: 'Etiqueta y tienda' }))

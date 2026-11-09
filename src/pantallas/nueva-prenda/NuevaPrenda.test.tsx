@@ -93,7 +93,7 @@ function montar({
   )
   render(<RouterProvider router={router} />)
   return {
-    usuario: userEvent.setup(),
+    usuario: userEvent.setup({ delay: null }),
     recortar,
     llamadas,
     normalizar,

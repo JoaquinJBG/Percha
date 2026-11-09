@@ -11,7 +11,7 @@ vi.setConfig({ testTimeout: 15_000 })
 function montar(props: Partial<Parameters<typeof FormularioPrenda>[0]> = {}) {
   const alGuardar = vi.fn<(etiquetas: EtiquetasPrenda) => void>()
   render(<FormularioPrenda alGuardar={alGuardar} {...props} />)
-  return { usuario: userEvent.setup(), alGuardar }
+  return { usuario: userEvent.setup({ delay: null }), alGuardar }
 }
 
 function grupo(nombre: string) {

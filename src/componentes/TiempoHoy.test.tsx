@@ -57,7 +57,7 @@ const miUbicacion: Sitio = { nombre: 'Tu ubicación', latitud: 40.42, longitud: 
 
 describe('TiempoHoy', () => {
   it('deja elegir entre varias ciudades con el mismo nombre y recuerda la elegida', async () => {
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     const buscar = vi.fn(() => Promise.resolve([valenciaES, valenciaVE]))
     const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
     const recordado = almacen()
@@ -75,7 +75,7 @@ describe('TiempoHoy', () => {
   })
 
   it('avisa si la ciudad no existe', async () => {
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     render(
       <TiempoHoy buscar={() => Promise.resolve([])} consultar={vi.fn()} almacenSitio={almacen()} />,
     )
@@ -88,7 +88,7 @@ describe('TiempoHoy', () => {
   })
 
   it('explica que escriba la ciudad si se deniega la ubicación', async () => {
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     const ubicar = () =>
       Promise.reject(new ErrorTiempo('permiso-denegado', 'No tengo permiso para ver tu ubicación.'))
     render(<TiempoHoy ubicar={ubicar} consultar={vi.fn()} almacenSitio={almacen()} />)
@@ -130,7 +130,7 @@ describe('TiempoHoy', () => {
     expect(alCambiar).toHaveBeenLastCalledWith(datos(valenciaES))
 
     // Al cambiar de sitio, el de antes ya no vale hasta volver a él.
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     await usuario.click(screen.getByRole('button', { name: 'Cambiar sitio' }))
     expect(alCambiar).toHaveBeenLastCalledWith(null)
     await usuario.click(screen.getByRole('button', { name: 'Volver a Valencia' }))
@@ -151,7 +151,7 @@ describe('TiempoHoy', () => {
   })
 
   it('de la ubicación recuerda que se usa, no las coordenadas, y la vuelve a pedir', async () => {
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     const ubicar = vi.fn(() => Promise.resolve(miUbicacion))
     const consultar = vi.fn((sitio: Sitio) => Promise.resolve(datos(sitio)))
     const recordado = almacen()
@@ -180,7 +180,7 @@ describe('TiempoHoy', () => {
   })
 
   it('«Volver a» descarta la búsqueda en curso', async () => {
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     let responder: (sitios: Sitio[]) => void = () => undefined
     const buscar = () =>
       new Promise<Sitio[]>((resolver) => {

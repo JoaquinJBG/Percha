@@ -62,7 +62,7 @@ function montar(inicial: Prenda, proveedor: ProveedorIA | null = crearProveedorF
     { initialEntries: ['/'] },
   )
   render(<RouterProvider router={router} />)
-  return { usuario: userEvent.setup(), router, actualizar }
+  return { usuario: userEvent.setup({ delay: null }), router, actualizar }
 }
 
 async function abrirEdicion(usuario: ReturnType<typeof userEvent.setup>, nombre: string) {

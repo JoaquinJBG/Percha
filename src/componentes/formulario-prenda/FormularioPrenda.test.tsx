@@ -65,11 +65,11 @@ describe('formulario de etiquetas', () => {
     await usuario.clear(screen.getByRole('textbox', { name: 'Tipo de prenda' }))
     await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), '  sudadera ')
     await usuario.type(screen.getByRole('textbox', { name: 'Notas' }), 'Algodón grueso')
-    await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'exterior' }))
+    await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'base' }))
     await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(alGuardar).toHaveBeenCalledWith({
-      capas: ['base', 'exterior'],
+      capas: ['base', 'media', 'exterior'],
       categoria: 'superior',
       subcategoria: 'sudadera',
       colores: ['blanco', 'azul marino'],
@@ -104,6 +104,30 @@ describe('formulario de etiquetas', () => {
       expect(alGuardar).toHaveBeenCalledWith(
         expect.objectContaining({ capas: ['media', 'exterior'] }),
       )
+    })
+
+    it('si corrige qué prenda es sin tocar las capas, las de la IA pasan a las de por defecto', async () => {
+      const { usuario, alGuardar } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      expect(marcadas()).toEqual(['base'])
+      await usuario.click(screen.getByRole('radio', { name: 'Abrigo o chaqueta' }))
+      await usuario.clear(screen.getByRole('textbox', { name: 'Tipo de prenda' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'sobrecamisa')
+      expect(marcadas()).toEqual(['media', 'exterior'])
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: 'abrigo', capas: ['media', 'exterior'] }),
+      )
+    })
+
+    it('si ya las ha tocado, cambiar el tipo no se las cambia', async () => {
+      const { usuario } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'media' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), ' larga')
+
+      expect(marcadas()).toEqual(['base', 'media'])
     })
 
     it('una prenda de antes, sin capas, enseña las de por defecto', () => {

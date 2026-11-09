@@ -31,8 +31,13 @@ export interface Borrador {
   ocasiones: Ocasion[]
   temporadas: Temporada[]
   notas: string
-  /** `null` mientras no se toquen: siguen a la categoría y el tipo (`capasPorDefecto`). */
+  /** `null`: las de por defecto según la categoría y el tipo (`capasPorDefecto`). */
   capas: Capa[] | null
+  /**
+   * Si el usuario ha tocado «Puede ir como». Mientras no, cambiar la categoría o el tipo devuelve las
+   * capas a las de por defecto, aunque vinieran de la IA: si corrige qué prenda es, también cambian.
+   */
+  capasTocadas: boolean
   marca: string
   referencia: string
   talla: string
@@ -88,6 +93,7 @@ export function borradorInicial(
     temporadas: [...(iniciales.temporadas ?? [])],
     notas: iniciales.notas ?? '',
     capas: iniciales.capas && iniciales.capas.length > 0 ? [...iniciales.capas] : null,
+    capasTocadas: false,
     marca: iniciales.marca ?? '',
     referencia: iniciales.referencia ?? '',
     talla: iniciales.talla ?? '',
@@ -114,6 +120,19 @@ export function conDatosEtiqueta(borrador: Borrador, datos: DatosEtiqueta): Borr
     ...(datos.talla && { talla: datos.talla }),
     ...(datos.composicion && { composicion: filasComposicion(datos.composicion) }),
   }
+}
+
+/** Aplica un cambio de un campo con lo que arrastra a las capas. */
+export function conCambio<K extends keyof Borrador>(
+  borrador: Borrador,
+  campo: K,
+  valor: Borrador[K],
+): Borrador {
+  const siguiente = { ...borrador, [campo]: valor }
+  if (campo === 'capas') siguiente.capasTocadas = true
+  const cambiaLaPrenda = campo === 'categoria' || campo === 'subcategoria'
+  if (cambiaLaPrenda && !borrador.capasTocadas) siguiente.capas = null
+  return siguiente
 }
 
 /** Las capas que se ven marcadas: las elegidas o, si no se han tocado, las de por defecto. */

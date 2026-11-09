@@ -15,6 +15,7 @@ import {
   alternar,
   borradorInicial,
   capasVisibles,
+  conCambio,
   conDatosEtiqueta,
   conExtras,
   DESCRIPCION_ABRIGO,
@@ -220,7 +221,7 @@ export function FormularioPrenda({
   const nombre = useId()
 
   function cambiar<K extends keyof Borrador>(campo: K, valor: Borrador[K]) {
-    setBorrador((anterior) => ({ ...anterior, [campo]: valor }))
+    setBorrador((anterior) => conCambio(anterior, campo, valor))
     setErrores((anteriores) => ({ ...anteriores, [campo]: undefined }))
   }
 

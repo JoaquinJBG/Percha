@@ -320,7 +320,7 @@ describe('elegir outfits con IA', () => {
       expect(enviada?.prendas.find((p) => p.id === 'camiseta')?.opcional).toBeUndefined()
     })
 
-    it.each([16, 20])(
+    it.each([14, 16])(
       'a %i °C manda los puntos gruesos, que son capa media aunque abriguen',
       async (sensacion) => {
         const proveedor = crearProveedorFalso()

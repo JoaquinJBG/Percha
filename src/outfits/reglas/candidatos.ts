@@ -45,6 +45,8 @@ const LIMITE_CALOR = 24
 const LIMITE_PANTALON_CORTO = 16
 /** Lo más que abriga una media o una exterior que se pone «por estilo», sin hacer falta. */
 export const ABRIGO_TERCERA_PIEZA = 3
+/** Hasta aquí (°C) un punto grueso de «superior» puede ir de capa media sin que haga falta abrigo. */
+export const LIMITE_PUNTO_GRUESO = 17
 
 export function crearContexto(peticion: Peticion): Contexto {
   const { tiempo, estilo, ocasion } = peticion
@@ -112,7 +114,12 @@ function capasDeHoy(prenda: PrendaReglas, contexto: Contexto): Capa[] {
     const fino = contexto.precipitacion !== null && prenda.abrigo <= 2
     capas = capas.filter((c) => c === 'base' || (fino && c === 'exterior'))
   } else if (!necesitaAbrigo && temperatura !== null) {
-    capas = capas.filter((c) => c === 'base' || prenda.abrigo <= ABRIGO_TERCERA_PIEZA)
+    // De 14 a 17 °C un punto grueso sí vale de capa media (§1.5: «P1 con punto debajo»); por encima, solo lo ligero.
+    const tope =
+      prenda.categoria === 'superior' && temperatura <= LIMITE_PUNTO_GRUESO
+        ? ABRIGO_TERCERA_PIEZA + 1
+        : ABRIGO_TERCERA_PIEZA
+    capas = capas.filter((c) => c === 'base' || prenda.abrigo <= tope)
   }
   if (temperatura !== null && temperatura < LIMITE_EXTERIOR && esChalecoDePunto(prenda)) {
     capas = capas.filter((c) => c !== 'exterior')

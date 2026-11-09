@@ -5,6 +5,9 @@ import type { EtiquetasPrenda } from '../../datos/modelo.ts'
 import { ETIQUETAS_DE_PRUEBA } from '../../ia/index.ts'
 import { FormularioPrenda } from './FormularioPrenda.tsx'
 
+// Estos tests escriben mucho con userEvent: con toda la suite en paralelo pasan de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 function montar(props: Partial<Parameters<typeof FormularioPrenda>[0]> = {}) {
   const alGuardar = vi.fn<(etiquetas: EtiquetasPrenda) => void>()
   render(<FormularioPrenda alGuardar={alGuardar} {...props} />)

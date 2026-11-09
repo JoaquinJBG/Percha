@@ -142,3 +142,24 @@ tallas y medidas) y F (*grounding*) quedan para después.
   y genérico); `share_target` GET a `/compartido` para guardar el enlace en una prenda o empezar una nueva.
 - **Fuera:** tallas y medidas (fase E), *grounding* (fase F), probador. La foto de catálogo vuelve como
   captura por el selector de fotos de siempre; recibirla por `share_target` POST pediría `injectManifest`.
+
+## Fase 7 — Probador en el PC
+
+Sale del estudio [S4](spikes/s4-probador-y-etiquetas.md) §1–2 y de la decisión D19: el PC del usuario
+(RTX 3060) viste el outfit con CatVTON y Gemini pasa a ser la segunda opción. El contrato de la API entre
+Percha y el servidor está fijado por la sesión jefa (carpeta de notas de la fase 7).
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T7.1 | Probador del PC desde Percha: URL y clave en Ajustes con «Comprobar», «Pruébatelo» primero en el PC (progreso, guardar con el outfit, compartir) y Gemini si falla (D19) | T3.2 | 👀 falta probarlo con el servidor de verdad y Tailscale en el móvil |
+| T7.2 | Servidor del probador en el PC: CatVTON detrás de un adaptador con clave en `127.0.0.1:7861`, publicado con Tailscale Serve, y guía [`probador-pc.md`](probador-pc.md) | S4 | 🔨 |
+
+### T7.1 — Probador del PC desde Percha
+- **Qué:** sección «Probador en tu PC» en Ajustes (URL https de Tailscale, clave, «Comprobar», «Quitar»,
+  enlace a la guía); `src/probador/` (cliente con clave y esperas, qué prendas se mandan, seguimiento
+  cada 3 s); «Pruébatelo» con probador: `/salud` en 3 s, fotos al PC, progreso con tiempo aproximado,
+  imagen con «Guardar» (en `Outfit.prueba`) y «Compartir»; si el PC no responde, falla o está ocupado,
+  mensaje claro y «Probar con Gemini» avisando de que las fotos van a Google. Aviso de capas cuando el
+  outfit lleva más de una prenda de arriba.
+- **Fuera:** el servidor (T7.2), ver la foto guardada en otra pantalla (de momento solo va en la copia y en
+  la base), capas de verdad (cuando el servidor sepa hacerlas).

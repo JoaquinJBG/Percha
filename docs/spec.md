@@ -73,6 +73,7 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
 | D15 | `etiquetadaPor` sigue en `'ia'` si el usuario solo afina lo que puso la IA (colores, estilos, notas, niveles…) y pasa a `'manual'` si cambia qué prenda es (categoría o tipo, sin contar mayúsculas ni espacios) | Revisar y retocar es lo normal y no debe borrar el origen; si la IA se equivocó de prenda, lo que queda es del usuario. Al volver a etiquetar con IA, la base pasa a ser la nueva respuesta. |
 | D16 | Alta masiva: muchas fotos de golpe (galería con selección múltiple; carpeta en el PC), **una prenda por foto**, en una cola guardada en el móvil que se procesa de 5 en 5 (recortar → una petición a Gemini → guardar) con 7 s entre peticiones | Con cientos de prendas, de una en una no tiene sentido. La cola permite salir y seguir; los lotes de 5 y la pausa respetan el nivel gratis (~10 peticiones por minuto). Chrome de Android no deja elegir carpetas. Se guarda sin revisar una a una (con cientos no es práctico); se corrige después desde el detalle. Añadir una segunda foto a una prenda ya guardada aún no se puede (pendiente). |
 | D17 | De la etiqueta a la prenda **sin scraping ni SerpAPI**: Gemini lee la foto de la etiqueta (marca, referencia, talla, composición), Percha monta enlaces de búsqueda que **abre el usuario** y él trae de vuelta la URL de la ficha (con «Compartir», `share_target` por GET) o una captura como foto normal. Percha nunca hace `fetch` a una tienda. La foto de la etiqueta no se guarda | SerpAPI no se puede llamar desde el navegador sin enseñar la clave y el scraping de Zara o Shein va contra sus condiciones y está bloqueado ([S4](spikes/s4-probador-y-etiquetas.md) §3). La referencia identifica la prenda (Zara `REF 4085/021` → `p04085021` en su URL). El `share_target` por POST, para recibir la imagen compartida, pediría pasar el *service worker* a `injectManifest`: se deja para cuando haga falta. |
+| D19 | *Try-on* **primero en el PC del usuario, Gemini de segunda opción**: si en Ajustes hay URL y clave del probador, «Pruébatelo» manda la foto de cuerpo y las prendas a su servidor de CatVTON, publicado con **Tailscale Serve** (https `*.ts.net`, solo sus aparatos) y protegido con una clave (`Authorization: Bearer`). **Nunca Cloudflare Tunnel**. Si el PC no responde en 3 s o falla, se ofrece Gemini avisando de que las fotos van a Google. Al PC van lo de abajo y **una** prenda de arriba, la más exterior (el abrigo; si no, la que más abriga); el vestido va solo; sin calzado ni accesorios. La foto resultante se guarda con el outfit (`prueba`, opcional) y va en la copia; la URL y la clave no | Las fotos no salen de los aparatos del usuario y el resultado queda dentro de Percha. Tailscale da https válido (sin contenido mixto) dentro y fuera de casa, gratis y cifrado de extremo a extremo; Cloudflare descifra el tráfico ([S4](spikes/s4-probador-y-etiquetas.md) §2). CatVTON viste una prenda por pasada y una segunda de arriba sustituye a la primera en vez de ir encima, por eso solo la de fuera y se avisa de las capas. Gemini sigue siendo la vía sin PC y la única que viste todas las capas. |
 
 ## Modelo de datos (borrador)
 
@@ -83,8 +84,9 @@ garantiza (Safari puede borrar los datos de las webs no instaladas).
   `composicion[]` (`material`, `porcentaje`?) y `enlace` (solo http o https).
 - **Perfil**: `fotoCara`, `fotoCuerpo`, `ciudad`, `estilosFavoritos[]`.
 - **Outfit**: `id`, `prendas[]`, `estilo`, `ocasion`, `tiempo` (temperatura, lluvia), `explicacion`,
-  `favorito`, `creadoEn`.
-- **Ajustes**: `claveGemini`, `modeloGemini`.
+  `favorito`, `creadoEn`. Opcional (T7.1, D19): `prueba` (`Blob`, la foto del probador del PC).
+- **Ajustes**: `claveGemini`, `modeloGemini`, `urlProbador` y `claveProbador` (D19; `null` si no hay
+  probador, y fuera de la copia).
 
 ## Listas cerradas de etiquetas
 

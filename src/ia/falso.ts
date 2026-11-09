@@ -20,6 +20,7 @@ export const ETIQUETAS_DE_PRUEBA: EtiquetasPrenda = {
   ocasiones: ['diario'],
   temporadas: ['primavera', 'verano'],
   notas: '',
+  capas: ['base'],
 }
 
 /** Una etiqueta de Zara: con ella salen los enlaces de búsqueda de `src/etiqueta/`. */

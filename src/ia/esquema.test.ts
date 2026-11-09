@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORES } from '../datos/modelo.ts'
+import { CAPAS, COLORES } from '../datos/modelo.ts'
 import { esquemaParaGemini } from './esquema.ts'
 import { aBase64 } from './fotos.ts'
 
@@ -14,6 +14,13 @@ describe('esquema para Gemini', () => {
 
   it('cierra los colores con la lista fija', () => {
     expect(texto).toContain(JSON.stringify([...COLORES]))
+  })
+
+  it('pide las capas con la lista cerrada de papeles', () => {
+    const propiedades = (esquema.properties as { prendas: { items: { properties: object } } })
+      .prendas.items.properties
+    expect(JSON.stringify(propiedades)).toContain(JSON.stringify([...CAPAS]))
+    expect(Object.keys(propiedades)).toContain('capas')
   })
 })
 

@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { Prenda } from '../datos/modelo.ts'
-import { leerPerfil } from '../datos/repositorio.ts'
+import { leerFotoInterior as leerFotoInteriorGuardada, leerPerfil } from '../datos/repositorio.ts'
 import { fotoDe } from '../outfits/collage/index.ts'
 import {
   crearClienteProbador,
@@ -44,7 +44,10 @@ interface Props {
   numero: number
   /** Guarda con el outfit la foto del probador del PC; `false` si no se pudo. Sin ella, no hay «Guardar». */
   alGuardarPrueba?: (prueba: Blob) => Promise<boolean>
+  /** La foto de referencia del perfil: la única que va a Gemini. */
   leerFotoCuerpo?: () => Promise<Blob | null>
+  /** La foto en ropa interior (D21): solo para el probador del PC, nunca para Gemini. */
+  leerFotoInterior?: () => Promise<Blob | null>
   /** El probador del PC de Ajustes, o `null` si no hay: entonces se usa Gemini (D19). */
   leerProbador?: () => Promise<ConfigProbador | null>
   crearCliente?: (config: ConfigProbador) => ClienteProbador
@@ -160,6 +163,7 @@ export function BotonPruebatelo({
   numero,
   alGuardarPrueba,
   leerFotoCuerpo = leerFotoCuerpoDelPerfil,
+  leerFotoInterior = leerFotoInteriorGuardada,
   leerProbador = leerConfigProbador,
   crearCliente = clienteConRed,
   esperar = esperarMs,
@@ -362,19 +366,26 @@ export function BotonPruebatelo({
   function pulsar() {
     return conGuarda(async (signal) => {
       setEstado({ fase: 'preparando' })
-      const foto = await leerFotoCuerpo()
-      if (cortada(signal)) return
-      if (!foto) {
-        setEstado({ fase: 'sin-foto' })
-        return
-      }
       const config = await leerProbador().catch((fallo: unknown) => {
         console.error(fallo)
         return null
       })
+      // Al PC, la de ropa interior si la hay (D21); a Gemini, siempre la de referencia.
+      const interior = config
+        ? await leerFotoInterior().catch((fallo: unknown) => {
+            console.error(fallo)
+            return null
+          })
+        : null
+      const referencia = await leerFotoCuerpo()
       if (cortada(signal)) return
+      const foto = interior ?? referencia
+      if (!foto) {
+        setEstado({ fase: 'sin-foto' })
+        return
+      }
       if (config) await probarEnTuPC(signal, config, foto)
-      else await gemini(signal, foto)
+      else if (referencia) await gemini(signal, referencia)
     })
   }
 

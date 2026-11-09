@@ -157,10 +157,11 @@ export function crearClienteProbador(
     async crearPrueba(persona, prendas, signal) {
       const datos = new FormData()
       datos.append('persona', persona, nombreFichero('persona', persona))
-      prendas.forEach(({ foto }, i) => {
+      // Cada prenda seguida de su zona: vale tanto si el servidor lee las listas como si va parte a parte.
+      prendas.forEach(({ foto, zona }, i) => {
         datos.append('prenda', foto, nombreFichero(`prenda-${String(i + 1)}`, foto))
+        datos.append('zona', zona)
       })
-      for (const { zona } of prendas) datos.append('zona', zona)
       const respuesta = await pedir('/pruebas', ESPERA_MS.subir, signal, {
         method: 'POST',
         body: datos,

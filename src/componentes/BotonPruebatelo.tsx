@@ -124,6 +124,11 @@ const botonPanel =
 const botonClaro = `${botonPanel} grid place-items-center bg-papel text-tinta`
 const botonBorde = `${botonPanel} border border-papel/40`
 
+/** Una función y no `signal.aborted` a secas: TypeScript no sabe que cambia durante un `await`. */
+function cortada(signal: AbortSignal): boolean {
+  return signal.aborted
+}
+
 function esCancelacion(fallo: unknown): boolean {
   return fallo instanceof DOMException && fallo.name === 'AbortError'
 }
@@ -205,28 +210,35 @@ export function BotonPruebatelo({
     }
   }, [id])
 
+  // Se depende de la URL y no del estado: guardar o avisar crean otro estado con la misma imagen.
+  const urlImagen = estado.fase === 'descargar' || estado.fase === 'pc-lista' ? estado.url : null
   useEffect(() => {
-    if (estado.fase !== 'descargar' && estado.fase !== 'pc-lista') return
-    const { url } = estado
+    if (!urlImagen) return
     return () => {
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(urlImagen)
     }
-  }, [estado])
+  }, [urlImagen])
 
-  /** Una tarea a la vez por outfit; al empezar, cierra el panel de los demás. */
-  async function conGuarda(tarea: () => Promise<void>) {
+  /**
+   * Una tarea a la vez por outfit; al empezar, cierra el panel de los demás. Su señal se corta al
+   * cerrar, al abrir otro outfit o al salir de la pantalla: tras cada espera, si está cortada, no sigue.
+   */
+  async function conGuarda(tarea: (signal: AbortSignal) => Promise<void>) {
     if (enCurso.current) return
     enCurso.current = true
+    const propio = new AbortController()
+    control.current = propio
     setCopiadoAMano(null)
     window.dispatchEvent(new CustomEvent(EVENTO_ABIERTO, { detail: id }))
     try {
-      await tarea()
+      await tarea(propio.signal)
     } catch (fallo) {
-      if (esCancelacion(fallo)) return
+      if (propio.signal.aborted || esCancelacion(fallo)) return
       console.error(fallo)
       setEstado({ fase: 'error', mensaje: mensajeDeFallo(fallo) })
     } finally {
       enCurso.current = false
+      if (control.current === propio) control.current = null
     }
   }
 
@@ -262,11 +274,12 @@ export function BotonPruebatelo({
     }
   }
 
-  async function gemini(foto?: Blob) {
+  async function gemini(signal: AbortSignal, foto?: Blob) {
     let tryon = preparado.current
     if (!tryon) {
       setEstado({ fase: 'preparando' })
       const cuerpo = foto ?? (await leerFotoCuerpo())
+      if (cortada(signal)) return
       if (!cuerpo) {
         setEstado({ fase: 'sin-foto' })
         return
@@ -274,7 +287,9 @@ export function BotonPruebatelo({
       tryon = await preparar(cuerpo, prendas)
       preparado.current = tryon
     }
-    await compartirConGemini(tryon, await copiar(tryon.texto))
+    const copiado = await copiar(tryon.texto)
+    if (cortada(signal)) return
+    await compartirConGemini(tryon, copiado)
   }
 
   function falloPC(fallo: unknown, seguir: string | null) {
@@ -290,19 +305,21 @@ export function BotonPruebatelo({
   }
 
   /** Espera a la prueba (nueva o ya en marcha) y enseña la imagen; los fallos van al panel. */
-  async function esperarPrueba(tarea: (opciones: OpcionesSeguir) => Promise<Blob>) {
-    const propio = new AbortController()
-    control.current = propio
+  async function esperarPrueba(
+    signal: AbortSignal,
+    tarea: (opciones: OpcionesSeguir) => Promise<Blob>,
+  ) {
     let enMarcha: string | null = null
     try {
       const blob = await tarea({
-        signal: propio.signal,
+        signal,
         esperar,
         alProgreso: (progreso) => {
           enMarcha = progreso.id
-          setEstado({ fase: 'pc-probando', progreso })
+          if (!cortada(signal)) setEstado({ fase: 'pc-probando', progreso })
         },
       })
+      if (cortada(signal)) return
       setEstado({
         fase: 'pc-lista',
         blob,
@@ -311,14 +328,12 @@ export function BotonPruebatelo({
         aviso: null,
       })
     } catch (fallo) {
-      if (propio.signal.aborted) return
+      if (cortada(signal)) return
       falloPC(fallo, enMarcha)
-    } finally {
-      if (control.current === propio) control.current = null
     }
   }
 
-  async function probarEnTuPC(config: ConfigProbador, foto: Blob) {
+  async function probarEnTuPC(signal: AbortSignal, config: ConfigProbador, foto: Blob) {
     const enviadas: PrendaEnviada[] = seleccion.envio.flatMap(({ prenda, zona }) => {
       const blob = fotoDe(prenda)
       return blob ? [{ foto: blob, zona }] : []
@@ -336,18 +351,19 @@ export function BotonPruebatelo({
     const nuevo = crearCliente(config)
     cliente.current = nuevo
     setEstado({ fase: 'pc-comprobando' })
-    await esperarPrueba(async (opciones) => {
-      const salud = await nuevo.salud(opciones.signal)
+    await esperarPrueba(signal, async (opciones) => {
+      const salud = await nuevo.salud(signal)
       if (salud.ocupado) throw new ErrorProbador('ocupado')
-      setEstado({ fase: 'pc-probando', progreso: null })
+      if (!cortada(signal)) setEstado({ fase: 'pc-probando', progreso: null })
       return probarEnPC(nuevo, foto, enviadas, opciones)
     })
   }
 
   function pulsar() {
-    return conGuarda(async () => {
+    return conGuarda(async (signal) => {
       setEstado({ fase: 'preparando' })
       const foto = await leerFotoCuerpo()
+      if (cortada(signal)) return
       if (!foto) {
         setEstado({ fase: 'sin-foto' })
         return
@@ -356,17 +372,18 @@ export function BotonPruebatelo({
         console.error(fallo)
         return null
       })
-      if (config) await probarEnTuPC(config, foto)
-      else await gemini(foto)
+      if (cortada(signal)) return
+      if (config) await probarEnTuPC(signal, config, foto)
+      else await gemini(signal, foto)
     })
   }
 
   function volverAMirar(idPrueba: string) {
     const actual = cliente.current
     if (!actual) return Promise.resolve()
-    return conGuarda(async () => {
+    return conGuarda(async (signal) => {
       setEstado({ fase: 'pc-probando', progreso: null })
-      await esperarPrueba((opciones) => seguirPrueba(actual, idPrueba, opciones))
+      await esperarPrueba(signal, (opciones) => seguirPrueba(actual, idPrueba, opciones))
     })
   }
 
@@ -417,7 +434,11 @@ export function BotonPruebatelo({
   const conGemini = (
     <div className="flex flex-col gap-2 border-t border-papel/25 pt-2">
       <p>{AVISO_GOOGLE}</p>
-      <button type="button" onClick={() => void conGuarda(() => gemini())} className={botonBorde}>
+      <button
+        type="button"
+        onClick={() => void conGuarda((signal) => gemini(signal))}
+        className={botonBorde}
+      >
         Probar con Gemini
       </button>
     </div>
@@ -454,7 +475,7 @@ export function BotonPruebatelo({
           <p>La imagen ya está lista. Pulsa «Compartir» y elige Gemini.</p>
           <button
             type="button"
-            onClick={() => void conGuarda(() => gemini())}
+            onClick={() => void conGuarda((signal) => gemini(signal))}
             className={`${botonPanel} bg-papel text-tinta`}
           >
             Compartir

@@ -27,6 +27,7 @@ interface Opciones {
   clave?: string
   prendas?: ReturnType<typeof ropa>[]
   fotoCuerpo?: Blob | null
+  leerFotoCuerpo?: () => Promise<Blob | null>
   esperar?: (ms: number, signal?: AbortSignal) => Promise<void>
   compartidor?: CompartidorTryOn
 }
@@ -36,6 +37,7 @@ function montar({
   clave = CLAVE_FALSA,
   prendas = [ropa('superior', 1, 'camiseta'), ropa('inferior', 2, 'vaquero')],
   fotoCuerpo = foto,
+  leerFotoCuerpo = () => Promise.resolve(fotoCuerpo),
   esperar = sinEsperas,
   compartidor = { share: vi.fn(() => Promise.resolve()), canShare: () => true },
 }: Opciones = {}) {
@@ -51,7 +53,7 @@ function montar({
             prendas={prendas}
             numero={2}
             alGuardarPrueba={alGuardarPrueba}
-            leerFotoCuerpo={() => Promise.resolve(fotoCuerpo)}
+            leerFotoCuerpo={leerFotoCuerpo}
             leerProbador={() => Promise.resolve({ url: URL_FALSA, clave })}
             crearCliente={(config) => crearClienteProbador(config, { fetch: servidor.fetch })}
             esperar={esperar}
@@ -119,13 +121,26 @@ describe('BotonPruebatelo con el probador del PC', () => {
       'GET /pruebas/prueba-1',
       'GET /pruebas/prueba-1/imagen',
     ])
-    // Primero lo de abajo y luego lo de arriba, como dice el contrato.
+    // Primero lo de abajo y luego lo de arriba, como dice el contrato; cada prenda con su zona.
     expect(servidor.peticiones[1]?.datos?.getAll('zona')).toEqual(['abajo', 'arriba'])
+    expect([...(servidor.peticiones[1]?.datos?.keys() ?? [])]).toEqual([
+      'persona',
+      'prenda',
+      'zona',
+      'prenda',
+      'zona',
+    ])
 
     await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(alGuardarPrueba).toHaveBeenCalledWith(expect.objectContaining({ type: 'image/jpeg' }))
     expect(await screen.findByText('Guardada con el outfit.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardada' })).toBeDisabled()
+    // Guardar cambia el estado, pero la imagen sigue en pantalla: su URL no se revoca.
+    expect(urls.revocar).not.toHaveBeenCalledWith(imagen.getAttribute('src'))
+    expect(screen.getByRole('img', { name: /vestido en tu PC/ })).toHaveAttribute(
+      'src',
+      imagen.getAttribute('src'),
+    )
 
     await usuario.click(screen.getByRole('button', { name: 'Compartir' }))
     expect(share).toHaveBeenCalledWith({
@@ -260,6 +275,23 @@ describe('BotonPruebatelo con el probador del PC', () => {
     pasos[1]?.seguir()
     await Promise.resolve()
     expect(servidor.peticiones.filter((p) => p.ruta === '/pruebas/prueba-1')).toEqual([])
+  })
+
+  it('si sales mientras se lee el perfil, no llega a llamar al PC', async () => {
+    let darFoto: (foto: Blob) => void = () => undefined
+    const { usuario, servidor, vista } = montar({
+      leerFotoCuerpo: () =>
+        new Promise<Blob>((resolver) => {
+          darFoto = resolver
+        }),
+    })
+
+    await usuario.click(boton())
+    vista.unmount()
+    darFoto(foto)
+    await new Promise((resolver) => setTimeout(resolver, 0))
+
+    expect(servidor.peticiones).toEqual([])
   })
 
   it('sin foto de cuerpo no llama al PC', async () => {

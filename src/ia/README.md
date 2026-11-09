@@ -31,4 +31,6 @@ todo desde `src/ia/index.ts`.
   cancelación con `signal` llega como el `AbortError` de siempre.
 
 La respuesta se valida con Zod dos veces: con las listas cerradas de la IA (colores, estampados, 1–3
-colores, 1–4 estilos…) y con `etiquetasPrendaSchema` de `src/datos/modelo.ts`.
+colores, 1–4 estilos…) y con `etiquetasPrendaSchema` de `src/datos/modelo.ts`. Las `capas` (T6.1) se leen
+aparte: solo en `superior` y `abrigo`, y si faltan, vienen vacías o no valen, se ponen las de
+`capasPorDefecto`, sin perder la prenda.

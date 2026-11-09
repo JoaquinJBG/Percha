@@ -24,6 +24,35 @@ describe('detalle de una prenda', () => {
     expect(screen.getByText('Por la IA')).toBeInTheDocument()
   })
 
+  it('dice qué papeles puede hacer; si es de antes, los de por defecto', () => {
+    const americana = { ...prenda, categoria: 'abrigo' as const, subcategoria: 'americana' }
+    const { rerender } = render(
+      <DetallePrenda
+        prenda={{ ...americana, capas: ['exterior'] }}
+        onVolver={vi.fn()}
+        onBorrar={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Puede ir como').nextElementSibling).toHaveTextContent('Exterior')
+
+    rerender(<DetallePrenda prenda={americana} onVolver={vi.fn()} onBorrar={vi.fn()} />)
+    expect(screen.getByText('Puede ir como').nextElementSibling).toHaveTextContent(
+      'Media, exterior',
+    )
+  })
+
+  it('lo que no es de arriba no tiene la línea de capas', () => {
+    render(
+      <DetallePrenda
+        prenda={{ ...prenda, categoria: 'calzado', subcategoria: 'mocasín' }}
+        onVolver={vi.fn()}
+        onBorrar={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('Puede ir como')).not.toBeInTheDocument()
+  })
+
   it('con `onEditar` enseña el botón «Editar» junto a «Borrar»', async () => {
     const onEditar = vi.fn()
     render(

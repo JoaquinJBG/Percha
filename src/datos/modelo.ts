@@ -49,6 +49,9 @@ export const OCASIONES = [
 
 export const TEMPORADAS = ['primavera', 'verano', 'otoño', 'invierno'] as const
 
+/** Papeles que puede hacer una prenda de arriba en un outfit con capas, de dentro afuera (D18). */
+export const CAPAS = ['base', 'media', 'exterior'] as const
+
 export const MODELO_GEMINI_POR_DEFECTO = 'gemini-3.5-flash-lite'
 
 export const categoriaSchema = z.enum(CATEGORIAS)
@@ -56,6 +59,12 @@ export const estiloSchema = z.enum(ESTILOS)
 export const ocasionSchema = z.enum(OCASIONES)
 export const temporadaSchema = z.enum(TEMPORADAS)
 export const nivelSchema = z.int().min(1).max(5)
+export const capaSchema = z.enum(CAPAS)
+
+/** Sin repetidos y siempre de dentro afuera, para que comparar y pintar sea estable. */
+export const capasSchema = z
+  .array(capaSchema)
+  .transform((capas) => CAPAS.filter((capa) => capas.includes(capa)))
 
 /** Minúsculas y sin espacios sobrantes, para que «Azul » y «azul» filtren igual. */
 export function normalizarColor(color: string): string {
@@ -118,6 +127,8 @@ export const camposPrendaSchema = z.object({
   ocasiones: z.array(ocasionSchema),
   temporadas: z.array(temporadaSchema),
   notas: z.string(),
+  // Opcional: las prendas y copias de antes no lo tienen; se deduce con `capasDe` (src/datos/capas.ts).
+  capas: capasSchema.optional(),
   etiquetadaPor: z.enum(['ia', 'manual']),
   creadaEn: z.number().int().nonnegative(),
 })
@@ -165,6 +176,7 @@ export type Categoria = z.infer<typeof categoriaSchema>
 export type Estilo = z.infer<typeof estiloSchema>
 export type Ocasion = z.infer<typeof ocasionSchema>
 export type Temporada = z.infer<typeof temporadaSchema>
+export type Capa = z.infer<typeof capaSchema>
 export type FotoPrenda = z.infer<typeof fotoPrendaSchema>
 export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
@@ -242,6 +254,7 @@ export const etiquetasPrendaSchema = camposPrendaSchema.pick({
   ocasiones: true,
   temporadas: true,
   notas: true,
+  capas: true,
   marca: true,
   referencia: true,
   talla: true,

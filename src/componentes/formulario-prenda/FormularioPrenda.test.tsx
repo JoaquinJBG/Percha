@@ -65,9 +65,11 @@ describe('formulario de etiquetas', () => {
     await usuario.clear(screen.getByRole('textbox', { name: 'Tipo de prenda' }))
     await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), '  sudadera ')
     await usuario.type(screen.getByRole('textbox', { name: 'Notas' }), 'Algodón grueso')
+    await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'base' }))
     await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect(alGuardar).toHaveBeenCalledWith({
+      capas: ['base', 'media', 'exterior'],
       categoria: 'superior',
       subcategoria: 'sudadera',
       colores: ['blanco', 'azul marino'],
@@ -78,6 +80,89 @@ describe('formulario de etiquetas', () => {
       ocasiones: ['diario', 'deporte'],
       temporadas: ['primavera', 'verano', 'invierno'],
       notas: 'Algodón grueso',
+    })
+  })
+
+  describe('capas', () => {
+    function marcadas() {
+      return grupo('Puede ir como')
+        .getAllByRole('checkbox')
+        .filter((casilla) => (casilla as HTMLInputElement).checked)
+        .map((casilla) => casilla.closest('label')?.textContent)
+    }
+
+    it('sin tocarlas, siguen a la categoría y al tipo y se guardan', async () => {
+      const { usuario, alGuardar } = montar()
+
+      expect(screen.queryByRole('group', { name: /^Puede ir como/ })).not.toBeInTheDocument()
+      await usuario.click(screen.getByRole('radio', { name: 'Parte de arriba' }))
+      expect(marcadas()).toEqual(['base'])
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'sobrecamisa')
+      expect(marcadas()).toEqual(['media', 'exterior'])
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar).toHaveBeenCalledWith(
+        expect.objectContaining({ capas: ['media', 'exterior'] }),
+      )
+    })
+
+    it('si corrige qué prenda es sin tocar las capas, las de la IA pasan a las de por defecto', async () => {
+      const { usuario, alGuardar } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      expect(marcadas()).toEqual(['base'])
+      await usuario.click(screen.getByRole('radio', { name: 'Abrigo o chaqueta' }))
+      await usuario.clear(screen.getByRole('textbox', { name: 'Tipo de prenda' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'sobrecamisa')
+      expect(marcadas()).toEqual(['media', 'exterior'])
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: 'abrigo', capas: ['media', 'exterior'] }),
+      )
+    })
+
+    it('si ya las ha tocado, cambiar el tipo no se las cambia', async () => {
+      const { usuario } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'media' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), ' larga')
+
+      expect(marcadas()).toEqual(['base', 'media'])
+    })
+
+    it('una prenda de antes, sin capas, enseña las de por defecto', () => {
+      montar({
+        iniciales: {
+          ...ETIQUETAS_DE_PRUEBA,
+          capas: undefined,
+          categoria: 'abrigo',
+          subcategoria: 'americana',
+        },
+      })
+
+      expect(marcadas()).toEqual(['media', 'exterior'])
+    })
+
+    it('no deja guardar una prenda de arriba sin ningún papel', async () => {
+      const { usuario, alGuardar } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'base' }))
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(grupo('Puede ir como').getByRole('alert')).toHaveTextContent('Elige al menos uno.')
+      expect(alGuardar).not.toHaveBeenCalled()
+      await usuario.click(grupo('Puede ir como').getByRole('checkbox', { name: 'media' }))
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('si deja de ser de arriba, se guarda sin capas', async () => {
+      const { usuario, alGuardar } = montar({ iniciales: ETIQUETAS_DE_PRUEBA })
+
+      await usuario.click(screen.getByRole('radio', { name: 'Parte de abajo' }))
+      expect(screen.queryByRole('group', { name: /^Puede ir como/ })).not.toBeInTheDocument()
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar.mock.calls[0]?.[0]).toHaveProperty('capas', undefined)
     })
   })
 

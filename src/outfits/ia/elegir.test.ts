@@ -9,7 +9,12 @@ import type { PeticionOutfits, PropuestaOutfit } from '../../ia/index.ts'
 import { candidatos, comprobarOutfit, cuatroOutfits } from '../reglas/index.ts'
 import type { Peticion, PrendaReglas, ResultadoOutfits } from '../reglas/index.ts'
 import { armarioEjemplo, prenda, tiempo } from '../reglas/pruebas.ts'
-import { elegirOutfitsConIA, MAX_POR_CATEGORIA, type OutfitIA } from './elegir.ts'
+import {
+  elegirOutfitsConIA,
+  MAX_POR_CATEGORIA,
+  MAX_POR_CATEGORIA_ARRIBA,
+  type OutfitIA,
+} from './elegir.ts'
 
 const trabajoConFrio: Peticion = {
   prendas: armarioEjemplo(),
@@ -95,7 +100,12 @@ describe('elegir outfits con IA', () => {
     expect(enviada?.estilo).toBe('business')
     expect(enviada?.ocasion).toBe('trabajo')
     expect(enviada?.semilla).toBe(3)
-    expect(enviada?.tiempo).toMatchObject({ temperatura: 8, necesitaAbrigo: true })
+    expect(enviada?.tiempo).toEqual({
+      temperatura: 8,
+      precipitacion: null,
+      temporada: 'otoño',
+      exterior: 'obligatoria',
+    })
     const candidatas = new Set(candidatos(trabajoConFrio).candidatos.map((c) => c.prenda.id))
     expect(enviada?.prendas.length).toBeGreaterThan(0)
     for (const p of enviada?.prendas ?? []) {
@@ -116,14 +126,17 @@ describe('elegir outfits con IA', () => {
     }
   })
 
-  it(`no le manda más de ${String(MAX_POR_CATEGORIA)} candidatas por categoría`, async () => {
+  it(`no le manda más de ${String(MAX_POR_CATEGORIA_ARRIBA)} de arriba ni ${String(MAX_POR_CATEGORIA)} del resto por categoría`, async () => {
     const muchas = Array.from({ length: 30 }, (_, i) =>
       prenda({ id: `camiseta-${String(i)}`, categoria: 'superior' }),
+    )
+    const vaqueros = Array.from({ length: 12 }, (_, i) =>
+      prenda({ id: `vaquero-${String(i)}`, categoria: 'inferior', subcategoria: 'vaqueros' }),
     )
     const peticion: Peticion = {
       prendas: [
         ...muchas,
-        prenda({ id: 'vaquero', categoria: 'inferior', subcategoria: 'vaqueros' }),
+        ...vaqueros,
         prenda({ id: 'zapatillas', categoria: 'calzado', subcategoria: 'zapatillas' }),
       ],
       estilo: 'casual',
@@ -135,7 +148,10 @@ describe('elegir outfits con IA', () => {
     await elegirOutfitsConIA(peticion, 1, { proveedor })
 
     const enviadas = proveedor.peticionesOutfits[0]?.prendas ?? []
-    expect(enviadas.filter((p) => p.categoria === 'superior')).toHaveLength(MAX_POR_CATEGORIA)
+    expect(enviadas.filter((p) => p.categoria === 'superior')).toHaveLength(
+      MAX_POR_CATEGORIA_ARRIBA,
+    )
+    expect(enviadas.filter((p) => p.categoria === 'inferior')).toHaveLength(MAX_POR_CATEGORIA)
   })
 
   it('cambia por uno de las reglas el outfit con ids inventados', async () => {
@@ -250,27 +266,118 @@ describe('elegir outfits con IA', () => {
     expect(resultado.avisos.some((a) => a.startsWith('outfits sin IA: '))).toBe(true)
   })
 
-  it('no le manda abrigos si hoy no hacen falta ni accesorios de otro estilo, como las reglas', async () => {
-    const peticion: Peticion = {
-      prendas: [
-        prenda({ id: 'camiseta' }),
-        prenda({ id: 'vaquero', categoria: 'inferior', colores: ['vaquero'] }),
-        prenda({ id: 'zapatillas', categoria: 'calzado' }),
-        prenda({ id: 'cazadora', categoria: 'abrigo', abrigo: 3 }),
+  describe('capas y tercera pieza', () => {
+    function armario() {
+      return [
+        prenda({ id: 'camiseta', abrigo: 2 }),
+        prenda({ id: 'chinos', categoria: 'inferior', subcategoria: 'chinos', colores: ['beige'] }),
+        prenda({ id: 'zapatillas', categoria: 'calzado', subcategoria: 'zapatillas' }),
+        {
+          ...prenda({
+            id: 'sobrecamisa',
+            categoria: 'abrigo',
+            subcategoria: 'sobrecamisa',
+            colores: ['caqui'],
+            abrigo: 3,
+          }),
+          composicion: [{ material: 'algodón', porcentaje: 100 }],
+        },
+        prenda({
+          id: 'plumifero',
+          categoria: 'abrigo',
+          subcategoria: 'plumífero',
+          colores: ['azul marino'],
+          abrigo: 5,
+        }),
         prenda({ id: 'gorra-rockera', categoria: 'accesorio', estilos: ['rockero'] }),
-      ],
-      estilo: 'casual',
-      ocasion: 'diario',
-      tiempo: tiempo(22),
+      ]
     }
-    const proveedor = crearProveedorFalso()
 
-    await elegirOutfitsConIA(peticion, 1, { proveedor })
+    function enviadasCon(sensacion: number) {
+      const proveedor = crearProveedorFalso()
+      const peticion: Peticion = {
+        prendas: armario(),
+        estilo: 'casual',
+        ocasion: 'diario',
+        tiempo: tiempo(sensacion),
+      }
+      return elegirOutfitsConIA(peticion, 1, { proveedor }).then(() => {
+        const [enviada] = proveedor.peticionesOutfits
+        return enviada
+      })
+    }
 
-    const enviadas = proveedor.peticionesOutfits[0]?.prendas.map((p) => p.id)
-    expect(enviadas).toEqual(expect.arrayContaining(['camiseta', 'vaquero', 'zapatillas']))
-    expect(enviadas).not.toContain('cazadora')
-    expect(enviadas).not.toContain('gorra-rockera')
+    it('entre 14 y 23 °C manda la sobrecamisa como tercera pieza opcional, no el plumífero', async () => {
+      const enviada = await enviadasCon(20)
+
+      expect(enviada?.tiempo.exterior).toBe('opcional')
+      const sobrecamisa = enviada?.prendas.find((p) => p.id === 'sobrecamisa')
+      expect(sobrecamisa).toMatchObject({
+        opcional: true,
+        composicion: [{ material: 'algodón', porcentaje: 100 }],
+      })
+      expect(enviada?.prendas.map((p) => p.id)).not.toContain('plumifero')
+      expect(enviada?.prendas.find((p) => p.id === 'camiseta')?.opcional).toBeUndefined()
+    })
+
+    it('con calor no manda abrigos; los accesorios de otro estilo, nunca', async () => {
+      const enviada = await enviadasCon(27)
+
+      const ids = enviada?.prendas.map((p) => p.id)
+      expect(enviada?.tiempo.exterior).toBe('no')
+      expect(ids).toEqual(expect.arrayContaining(['camiseta', 'chinos', 'zapatillas']))
+      expect(ids).not.toContain('sobrecamisa')
+      expect(ids).not.toContain('gorra-rockera')
+    })
+
+    it('acepta camiseta + sobrecamisa + abrigo y los ordena de dentro afuera', async () => {
+      const peticion: Peticion = {
+        prendas: armario(),
+        estilo: 'casual',
+        ocasion: 'diario',
+        tiempo: tiempo(9),
+      }
+      const proveedor = crearProveedorFalso({
+        outfits: () => [
+          {
+            prendas: ['plumifero', 'sobrecamisa', 'camiseta', 'chinos', 'zapatillas'],
+            porque: 'Tres capas de fino a grueso.',
+          },
+        ],
+      })
+
+      const resultado = await elegirOutfitsConIA(peticion, 1, { proveedor })
+
+      const [primero] = resultado.outfits
+      expect(resultado.errorIA).toBeNull()
+      expect(primero?.origen).toBe('ia')
+      expect(primero?.prendas.map((p) => p.id)).toEqual([
+        'camiseta',
+        'chinos',
+        'sobrecamisa',
+        'plumifero',
+        'zapatillas',
+      ])
+      expect(primero?.principal.id).toBe('camiseta')
+      expect(primero?.motivo).toBe('Tres capas de fino a grueso.')
+    })
+
+    it('con frío cambia por uno de las reglas el outfit sin capa exterior', async () => {
+      const peticion: Peticion = {
+        prendas: armario(),
+        estilo: 'casual',
+        ocasion: 'diario',
+        tiempo: tiempo(9),
+      }
+      const proveedor = crearProveedorFalso({
+        outfits: () => [{ prendas: ['camiseta', 'chinos', 'zapatillas'], porque: 'Sin abrigo.' }],
+      })
+
+      const resultado = await elegirOutfitsConIA(peticion, 1, { proveedor })
+
+      expect(resultado.outfits.every((o) => o.origen === 'reglas')).toBe(true)
+      expect(resultado.errorIA).toBe('respuesta')
+    })
   })
 
   it('sin clave no llama a Gemini y salen las reglas con el aviso de Ajustes', async () => {

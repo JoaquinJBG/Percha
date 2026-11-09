@@ -1,25 +1,22 @@
+import { capasDe } from '../../datos/capas.ts'
 import type { Categoria } from '../../datos/modelo.ts'
 import { ErrorIA, type TipoErrorIA } from '../../ia/errores.ts'
-import type { PrendaParaOutfit, ProveedorIA } from '../../ia/tipos.ts'
-import {
-  candidatos,
-  comprobarOutfit,
-  cuatroOutfits,
-  CUANTOS_OUTFITS,
-  mejoresPorCategoria,
-} from '../reglas/index.ts'
+import type { ExteriorHoy, PrendaParaOutfit, ProveedorIA } from '../../ia/tipos.ts'
+import { candidatos, cuatroOutfits, CUANTOS_OUTFITS } from '../reglas/index.ts'
 import type {
   Candidato,
-  Contexto,
   OutfitReglas,
   Peticion,
   PrendaReglas,
-  ResultadoCandidatos,
   ResultadoOutfits,
 } from '../reglas/index.ts'
+import { ABRIGO_MAXIMO_OPCIONAL, exteriorDeHoy, soloEncima } from './capas.ts'
+import { comprobarConCapas, type PrendaIA } from './composicion.ts'
 
 /** Cuántas candidatas de cada categoría ve la IA: bastan para variar y el texto sigue siendo corto. */
 export const MAX_POR_CATEGORIA = 8
+/** Arriba hay más donde elegir: las prendas de arriba reparten base, media y exterior. */
+export const MAX_POR_CATEGORIA_ARRIBA = 10
 
 export interface OutfitIA<P extends PrendaReglas = PrendaReglas> extends OutfitReglas<P> {
   /** `ia`: lo eligió la IA y `motivo` es su frase; `reglas`: relleno de `cuatroOutfits`. */
@@ -45,22 +42,42 @@ function esCancelacion(error: unknown): boolean {
 }
 
 /**
- * Lo mismo que usarían las reglas: plenas si las hay en la categoría (si no, también las parciales),
- * abrigos solo si hoy hacen falta y accesorios solo plenos.
+ * Como las reglas: plenas si las hay en la categoría (si no, también las parciales) y accesorios solo
+ * plenos. Abrigos: ninguno si hoy no hacen falta; como tercera pieza, solo los ligeros.
  */
-function paraLaIA<P extends PrendaReglas>(
+function paraLaIA<P extends PrendaIA>(
   lista: readonly Candidato<P>[],
-  contexto: Contexto,
+  exterior: ExteriorHoy,
 ): Candidato<P>[] {
   const conPlenas = new Set<Categoria>(
     lista.filter((c) => c.ajuste === 'pleno').map((c) => c.prenda.categoria),
   )
   const utiles = lista.filter(({ prenda, ajuste }) => {
-    if (prenda.categoria === 'abrigo' && !contexto.necesitaAbrigo) return false
+    if (prenda.categoria === 'abrigo' && exterior === 'no') return false
+    const pesada = soloEncima(capasDe(prenda)) && prenda.abrigo > ABRIGO_MAXIMO_OPCIONAL
+    if (exterior === 'opcional' && pesada) return false
     if (prenda.categoria === 'accesorio') return ajuste === 'pleno'
     return ajuste === 'pleno' || !conPlenas.has(prenda.categoria)
   })
-  return mejoresPorCategoria(utiles, MAX_POR_CATEGORIA)
+  const vistas = new Map<Categoria, number>()
+  return utiles.filter(({ prenda: { categoria } }) => {
+    const ya = vistas.get(categoria) ?? 0
+    vistas.set(categoria, ya + 1)
+    const tope =
+      categoria === 'superior' || categoria === 'abrigo'
+        ? MAX_POR_CATEGORIA_ARRIBA
+        : MAX_POR_CATEGORIA
+    return ya < tope
+  })
+}
+
+/** Una tercera pieza ligera: hoy no hace falta, pero puede ir encima y suma. */
+function esOpcional(prenda: PrendaIA, exterior: ExteriorHoy): boolean {
+  return (
+    exterior === 'opcional' &&
+    soloEncima(capasDe(prenda)) &&
+    prenda.abrigo <= ABRIGO_MAXIMO_OPCIONAL
+  )
 }
 
 function avisoSinIA(error: ErrorIA): string {
@@ -72,18 +89,23 @@ function avisoSinIA(error: ErrorIA): string {
   return `outfits sin IA: ${mensaje}`
 }
 
-function aTexto({
-  id,
-  categoria,
-  subcategoria,
-  colores,
-  estampado,
-  estilos,
-  abrigo,
-  formalidad,
-  notas,
-}: PrendaReglas): PrendaParaOutfit {
-  return { id, categoria, subcategoria, colores, estampado, estilos, abrigo, formalidad, notas }
+function aTexto(prenda: PrendaIA, exterior: ExteriorHoy): PrendaParaOutfit {
+  const { id, categoria, subcategoria, colores, estampado, estilos, abrigo, formalidad, notas } =
+    prenda
+  return {
+    id,
+    categoria,
+    subcategoria,
+    colores,
+    estampado,
+    estilos,
+    abrigo,
+    formalidad,
+    notas,
+    ...(prenda.capas && { capas: prenda.capas }),
+    ...(prenda.composicion && { composicion: prenda.composicion }),
+    ...(esOpcional(prenda, exterior) && { opcional: true }),
+  }
 }
 
 function clave(prendas: readonly PrendaReglas[]): string {
@@ -108,7 +130,7 @@ function avisoDeCuantos(cuantos: number): string[] {
  * sin red, sin cupo o con cualquier fallo de la IA, sale todo por reglas con un aviso. Solo lanza si se
  * cancela con `signal`.
  */
-export async function elegirOutfitsConIA<P extends PrendaReglas>(
+export async function elegirOutfitsConIA<P extends PrendaIA>(
   peticion: Peticion<P>,
   semilla = 1,
   { proveedor, signal }: OpcionesOutfitsIA,
@@ -119,18 +141,25 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
   if (deReglas.length === 0) return { ...reglas, outfits: deReglas, errorIA: null }
 
   const resultado = candidatos(peticion)
-  const enviadas = paraLaIA(resultado.candidatos, resultado.contexto)
-  const soloEnviadas: ResultadoCandidatos<P> = { ...resultado, candidatos: enviadas }
+  const { contexto } = resultado
+  const exterior = exteriorDeHoy(contexto)
+  const enviadas = paraLaIA(resultado.candidatos, exterior)
+  const hoy = { exterior, temperatura: contexto.temperatura }
 
   let propuestas
   try {
     const ia = typeof proveedor === 'function' ? await proveedor() : proveedor
     propuestas = await ia.elegirOutfits(
       {
-        prendas: enviadas.map((c) => aTexto(c.prenda)),
+        prendas: enviadas.map((c) => aTexto(c.prenda, exterior)),
         estilo: peticion.estilo,
         ocasion: peticion.ocasion,
-        tiempo: resultado.contexto,
+        tiempo: {
+          temperatura: contexto.temperatura,
+          precipitacion: contexto.precipitacion,
+          temporada: contexto.temporada,
+          exterior,
+        },
         semilla,
       },
       signal ? { signal } : {},
@@ -151,11 +180,14 @@ export async function elegirOutfitsConIA<P extends PrendaReglas>(
   const outfits: OutfitIA<P>[] = []
   for (const propuesta of propuestas) {
     if (outfits.length === CUANTOS_OUTFITS) break
-    const comprobado = comprobarOutfit(propuesta.prendas, soloEnviadas)
+    const comprobado = comprobarConCapas(
+      propuesta.prendas,
+      enviadas.map((c) => c.prenda),
+      hoy,
+    )
     if ('error' in comprobado) continue
-    const { prendas } = comprobado
-    const [principal] = prendas
-    if (!principal || vistos.has(clave(prendas))) continue
+    const { prendas, principal } = comprobado
+    if (vistos.has(clave(prendas))) continue
     vistos.add(clave(prendas))
     const puntos = prendas.reduce((suma, p) => suma + (puntosPorId.get(p.id) ?? 0), 0)
     outfits.push({

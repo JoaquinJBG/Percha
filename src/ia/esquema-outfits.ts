@@ -3,8 +3,8 @@ import { ErrorIA } from './errores.ts'
 import type { PropuestaOutfit } from './tipos.ts'
 
 export const OUTFITS_POR_PETICION = 4
-/** Base, abrigo, calzado y hasta dos accesorios. */
-const MAX_PRENDAS_POR_OUTFIT = 6
+/** Hasta 3 capas arriba (4 con mucho frío), abajo, calzado y hasta dos accesorios. */
+export const MAX_PRENDAS_POR_OUTFIT = 8
 const MAX_LARGO_PORQUE = 200
 
 const outfitIASchema = z.object({

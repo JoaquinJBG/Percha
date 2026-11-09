@@ -1,26 +1,51 @@
 import type { GenerateContentParameters } from '@google/genai'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { esquemaOutfitsParaGemini } from './esquema-outfits.ts'
-import { crearProveedorFalso } from './falso.ts'
+import {
+  esquemaOutfitsParaGemini,
+  leerRespuestaOutfits,
+  MAX_PRENDAS_POR_OUTFIT,
+  referencias,
+} from './esquema-outfits.ts'
+import { crearProveedorFalso, outfitsDePrueba } from './falso.ts'
 import { crearProveedorGemini, type ClienteGemini } from './gemini.ts'
-import { INSTRUCCION_OUTFITS } from './prompt-outfits.ts'
+import { INSTRUCCION_OUTFITS, textoPeticionOutfits } from './prompt-outfits.ts'
 import type { PeticionOutfits, PrendaParaOutfit } from './tipos.ts'
 
 const CLAVE_FALSA = 'clave-falsa-de-test'
 const MODELO = 'gemini-de-prueba'
 
-function prenda(id: string, categoria: PrendaParaOutfit['categoria']): PrendaParaOutfit {
+const TIPO_POR_CATEGORIA: Partial<Record<PrendaParaOutfit['categoria'], string>> = {
+  calzado: 'zapatillas',
+  inferior: 'vaqueros',
+  abrigo: 'gabardina',
+}
+
+function prenda(
+  id: string,
+  categoria: PrendaParaOutfit['categoria'],
+  cambios: Partial<PrendaParaOutfit> = {},
+): PrendaParaOutfit {
   return {
     id,
     categoria,
-    subcategoria: categoria === 'calzado' ? 'zapatillas' : 'camiseta',
+    subcategoria: TIPO_POR_CATEGORIA[categoria] ?? 'camiseta',
     colores: ['blanco'],
     estampado: 'liso',
     estilos: ['casual'],
     abrigo: 2,
     formalidad: 2,
     notas: '',
+    ...cambios,
   }
+}
+
+/** Lo que se le mandaría a Gemini para esta petición. */
+function texto(peticion: PeticionOutfits): string {
+  return textoPeticionOutfits(peticion, referencias(peticion.prendas.length))
+}
+
+function linea(enviado: string, referencia: string): string {
+  return enviado.split('\n').find((l) => l.startsWith(`${referencia} `)) ?? ''
 }
 
 const peticion: PeticionOutfits = {
@@ -31,7 +56,7 @@ const peticion: PeticionOutfits = {
   ],
   estilo: 'casual',
   ocasion: 'diario',
-  tiempo: { temperatura: 12, precipitacion: 'lluvia', necesitaAbrigo: true, temporada: 'otoño' },
+  tiempo: { temperatura: 12, precipitacion: 'lluvia', temporada: 'otoño', exterior: 'obligatoria' },
   semilla: 7,
 }
 
@@ -73,10 +98,10 @@ describe('elegir outfits con Gemini', () => {
     expect(texto).toContain('Estilo: casual')
     expect(texto).toContain('Ocasión: diario')
     expect(texto).toContain(
-      'Tiempo: 12 °C de sensación, lluvia, otoño. Haría falta abrigo, pero no hay',
+      'Tiempo: 12 °C de sensación, lluvia, otoño. Haría falta capa exterior, pero no hay ninguna',
     )
-    expect(texto).toContain('P1 · superior · camiseta · blanco · liso')
-    expect(texto).toContain('P3 · calzado · zapatillas')
+    expect(texto).toContain('P1 · superior · camiseta · blanco · liso · capas: base · estilos')
+    expect(texto).toContain('P3 · calzado · zapatillas · blanco · liso · estilos')
     expect(texto).not.toContain('uuid-')
     expect(enviada?.config).toMatchObject({
       systemInstruction: INSTRUCCION_OUTFITS,
@@ -84,28 +109,6 @@ describe('elegir outfits con Gemini', () => {
       responseJsonSchema: esquemaOutfitsParaGemini(),
       seed: 7,
     })
-  })
-
-  it('dice si hace falta abrigo y recorta las notas largas', async () => {
-    const { proveedor, peticiones } = montar(() =>
-      Promise.resolve({ outfits: [{ prendas: ['P1'], porque: 'Vale.' }] }),
-    )
-    const conAbrigo: PeticionOutfits = {
-      ...peticion,
-      prendas: [
-        ...peticion.prendas,
-        { ...prenda('uuid-gabardina', 'abrigo'), notas: `algodón\n${'x'.repeat(500)}` },
-      ],
-    }
-
-    await proveedor.elegirOutfits(conAbrigo)
-
-    const partes = (peticiones[0]?.contents as { parts: { text: string }[] }[])[0]?.parts ?? []
-    const texto = partes[0]?.text ?? ''
-    expect(texto).toContain('otoño. Hace falta abrigo.')
-    const linea = texto.split('\n').find((l) => l.startsWith('P4 ')) ?? ''
-    expect(linea).toContain('algodón x')
-    expect(linea.length).toBeLessThan(220)
   })
 
   it('devuelve los ids de las prendas y la frase de cada outfit', async () => {
@@ -190,7 +193,156 @@ describe('elegir outfits con Gemini', () => {
   })
 })
 
+describe('prompt v2 de outfits', () => {
+  it('la instrucción habla de capas, formalidad, color y variedad, y aún no de perfil', () => {
+    for (const fragmento of [
+      'base, media, exterior',
+      'Como mucho 2 prendas de categoría «superior» y 2 de categoría «abrigo»',
+      '13 °C o menos, 3 con exterior',
+      'De fino a grueso',
+      'nada encima de una americana salvo un abrigo',
+      'Entre 14 y 23 °C',
+      'Las prendas marcadas «opcional»',
+      'Entre la prenda más formal y la más informal, como mucho 2 puntos',
+      'Parejas que funcionan: azul marino con gris',
+      'al menos uno tonal',
+      'máximo 25 palabras',
+    ]) {
+      expect(INSTRUCCION_OUTFITS).toContain(fragmento)
+    }
+    expect(INSTRUCCION_OUTFITS).not.toMatch(/perfil|cuerpo|oliva/i)
+  })
+
+  it('manda las capas de cada prenda de arriba: las guardadas o las de por defecto', () => {
+    const enviado = texto({
+      ...peticion,
+      prendas: [
+        prenda('a', 'superior', { subcategoria: 'camisa oxford' }),
+        prenda('b', 'superior', { subcategoria: 'camisa', capas: ['media'] }),
+        prenda('c', 'abrigo', { subcategoria: 'sobrecamisa' }),
+        prenda('d', 'inferior'),
+      ],
+    })
+
+    expect(linea(enviado, 'P1')).toBe(
+      'P1 · superior · camisa oxford · blanco · liso · capas: base, media · estilos: casual · ' +
+        'abrigo 2/5 · formalidad 2/5',
+    )
+    expect(linea(enviado, 'P2')).toContain('capas: media ·')
+    expect(linea(enviado, 'P3')).toContain('capas: media, exterior ·')
+    expect(linea(enviado, 'P4')).not.toContain('capas')
+  })
+
+  it('manda la composición de la etiqueta cuando la hay', () => {
+    const enviado = texto({
+      ...peticion,
+      prendas: [
+        prenda('a', 'superior', {
+          composicion: [
+            { material: 'algodón', porcentaje: 60 },
+            { material: 'lino', porcentaje: 40 },
+            { material: 'forro de poliéster' },
+          ],
+        }),
+      ],
+    })
+
+    expect(linea(enviado, 'P1')).toContain(
+      'formalidad 2/5 · 60 % algodón, 40 % lino, forro de poliéster',
+    )
+  })
+
+  it('entre 14 y 23 °C marca las terceras piezas como opcionales', () => {
+    const enviado = texto({
+      ...peticion,
+      tiempo: { temperatura: 19, precipitacion: null, temporada: 'otoño', exterior: 'opcional' },
+      prendas: [
+        prenda('a', 'superior'),
+        prenda('b', 'abrigo', { subcategoria: 'sobrecamisa', opcional: true }),
+      ],
+    })
+
+    expect(enviado).toContain(
+      'Tiempo: 19 °C de sensación, otoño. No hace falta abrigo; una capa media o exterior ligera ' +
+        'es opcional',
+    )
+    expect(linea(enviado, 'P2')).toMatch(/formalidad 2\/5 · opcional$/)
+    expect(linea(enviado, 'P1')).not.toContain('opcional')
+  })
+
+  it.each([
+    ['obligatoria', 'Hace falta capa exterior.'],
+    ['no', 'No hace falta capa exterior.'],
+  ] as const)('con capa exterior «%s» lo dice', (exterior, frase) => {
+    const enviado = texto({
+      ...peticion,
+      tiempo: { ...peticion.tiempo, exterior },
+      prendas: [...peticion.prendas, prenda('g', 'abrigo')],
+    })
+
+    expect(enviado).toContain(frase)
+  })
+
+  it('recorta las notas largas', () => {
+    const enviado = texto({
+      ...peticion,
+      prendas: [prenda('a', 'abrigo', { notas: `algodón\n${'x'.repeat(500)}` })],
+    })
+
+    expect(linea(enviado, 'P1')).toContain('algodón x')
+    expect(linea(enviado, 'P1').length).toBeLessThan(230)
+  })
+})
+
+describe('esquema de outfits', () => {
+  const idPorReferencia = new Map(referencias(9).map((ref) => [ref, `id-${ref}`]))
+
+  it(`admite outfits de hasta ${String(MAX_PRENDAS_POR_OUTFIT)} prendas`, () => {
+    const [outfit] = leerRespuestaOutfits(
+      JSON.stringify({ outfits: [{ prendas: referencias(8), porque: 'Cuatro capas.' }] }),
+      idPorReferencia,
+    )
+
+    expect(MAX_PRENDAS_POR_OUTFIT).toBe(8)
+    expect(outfit?.prendas).toEqual(referencias(8).map((ref) => `id-${ref}`))
+  })
+
+  it('descarta un outfit de 9 prendas', () => {
+    expect(() =>
+      leerRespuestaOutfits(
+        JSON.stringify({ outfits: [{ prendas: referencias(9), porque: 'Demasiado.' }] }),
+        idPorReferencia,
+      ),
+    ).toThrow(expect.objectContaining({ tipo: 'respuesta' }))
+  })
+
+  it('el esquema de Gemini dice el máximo', () => {
+    expect(JSON.stringify(esquemaOutfitsParaGemini())).toContain('"maxItems":8')
+  })
+})
+
 describe('elegir outfits con el proveedor falso', () => {
+  it('con capa exterior obligatoria pone una; con tercera pieza opcional, en el 1.º y el 3.º', () => {
+    const prendas = [
+      prenda('camiseta-1', 'superior'),
+      prenda('camiseta-2', 'superior'),
+      prenda('camiseta-3', 'superior'),
+      prenda('vaquero', 'inferior'),
+      prenda('zapatillas', 'calzado'),
+      prenda('sobrecamisa', 'abrigo', { subcategoria: 'sobrecamisa', opcional: true }),
+    ]
+
+    const conFrio = outfitsDePrueba({ ...peticion, prendas })
+    const templado = outfitsDePrueba({
+      ...peticion,
+      prendas,
+      tiempo: { temperatura: 19, precipitacion: null, temporada: 'otoño', exterior: 'opcional' },
+    })
+
+    expect(conFrio.every((o) => o.prendas.includes('sobrecamisa'))).toBe(true)
+    expect(templado.map((o) => o.prendas.includes('sobrecamisa'))).toEqual([true, false, true])
+  })
+
   it('apunta la petición y propone outfits con las prendas que recibe', async () => {
     const proveedor = crearProveedorFalso()
 

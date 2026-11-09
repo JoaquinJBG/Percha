@@ -1,4 +1,12 @@
-import type { DatosEtiqueta, Estilo, EtiquetasPrenda, Ocasion, Temporada } from '../datos/modelo.ts'
+import type {
+  Capa,
+  Componente,
+  DatosEtiqueta,
+  Estilo,
+  EtiquetasPrenda,
+  Ocasion,
+  Temporada,
+} from '../datos/modelo.ts'
 import type { Precipitacion } from '../tiempo/tipos.ts'
 
 /** Lotes de hasta 5 prendas: con más, la respuesta tarda y puede degradarse (S2). */
@@ -27,15 +35,29 @@ export type PrendaParaOutfit = Pick<
   | 'abrigo'
   | 'formalidad'
   | 'notas'
-> & { id: string }
+> & {
+  id: string
+  /** Papeles de capa guardados; si faltan, el prompt usa los de por defecto (`capasDe`). */
+  capas?: Capa[]
+  /** La composición de la etiqueta (T5.1), si se sabe. */
+  composicion?: Componente[]
+  /** Capa media o exterior ligera que hoy puede ir o no («tercera pieza»). */
+  opcional?: boolean
+}
+
+/**
+ * Si hoy el outfit lleva capa exterior: `obligatoria` (frío o lluvia), `opcional` (tercera pieza
+ * ligera) o `no` (calor, o en casa).
+ */
+export type ExteriorHoy = 'obligatoria' | 'opcional' | 'no'
 
 /** Lo que importa del día para vestirse; encaja con el `Contexto` de `src/outfits/reglas/`. */
 export interface TiempoParaOutfits {
   /** Sensación térmica media en °C; `null` si no se sabe. */
   temperatura: number | null
   precipitacion: Precipitacion | null
-  necesitaAbrigo: boolean
   temporada: Temporada | null
+  exterior: ExteriorHoy
 }
 
 export interface PeticionOutfits {
@@ -44,6 +66,7 @@ export interface PeticionOutfits {
   estilo: Estilo
   ocasion: Ocasion
   tiempo: TiempoParaOutfits
+  // T6.5: aquí irán el perfil de cuerpo, el tipo de oficina y la sensación térmica del usuario.
   /** Otra semilla, otra tanda. */
   semilla?: number
 }

@@ -65,7 +65,7 @@ export function capasDeLaPila<P extends PrendaReglas>(pila: Pila<P>): P[] {
 }
 
 /**
- * Las reglas duras de capa (C1–C4, C9, C10 y el abrigo de la parte de arriba): el motivo por el que la
+ * Las reglas duras de capa (C1–C4, C9, C10, C13 y el abrigo de la parte de arriba): el motivo por el que la
  * pila no vale o `null`. `puedeAbrigarse` dice si el armario tiene alguna capa más que poner: si no, el
  * poco abrigo solo resta.
  */
@@ -86,6 +86,15 @@ export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolea
       return 'cuatro capas solo con 3 °C o menos'
   }
   if (pila.medias.some((m) => es(LARGO, m))) return 'un abrigo largo va siempre fuera'
+  // C13: camiseta + camisa abierta + sobrecamisa (o cazadora) + abrigo; en la app se vio que la resta
+  // no bastaba para evitarlo.
+  if (
+    capas.length === 4 &&
+    pila.medias.some(esCamisa) &&
+    pila.medias.some((m) => m.categoria === 'abrigo')
+  ) {
+    return 'con camisa y chaqueta bajo el abrigo sobra una capa'
+  }
   // C3 y C4 sin campo `largo`: una chaqueta (americana, cazadora, sobrecamisa) de media solo va bajo un
   // abrigo largo, y nada va entre ella y el abrigo.
   const chaqueta = pila.medias.findIndex((m) => m.categoria === 'abrigo')
@@ -168,7 +177,7 @@ export interface NotaPila {
   consejo: string | null
 }
 
-/** Las reglas blandas de capa (C5–C8, C13 y el abrigo justo): suman o restan. */
+/** Las reglas blandas de capa (C1 suave, C5–C8 y el abrigo justo): suman o restan. */
 export function puntuarPila(
   pila: Pila,
   contexto: Contexto,
@@ -212,15 +221,6 @@ export function puntuarPila(
     .map((c) => RUGOSOS.find((r) => palabras(c.subcategoria, c.notas).has(r)))
     .filter((r) => r !== undefined)
   if (rugosas.length >= 3 || new Set(rugosas).size < rugosas.length) puntos -= 1
-  // C13: camiseta + camisa abierta + sobrecamisa + abrigo es una capa de más.
-  if (
-    capas.length === 4 &&
-    pila.medias.some(esCamisa) &&
-    pila.medias.some((m) => es(SOBRECAMISA, m))
-  ) {
-    puntos -= 3
-  }
-
   let consejo: string | null = null
   if (esCamisa(pila.base) && pila.medias.some((m) => es(PUNTO, m))) {
     consejo = 'cuello de la camisa por fuera'

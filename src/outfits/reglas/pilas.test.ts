@@ -137,6 +137,22 @@ describe('fallaPila: reglas duras', () => {
     )
   })
 
+  it('C13: camiseta + camisa abierta + chaqueta + abrigo sobra una capa', () => {
+    const camisaAbierta = prenda({
+      subcategoria: 'camisa de franela',
+      abrigo: 2,
+      colores: ['rojo'],
+    })
+    const helado = contexto({ tiempo: tiempo(1) })
+    expect(fallaPila(pila(camiseta, [camisaAbierta, sobrecamisa], plumifero), helado, true)).toBe(
+      'con camisa y chaqueta bajo el abrigo sobra una capa',
+    )
+    expect(fallaPila(pila(camiseta, [camisaAbierta, cazadora], plumifero), helado, true)).toBe(
+      'con camisa y chaqueta bajo el abrigo sobra una capa',
+    )
+    expect(fallaPila(pila(camiseta, [sobrecamisa], plumifero), helado, true)).toBeNull()
+  })
+
   it('con 3 °C o menos lo de fuera tiene que abrigar de verdad', () => {
     expect(fallaPila(pila(camisa, [jersey], cazadora), contexto({ tiempo: tiempo(2) }), true)).toBe(
       'a 2 °C lo de fuera tiene que ser un abrigo de verdad',
@@ -203,26 +219,6 @@ describe('puntuarPila: reglas blandas', () => {
     const rugosas = puntuarPila(pila(pana, [], sobrecamisaPana), templado, []).puntos
     const mezcla = puntuarPila(pila(pana, [], lisa), templado, []).puntos
     expect(mezcla - rugosas).toBe(1)
-  })
-
-  it('C13: camiseta + camisa + sobrecamisa + abrigo resta mucho', () => {
-    const camisaAbierta = prenda({
-      subcategoria: 'camisa de franela',
-      abrigo: 2,
-      colores: ['rojo'],
-    })
-    const helado = contexto({ tiempo: tiempo(1) })
-    const caqui = prenda({
-      categoria: 'abrigo',
-      subcategoria: 'sobrecamisa',
-      abrigo: 3,
-      colores: ['caqui'],
-    })
-    const cuatro = pila(camiseta, [camisaAbierta, caqui], plumifero)
-    const tres = pila(camiseta, [caqui], plumifero)
-    expect(
-      puntuarPila(tres, helado, []).puntos - puntuarPila(cuatro, helado, []).puntos,
-    ).toBeGreaterThanOrEqual(3)
   })
 
   it('el abrigo justo suma y la tercera pieza a 19 °C sale mejor que la camiseta sola', () => {

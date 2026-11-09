@@ -255,6 +255,12 @@ export const oficinaSchema = z.object({
   viernesCasual: z.boolean(),
 })
 
+/**
+ * Lo que nunca sale del móvil (D21): la foto en ropa interior para el probador del PC. Va en su propia
+ * tabla y no en el perfil, para que ni la copia ni Gemini, que leen el perfil, puedan llevársela.
+ */
+export const privadoSchema = z.object({ fotoInterior: blobSchema.nullable() })
+
 export const perfilSchema = z.object({
   fotoCara: blobSchema.nullable(),
   fotoCuerpo: blobSchema.nullable(),
@@ -302,6 +308,7 @@ export type FotoPrenda = z.infer<typeof fotoPrendaSchema>
 export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
 export type Perfil = z.infer<typeof perfilSchema>
+export type Privado = z.infer<typeof privadoSchema>
 export type Cuerpo = z.infer<typeof cuerpoSchema>
 export type Complexion = (typeof COMPLEXIONES)[number]
 export type TallaMarca = z.infer<typeof tallaMarcaSchema>
@@ -324,6 +331,8 @@ export const PERFIL_VACIO: Perfil = {
   ciudad: '',
   estilosFavoritos: [],
 }
+
+export const PRIVADO_VACIO: Privado = { fotoInterior: null }
 
 export const AJUSTES_POR_DEFECTO: Ajustes = {
   claveGemini: null,

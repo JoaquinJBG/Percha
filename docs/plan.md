@@ -185,3 +185,9 @@ Percha y el servidor está fijado por la sesión jefa (carpeta de notas de la fa
   outfit lleva más de una prenda de arriba.
 - **Fuera:** el servidor (T7.2), ver la foto guardada en otra pantalla (de momento solo va en la copia y en
   la base), capas de verdad (cuando el servidor sepa hacerlas).
+
+## Fase 8 — Ficha completa
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T8.2 | Perfil de cuerpo: medidas, complexión, tallas habituales por marca, oficina y sensación térmica (absorbe T6.5) | — | 👀 |

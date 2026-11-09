@@ -3,7 +3,10 @@ import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { ESTILOS, type Estilo, type Perfil as DatosPerfil } from '../../datos/modelo.ts'
 import { guardarPerfil, leerPerfil } from '../../datos/repositorio.ts'
 import { ErrorFoto, normalizarFoto } from '../../recorte/index.ts'
+import { CuerpoPerfil } from './CuerpoPerfil.tsx'
 import { FotoPerfil } from './FotoPerfil.tsx'
+import { TallasPerfil } from './TallasPerfil.tsx'
+import { TrabajoPerfil } from './TrabajoPerfil.tsx'
 
 interface Props {
   leer?: () => Promise<DatosPerfil>
@@ -71,6 +74,12 @@ export function Perfil({
 
   function avisar(seccion: Seccion, aviso: Aviso | null) {
     setAvisos((actuales) => ({ ...actuales, [seccion]: aviso ?? undefined }))
+  }
+
+  /** Para las partes que llevan su propio aviso: guarda un campo y lo pone en pantalla, o lanza. */
+  async function guardarCampo<C extends keyof DatosPerfil>(campo: C, valor: DatosPerfil[C]) {
+    const guardado = await guardar({ [campo]: valor })
+    aplicar(campo, guardado[campo])
   }
 
   function ocupar(campo: CampoFoto, ocupada: boolean) {
@@ -244,6 +253,47 @@ export function Perfil({
           </p>
         </div>
       </section>
+
+      {perfil && (
+        <>
+          <section aria-labelledby="titulo-cuerpo" className="flex flex-col gap-3">
+            <h2 id="titulo-cuerpo" className="font-titulo text-xl font-semibold">
+              Tu cuerpo
+            </h2>
+            <p className="text-sm text-suave">
+              Todo es opcional. Servirá para ajustar los outfits y las tallas a tu cuerpo. Se queda
+              en este móvil y no se manda a Gemini; solo sale si exportas la copia en Ajustes.
+            </p>
+            <CuerpoPerfil
+              cuerpo={perfil.cuerpo}
+              guardar={(cuerpo) => guardarCampo('cuerpo', cuerpo)}
+            />
+          </section>
+
+          <section aria-labelledby="titulo-tallas" className="flex flex-col gap-3">
+            <h2 id="titulo-tallas" className="font-titulo text-xl font-semibold">
+              Tus tallas por marca
+            </h2>
+            <p className="text-sm text-suave">La talla que sueles llevar en cada marca.</p>
+            <TallasPerfil
+              tallas={perfil.tallas ?? []}
+              guardar={(tallas) => guardarCampo('tallas', tallas)}
+            />
+          </section>
+
+          <section aria-labelledby="titulo-trabajo" className="flex flex-col gap-3">
+            <h2 id="titulo-trabajo" className="font-titulo text-xl font-semibold">
+              Trabajo y temperatura
+            </h2>
+            <TrabajoPerfil
+              oficina={perfil.oficina}
+              sensacionTermica={perfil.sensacionTermica}
+              guardarOficina={(oficina) => guardarCampo('oficina', oficina)}
+              guardarSensacion={(sensacion) => guardarCampo('sensacionTermica', sensacion)}
+            />
+          </section>
+        </>
+      )}
 
       <section aria-labelledby="titulo-ciudad" className="flex flex-col gap-3">
         <h2 id="titulo-ciudad" className="font-titulo text-xl font-semibold">

@@ -1,4 +1,5 @@
-Pantalla Perfil: fotos de cuerpo entero y de cara, ciudad por defecto y estilos favoritos.
+Pantalla Perfil: fotos de cuerpo entero y de cara, tu cuerpo, tallas por marca, trabajo y temperatura,
+ciudad por defecto y estilos favoritos.
 
 - `Perfil.tsx`: lee el perfil con `leerPerfil()` y guarda cada cambio con `guardarPerfil()`, solo el campo
   que cambia. Las fotos pasan por `normalizarFoto` (EXIF, 1280 px, JPEG) antes de guardarse; no se
@@ -6,7 +7,16 @@ Pantalla Perfil: fotos de cuerpo entero y de cara, ciudad por defecto y estilos 
   `normalizar` para los tests.
 - `FotoPerfil.tsx`: la tarjeta de una foto, con «Cámara» (frontal para la cara, trasera para el cuerpo),
   «Galería» y «Borrar» con confirmación.
+- `CuerpoPerfil.tsx` (T8.2): medidas con «Cómo medirte» en cada una, complexión y una línea libre. Se
+  guardan juntas con «Guardar medidas» y se validan con `cuerpoSchema`; admite coma decimal y, si se vacía
+  todo, el perfil se queda sin `cuerpo`.
+- `TallasPerfil.tsx` (T8.2): tallas por marca y tipo. Una marca (sin distinguir mayúsculas) y un tipo
+  tienen una sola talla: añadirla otra vez la cambia. Como mucho `MAX_TALLAS`.
+- `TrabajoPerfil.tsx` (T8.2): tipo de oficina, viernes casual y sensación térmica; se guardan al tocarlos
+  y se desmarcan con otro toque.
+- `comun.ts` y `LineaAviso.tsx`: clases y el aviso de cada parte.
 
-**Para leer las fotos (T3.2):** `leerPerfil()` de `src/datos/repositorio.ts` devuelve
-`{ fotoCuerpo, fotoCara, ciudad, estilosFavoritos }`. Cada foto es un `Blob` JPEG de 1280 px de lado
-mayor como mucho, o `null` si el usuario no la ha puesto.
+**Para leer el perfil:** `leerPerfil()` de `src/datos/repositorio.ts`. Las fotos (`fotoCuerpo`,
+`fotoCara`) son `Blob` JPEG de 1280 px de lado mayor como mucho, o `null`. `cuerpo`, `tallas`, `oficina`
+y `sensacionTermica` son opcionales. `resumenCuerpo(perfil)` de `src/datos/cuerpo.ts` deja el cuerpo en
+una línea («176 cm, 100 kg, complexión grande, hombros anchos»); todavía no se manda a Gemini (T8.4).

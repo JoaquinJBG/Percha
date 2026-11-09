@@ -9,6 +9,13 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   `exterior`): los guardados en `capas` o, si no hay (prendas de antes), `capasPorDefecto({ categoria,
   subcategoria })` con la tabla de la investigación de outfits. `llevaCapas(categoria)`: solo `superior` y
   `abrigo`. Quien monte outfits debe usar `capasDe`, no `prenda.capas`.
+
+- Perfil (T8.2): además de fotos, ciudad y estilos, lleva opcionales `cuerpo` (`cuerpoSchema`: medidas
+  en cm y kg con su rango en `MEDIDAS`, `complexion` de `COMPLEXIONES` y `notas`), `tallas`
+  (`tallaMarcaSchema`, como mucho `MAX_TALLAS`), `oficina` (`TIPOS_OFICINA` y `viernesCasual`) y
+  `sensacionTermica` (`SENSACIONES_TERMICAS`). Los perfiles y copias de antes siguen valiendo; al fusionar
+  una copia, el cuerpo se mezcla medida a medida.
+- `cuerpo.ts`: `resumenCuerpo(perfil)`, el cuerpo en una línea corta para un prompt.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `guardarPrueba` (la foto del probador del PC, T7.1),
   `borrarOutfit`;

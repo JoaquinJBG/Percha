@@ -21,7 +21,7 @@ const ORDEN_COLLAGE: readonly Categoria[] = [
   'accesorio',
 ]
 const ORDEN_CAPA: readonly Capa[] = ['base', 'media', 'exterior']
-const MAX_POR_CATEGORIA_ARRIBA = 2
+const MAX_MISMA_CATEGORIA_ARRIBA = 2
 const MAX_ACCESORIOS = 2
 /** Sin abrigo (calor o en casa) no se apilan más de 2 capas: base y como mucho una encima. */
 const MAX_CAPAS_SIN_EXTERIOR = 2
@@ -66,10 +66,10 @@ export function comprobarConCapas<P extends PrendaIA>(
   if (!conPar && !conVestido) return { error: 'necesita algo de abajo o un vestido' }
   if (de('calzado').length !== 1) return { error: 'necesita un calzado' }
   if (de('accesorio').length > MAX_ACCESORIOS) return { error: 'lleva más de dos accesorios' }
-  if (de('superior').length > MAX_POR_CATEGORIA_ARRIBA) {
+  if (de('superior').length > MAX_MISMA_CATEGORIA_ARRIBA) {
     return { error: 'lleva más de dos partes de arriba' }
   }
-  if (de('abrigo').length > MAX_POR_CATEGORIA_ARRIBA) return { error: 'lleva más de dos abrigos' }
+  if (de('abrigo').length > MAX_MISMA_CATEGORIA_ARRIBA) return { error: 'lleva más de dos abrigos' }
 
   const arriba = [...de('superior'), ...de('abrigo')]
   if (conPar && arriba.length === 0) return { error: 'necesita una parte de arriba' }

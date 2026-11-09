@@ -320,6 +320,29 @@ describe('elegir outfits con IA', () => {
       expect(enviada?.prendas.find((p) => p.id === 'camiseta')?.opcional).toBeUndefined()
     })
 
+    it.each([16, 20])(
+      'a %i °C manda los puntos gruesos, que son capa media aunque abriguen',
+      async (sensacion) => {
+        const proveedor = crearProveedorFalso()
+        const peticion: Peticion = {
+          prendas: [
+            ...armario(),
+            prenda({ id: 'jersey-ochos', subcategoria: 'jersey grueso de ochos', abrigo: 4 }),
+            prenda({ id: 'cardigan-grueso', subcategoria: 'cárdigan grueso', abrigo: 4 }),
+          ],
+          estilo: 'casual',
+          ocasion: 'diario',
+          tiempo: tiempo(sensacion),
+        }
+
+        await elegirOutfitsConIA(peticion, 1, { proveedor })
+
+        const ids = proveedor.peticionesOutfits[0]?.prendas.map((p) => p.id)
+        expect(ids).toEqual(expect.arrayContaining(['jersey-ochos', 'cardigan-grueso']))
+        expect(ids).not.toContain('plumifero')
+      },
+    )
+
     it('con calor no manda abrigos; los accesorios de otro estilo, nunca', async () => {
       const enviada = await enviadasCon(27)
 

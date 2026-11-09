@@ -241,7 +241,7 @@ describe('prompt v2 de outfits', () => {
           composicion: [
             { material: 'algodón', porcentaje: 60 },
             { material: 'lino', porcentaje: 40 },
-            { material: 'forro de poliéster' },
+            { material: 'forro de\npoliéster' },
           ],
         }),
       ],
@@ -268,6 +268,16 @@ describe('prompt v2 de outfits', () => {
     )
     expect(linea(enviado, 'P2')).toMatch(/formalidad 2\/5 · opcional$/)
     expect(linea(enviado, 'P1')).not.toContain('opcional')
+  })
+
+  it('sin temperatura no dice que no haga falta abrigo', () => {
+    const enviado = texto({
+      ...peticion,
+      tiempo: { temperatura: null, precipitacion: null, temporada: 'otoño', exterior: 'opcional' },
+      prendas: [prenda('a', 'abrigo', { subcategoria: 'sobrecamisa', opcional: true })],
+    })
+
+    expect(enviado).toContain('Tiempo: otoño. No se sabe si hará falta abrigo; una capa media')
   })
 
   it.each([
@@ -305,6 +315,18 @@ describe('esquema de outfits', () => {
 
     expect(MAX_PRENDAS_POR_OUTFIT).toBe(8)
     expect(outfit?.prendas).toEqual(referencias(8).map((ref) => `id-${ref}`))
+  })
+
+  it('corta un «porque» demasiado largo en un espacio, con puntos suspensivos', () => {
+    const largo = `${'palabra '.repeat(40)}final`
+
+    const [outfit] = leerRespuestaOutfits(
+      JSON.stringify({ outfits: [{ prendas: ['P1'], porque: largo }] }),
+      idPorReferencia,
+    )
+
+    expect(outfit?.porque.length).toBeLessThanOrEqual(200)
+    expect(outfit?.porque).toMatch(/palabra…$/)
   })
 
   it('descarta un outfit de 9 prendas', () => {

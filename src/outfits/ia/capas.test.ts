@@ -20,9 +20,10 @@ describe('capa exterior según el día', () => {
     expect(hoy({ tiempo: tiempo(sensacion) })).toBe(esperado)
   })
 
-  it('con lluvia es obligatoria salvo con calor', () => {
+  it('con lluvia es obligatoria hasta 23 °C; con 24 °C o más, no', () => {
     expect(hoy({ tiempo: tiempo(20, { precipitacion: 'lluvia' }) })).toBe('obligatoria')
-    expect(hoy({ tiempo: tiempo(26, { precipitacion: 'lluvia' }) })).toBe('no')
+    expect(hoy({ tiempo: tiempo(23, { precipitacion: 'lluvia' }) })).toBe('obligatoria')
+    expect(hoy({ tiempo: tiempo(24, { precipitacion: 'nieve' }) })).toBe('no')
   })
 
   it('sin tiempo es opcional; en casa, nunca', () => {

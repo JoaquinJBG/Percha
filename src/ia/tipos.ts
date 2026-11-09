@@ -51,7 +51,7 @@ export type PrendaParaOutfit = Pick<
  */
 export type ExteriorHoy = 'obligatoria' | 'opcional' | 'no'
 
-/** Lo que importa del día para vestirse; encaja con el `Contexto` de `src/outfits/reglas/`. */
+/** Lo que importa del día para vestirse; sale del `Contexto` de `src/outfits/reglas/` y de `exteriorDeHoy`. */
 export interface TiempoParaOutfits {
   /** Sensación térmica media en °C; `null` si no se sabe. */
   temperatura: number | null

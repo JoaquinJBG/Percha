@@ -95,9 +95,11 @@ function textoTiempo(peticion: PeticionOutfits): string {
       ? 'Hace falta capa exterior.'
       : 'Haría falta capa exterior, pero no hay ninguna en la lista: no la pongas.'
   } else if (tiempo.exterior === 'opcional') {
+    const inicio =
+      tiempo.temperatura === null ? 'No se sabe si hará falta abrigo' : 'No hace falta abrigo'
     exterior = prendas.some((p) => p.opcional)
-      ? 'No hace falta abrigo; una capa media o exterior ligera es opcional (las marcadas «opcional»).'
-      : 'No hace falta abrigo.'
+      ? `${inicio}; una capa media o exterior ligera es opcional (las marcadas «opcional»).`
+      : `${inicio}.`
   } else {
     exterior = 'No hace falta capa exterior.'
   }
@@ -107,9 +109,10 @@ function textoTiempo(peticion: PeticionOutfits): string {
 function textoComposicion(composicion: readonly Componente[]): string {
   return composicion
     .slice(0, MAX_COMPONENTES)
-    .map(({ material, porcentaje }) =>
-      porcentaje === undefined ? material : `${String(porcentaje)} % ${material}`,
-    )
+    .map(({ material, porcentaje }) => {
+      const limpio = material.replace(/\s+/g, ' ').trim()
+      return porcentaje === undefined ? limpio : `${String(porcentaje)} % ${limpio}`
+    })
     .join(', ')
 }
 

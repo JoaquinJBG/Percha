@@ -43,7 +43,8 @@ function esCancelacion(error: unknown): boolean {
 
 /**
  * Como las reglas: plenas si las hay en la categoría (si no, también las parciales) y accesorios solo
- * plenos. Abrigos: ninguno si hoy no hacen falta; como tercera pieza, solo los ligeros.
+ * plenos. Abrigos: ninguno si hoy no hacen falta; como tercera pieza, solo los ligeros. Las de arriba
+ * van siempre: un punto grueso es justo la capa media de un día fresco.
  */
 function paraLaIA<P extends PrendaIA>(
   lista: readonly Candidato<P>[],
@@ -54,8 +55,8 @@ function paraLaIA<P extends PrendaIA>(
   )
   const utiles = lista.filter(({ prenda, ajuste }) => {
     if (prenda.categoria === 'abrigo' && exterior === 'no') return false
-    const pesada = soloEncima(capasDe(prenda)) && prenda.abrigo > ABRIGO_MAXIMO_OPCIONAL
-    if (exterior === 'opcional' && pesada) return false
+    const pesado = prenda.categoria === 'abrigo' && prenda.abrigo > ABRIGO_MAXIMO_OPCIONAL
+    if (exterior === 'opcional' && pesado) return false
     if (prenda.categoria === 'accesorio') return ajuste === 'pleno'
     return ajuste === 'pleno' || !conPlenas.has(prenda.categoria)
   })

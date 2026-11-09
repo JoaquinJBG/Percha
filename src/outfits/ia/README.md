@@ -25,9 +25,10 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
    (`MAX_POR_CATEGORIA_ARRIBA` = 10 en `superior` y `abrigo`, que reparten tres capas;
    `MAX_POR_CATEGORIA` = 8 en el resto), el estilo, la ocasión y el tiempo. Cada prenda va con sus
    `capas` (si faltan, las de por defecto de `src/datos/capas.ts`) y su composición si la hay. Como las
-   reglas: solo las de ajuste `pleno` si las hay y accesorios solo plenos. Abrigos: ninguno con la
-   exterior en `no`; con `opcional`, solo los ligeros (abrigo ≤ 3) entre los que no pueden ir de base,
-   marcados `opcional` («tercera pieza»).
+   reglas: solo las de ajuste `pleno` si las hay y accesorios solo plenos. Categoría `abrigo`: nada con la
+   exterior en `no`; con `opcional`, solo los ligeros (abrigo ≤ 3). Las de arriba van siempre (un punto
+   grueso es capa media). Las ligeras que no pueden ir de base van marcadas `opcional` («tercera
+   pieza»).
 4. Cada outfit de la IA se comprueba con `comprobarConCapas` contra las prendas enviadas: ids que existen
    y sin repetir; algo de abajo (o un vestido, que hace de base) y un calzado; como mucho 2 «superior», 2
    «abrigo» y 2 accesorios; una base, hasta 2 medias y 1 exterior según los papeles de cada prenda;
@@ -43,6 +44,10 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
 `ejemplo.ts` imprime el resultado con el proveedor falso (respuesta buena, prenda inventada, 429 y
 tercera pieza a 19 °C):
 `node --experimental-strip-types src/outfits/ia/ejemplo.ts`.
+
+Hasta juntar con T6.2: las reglas aún piden abrigo por debajo de 16 °C (`LIMITE_ABRIGO`), y aquí la
+exterior solo es obligatoria por debajo de 14 °C. A 14–15 °C los outfits de la IA pueden salir sin abrigo
+y los de relleno con él.
 
 Pendiente para la pantalla (T2.5): cada llamada gasta una petición del cupo diario, así que conviene
 guardar el resultado por petición y semilla y cancelar la anterior con `signal`. El `seed` de Gemini no

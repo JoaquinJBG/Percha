@@ -29,6 +29,13 @@ export function esquemaOutfitsParaGemini(): Record<string, unknown> {
   return json
 }
 
+/** Corta en el último espacio antes del máximo, con «…», para no dejar media palabra. */
+function recortar(texto: string, maximo: number): string {
+  if (texto.length <= maximo) return texto
+  const corte = texto.lastIndexOf(' ', maximo - 1)
+  return `${texto.slice(0, corte > 0 ? corte : maximo - 1)}…`
+}
+
 /** P1, P2…: más cortas y más fáciles de copiar sin errores que los UUID de las prendas. */
 export function referencias(cuantas: number): string[] {
   return Array.from({ length: cuantas }, (_, i) => `P${String(i + 1)}`)
@@ -56,7 +63,7 @@ export function leerRespuestaOutfits(
   for (const candidato of envoltorio.data.outfits) {
     const leido = outfitIASchema.safeParse(candidato)
     if (!leido.success) continue
-    const porque = leido.data.porque.replace(/\s+/g, ' ').trim().slice(0, MAX_LARGO_PORQUE)
+    const porque = recortar(leido.data.porque.replace(/\s+/g, ' ').trim(), MAX_LARGO_PORQUE)
     if (!porque) continue
     const prendas = leido.data.prendas.map((referencia) => {
       const limpia = referencia.trim().toUpperCase()

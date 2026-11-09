@@ -56,6 +56,7 @@ function montar({
             prendas={prendas}
             numero={2}
             leerFotoCuerpo={leerFotoCuerpo}
+            leerProbador={sinProbador}
             preparar={preparar}
             copiar={copiar}
             compartidor={compartidor}
@@ -71,7 +72,9 @@ function montar({
   return { usuario: userEvent.setup(), router, copiar, preparar, leerFotoCuerpo, prendas }
 }
 
-const boton = () => screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 2' })
+const sinProbador = () => Promise.resolve(null)
+
+const boton = () => screen.getByRole('button', { name: 'Pruébatelo: outfit 2' })
 
 let urls: ReturnType<typeof simularUrlsDeBlob>
 
@@ -133,7 +136,7 @@ describe('BotonPruebatelo', () => {
 
     await usuario.click(boton())
 
-    expect(await screen.findByText(/necesita una foto tuya de cuerpo entero/)).toBeInTheDocument()
+    expect(await screen.findByText(/necesitas una foto tuya de cuerpo entero/)).toBeInTheDocument()
     expect(preparar).not.toHaveBeenCalled()
     expect(copiar).not.toHaveBeenCalled()
     expect(share).not.toHaveBeenCalled()
@@ -211,6 +214,7 @@ describe('BotonPruebatelo', () => {
     const usuario = userEvent.setup()
     const copiar = () => Promise.resolve(true)
     const comun = {
+      leerProbador: sinProbador,
       prendas: [{ ...nuevaPrenda(), id: '1', creadaEn: 0 }],
       leerFotoCuerpo: () => Promise.resolve(null),
       copiar,
@@ -229,14 +233,14 @@ describe('BotonPruebatelo', () => {
     ])
     render(<RouterProvider router={router} />)
 
-    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 1' }))
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo: outfit 1' }))
     expect(await screen.findAllByRole('group')).toHaveLength(1)
-    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 2' }))
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo: outfit 2' }))
 
     await waitFor(() => {
       expect(screen.getAllByRole('group')).toHaveLength(1)
     })
-    expect(screen.getByRole('group')).toHaveAccessibleName('Pruébatelo en Gemini: outfit 2')
+    expect(screen.getByRole('group')).toHaveAccessibleName('Pruébatelo: outfit 2')
   })
 
   it('si no se puede preparar la imagen, lo dice', async () => {

@@ -3,7 +3,12 @@ import { Link } from 'react-router'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { TiempoHoy } from '../../componentes/TiempoHoy.tsx'
 import { ESTILOS, OCASIONES, type Estilo, type Ocasion, type Prenda } from '../../datos/modelo.ts'
-import { guardarOutfit, listarPrendas, marcarFavorito } from '../../datos/repositorio.ts'
+import {
+  guardarOutfit,
+  guardarPrueba as guardarPruebaOutfit,
+  listarPrendas,
+  marcarFavorito,
+} from '../../datos/repositorio.ts'
 import { crearCollage } from '../../outfits/collage/index.ts'
 import type { TiempoHoy as DatosTiempo } from '../../tiempo/index.ts'
 import { fechaLocal } from './fecha.ts'
@@ -51,6 +56,7 @@ export function Outfits({
   componer = crearCollage,
   guardar = guardarOutfit,
   marcar = marcarFavorito,
+  guardarPrueba = guardarPruebaOutfit,
   compartidor = compartidorPorDefecto,
 }: Props) {
   const [eleccion, setEleccion] = useState<Eleccion>(() => almacenEleccion.leer())
@@ -206,6 +212,7 @@ export function Outfits({
             componer={componer}
             guardar={guardar}
             marcar={marcar}
+            guardarPrueba={guardarPrueba}
             compartidor={compartidor}
             alOcupar={setGuardando}
           />

@@ -23,7 +23,10 @@ Pantalla Outfits: estilo, ocasión y tiempo de hoy → 4 outfits en un collage 2
   `marcarFavorito`), **Descargar** (`<a download>`) y **Compartir** (Web Share con el JPEG como fichero;
   solo aparece si `navigator.canShare({ files })` dice que sí). El texto no va en `share()`: con imágenes,
   Gemini y otras apps lo ignoran (D13).
-- Cada outfit de la lista lleva **Pruébatelo** (`BotonPruebatelo`, de `src/componentes/`, con la lógica en
-  `src/tryon/`): tu foto de cuerpo entero y las prendas en una imagen, a Gemini por la hoja de compartir.
-- Todo se inyecta por props para los tests (`listar`, `componer`, `guardar`, `marcar`, `compartidor`,
+- Cada outfit de la lista lleva **Pruébatelo** (`BotonPruebatelo`, de `src/componentes/`): con el
+  probador del PC en Ajustes, lo viste allí (`src/probador/`, D19); si no, tu foto de cuerpo entero y las
+  prendas en una imagen, a Gemini por la hoja de compartir (`src/tryon/`, D13). «Guardar» la foto del PC
+  la mete en el outfit con `guardarPrueba` (si el outfit aún no estaba guardado, se guarda con ella).
+- Todo se inyecta por props para los tests (`listar`, `componer`, `guardar`, `marcar`, `guardarPrueba`,
+  `compartidor`,
   `almacenEleccion`, `propsTiempo`, `hoy`).

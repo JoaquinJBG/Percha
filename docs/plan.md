@@ -195,7 +195,7 @@ talla de verdad). T8.2 absorbe la T6.5.
 |---|---|---|---|
 | T8.1 | Corte y detalles por tipo (corte, tiro, largo, manga, cuello) con listas cerradas, que rellena Gemini y se corrigen a mano; marca, corte y talla sin foto de la etiqueta; filtro por corte en el armario (D20) | T6.1 | 👀 |
 | T8.2 | Perfil de cuerpo: medidas, complexión, tallas habituales por marca, oficina y sensación térmica (absorbe T6.5) | — | 👀 |
-| T8.3 | Fotos del perfil: foto de referencia ajustada con guía y pose; la de ropa interior, opcional y solo para el probador del PC (nunca a Gemini, a la nube ni a la copia) | T7.1 | ⏳ |
+| T8.3 | Fotos del perfil: foto de referencia ajustada con guía y pose; la de ropa interior, opcional y solo para el probador del PC (nunca a Gemini, a la nube ni a la copia) | T7.1 | 👀 falta hacerse las fotos de verdad y probarlas en el PC |
 | T8.4 | Outfits y probador usan el corte y el cuerpo: reglas (§6 de la investigación, B1–B11), prompt de Gemini y avisos del probador | T6.2, T6.3, T8.1, T8.2 | ⏳ |
 
 ### T8.1 — Corte y detalles por tipo

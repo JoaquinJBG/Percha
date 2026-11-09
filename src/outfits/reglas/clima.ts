@@ -63,10 +63,10 @@ export function temporadaOpuesta(temporada: Temporada): Temporada {
  */
 export function rangoArriba(temperatura: number): [number, number] {
   if (temperatura >= 26) return [1, 2]
-  if (temperatura >= 22) return [1, 3]
+  if (temperatura >= 22) return [1, 4]
   if (temperatura >= 18) return [2, 4]
   if (temperatura >= 14) return [3, 5]
-  if (temperatura >= 9) return [4, 7]
+  if (temperatura >= 9) return [4, 6]
   if (temperatura >= 4) return [5, 8]
   return [6, 9]
 }

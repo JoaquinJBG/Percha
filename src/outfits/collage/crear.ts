@@ -5,7 +5,7 @@ import { dibujarCollage, type ImagenPrenda, type Pincel } from './dibujar.ts'
 import { ALTO_COLLAGE, ANCHO_COLLAGE } from './disposicion.ts'
 
 export interface OutfitCollage {
-  prendas: readonly Pick<Prenda, 'categoria' | 'subcategoria' | 'fotos'>[]
+  prendas: readonly Pick<Prenda, 'categoria' | 'subcategoria' | 'fotos' | 'capas'>[]
   /** La ranura de cada prenda; si falta, se deduce del orden y la categoría (`ranurasDe`). */
   ranuras?: readonly Ranura[] | undefined
   motivo: string

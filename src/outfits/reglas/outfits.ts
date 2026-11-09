@@ -1,3 +1,4 @@
+import { capasDe } from '../../datos/capas.ts'
 import type { Capa, Categoria } from '../../datos/modelo.ts'
 import { crearAzar } from './azar.ts'
 import { candidatos } from './candidatos.ts'
@@ -6,7 +7,11 @@ import { armonia } from './colores.ts'
 import { afinidad } from './estilos.ts'
 import { nombreFormalidad } from './ocasiones.ts'
 import {
+  abrigaDeVerdad,
   fallaPila,
+  recursosDe,
+  SIN_RECURSOS,
+  type Recursos,
   MAX_ACCESORIOS,
   MAX_PRENDAS_POR_OUTFIT,
   puntuarPila,
@@ -32,6 +37,8 @@ const YA_USADA = 1.5
 const MAX_BASE_POR_CATEGORIA = 40
 /** Y solo las mejores medias y exteriores entran en las capas de cada outfit. */
 const MAX_CAPA = 12
+/** Y además, siempre, los mejores abrigos de verdad. */
+const MAX_ABRIGOS = 4
 
 type NoVacia<T> = [T, ...T[]]
 
@@ -46,11 +53,11 @@ function nota<P extends PrendaReglas>(piezas: readonly Candidato<P>[]): number {
 
 /**
  * Las ranuras de un outfit: las suyas o, si no las trae (outfits de antes de T6.2 o de la IA), deducidas
- * del orden de dentro afuera: la primera de arriba es la base, la última de varias es la exterior si es
- * un abrigo, y lo de en medio, media.
+ * del orden de dentro afuera: la primera de arriba es la base, la última de varias es la exterior si
+ * puede serlo, y lo de en medio, media.
  */
 export function ranurasDe(outfit: {
-  prendas: readonly Pick<PrendaReglas, 'categoria'>[]
+  prendas: readonly Pick<PrendaReglas, 'categoria' | 'subcategoria' | 'capas'>[]
   ranuras?: readonly Ranura[] | undefined
 }): Ranura[] {
   if (outfit.ranuras?.length === outfit.prendas.length) return [...outfit.ranuras]
@@ -62,7 +69,11 @@ export function ranurasDe(outfit: {
     if (p.categoria !== 'superior' && p.categoria !== 'abrigo') return p.categoria
     const posicion = arriba.indexOf(i)
     if (posicion === 0 && !conVestido) return 'base'
-    if (posicion === arriba.length - 1 && p.categoria === 'abrigo') return 'exterior'
+    // La última de varias es la exterior si es un abrigo o si puede ir fuera y no de base (sudadera).
+    const papeles = capasDe(p)
+    const deFuera =
+      p.categoria === 'abrigo' || (papeles.includes('exterior') && !papeles.includes('base'))
+    if (posicion === arriba.length - 1 && deFuera) return 'exterior'
     return 'media'
   })
 }
@@ -96,16 +107,20 @@ function motivo(
   const grados = temperatura === null ? '' : `${String(temperatura)} °C`
   const yPrecipitacion = precipitacion ? ` y ${precipitacion}` : ''
   const encima = pila.exterior ?? pila.medias.at(-1)
-  if (pila.exterior && temperatura !== null && temperatura < LIMITE_EXTERIOR) {
-    partes.push(`abrigo por ${grados}${yPrecipitacion}`)
-  } else if (pila.exterior && precipitacion) {
-    partes.push(`abrigo por la ${precipitacion}`)
+  const nombre = (p: PrendaReglas) => p.subcategoria.trim().toLocaleLowerCase('es') || 'otra capa'
+  // «abrigo» solo si lo es; si no, su nombre: «sobrecamisa por la lluvia».
+  const fuera = pila.exterior && (abrigaDeVerdad(pila.exterior) ? 'abrigo' : nombre(pila.exterior))
+  if (fuera && temperatura !== null && temperatura < LIMITE_EXTERIOR) {
+    partes.push(`${fuera} por ${grados}${yPrecipitacion}`)
+  } else if (fuera && precipitacion) {
+    partes.push(`${fuera} por la ${precipitacion}`)
   } else if (contexto.necesitaAbrigo) {
     const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
     partes.push(`sin abrigo para ${frio ? grados : `la ${precipitacion ?? 'lluvia'}`}`)
   } else if (encima) {
-    const nombre = encima.subcategoria.trim().toLocaleLowerCase('es') || 'otra capa'
-    partes.push(temperatura === null ? `con ${nombre}` : `con ${nombre} para ${grados}`)
+    partes.push(
+      temperatura === null ? `con ${nombre(encima)}` : `con ${nombre(encima)} para ${grados}`,
+    )
   } else if (temperatura !== null) {
     partes.push(`${temperatura >= 24 ? 'ligero por' : 'para'} ${grados}${yPrecipitacion}`)
   }
@@ -151,9 +166,17 @@ export function cuatroOutfits<P extends PrendaReglas>(
   const vestidos = bolsa(lista, (c) => c.prenda.categoria === 'vestido')
   const calzados = bolsa(lista, (c) => c.prenda.categoria === 'calzado')
   const medias = bolsa(lista, puede('media')).slice(0, MAX_CAPA)
-  const exteriores = bolsa(lista, puede('exterior')).slice(0, MAX_CAPA)
+  const todasExteriores = bolsa(lista, puede('exterior'))
+  // Las mejores por puntos y, aunque puntúen menos, los mejores abrigos: con frío son los que valen.
+  const exteriores = [
+    ...new Set([
+      ...todasExteriores.slice(0, MAX_CAPA),
+      ...todasExteriores.filter((c) => abrigaDeVerdad(c.prenda)).slice(0, MAX_ABRIGOS),
+      ...todasExteriores.filter((c) => c.prenda.categoria === 'abrigo').slice(0, MAX_ABRIGOS),
+    ]),
+  ]
   const accesorios = bolsa(lista, (c) => c.prenda.categoria === 'accesorio', true)
-  const puedeAbrigarse = medias.length + exteriores.length > 0
+  const recursos = recursosDe([...medias, ...exteriores])
   const exteriorObligatoria = contexto.necesitaAbrigo && exteriores.length > 0
 
   const combinaciones: { piezas: NoVacia<Candidato<P>>; clave: string; nota: number }[] = []
@@ -172,157 +195,176 @@ export function cuatroOutfits<P extends PrendaReglas>(
   if (combinaciones.length === 0 || calzados.length === 0) return { contexto, outfits: [], avisos }
   combinaciones.sort((a, b) => b.nota - a.nota || (a.clave < b.clave ? -1 : 1))
 
-  const usadas = new Map<string, number>()
-  const veces = (c: Candidato<P> | null | undefined) => (c ? (usadas.get(c.prenda.id) ?? 0) : 0)
-  const usar = (c: Candidato<P>) => usadas.set(c.prenda.id, veces(c) + 1)
-  /** La capa de fuera de cada outfit ya hecho, para no repetir la misma en los cuatro. */
-  const fueras: string[] = []
+  /** Los cuatro outfits con lo que hay; `recursos` dice cuánto se le puede exigir al armario. */
+  const componer = (recursos: Recursos): OutfitReglas<P>[] => {
+    const usadas = new Map<string, number>()
+    const veces = (c: Candidato<P> | null | undefined) => (c ? (usadas.get(c.prenda.id) ?? 0) : 0)
+    const usar = (c: Candidato<P>) => usadas.set(c.prenda.id, veces(c) + 1)
+    /** La capa de fuera de cada outfit ya hecho, para no repetir la misma en los cuatro. */
+    const fueras: string[] = []
 
-  const elegirPila = (base: Candidato<P>, resto: readonly Candidato<P>[]) => {
-    const mediasLibres = medias.filter((m) => m !== base)
-    const exterioresLibres = exteriores.filter((e) => e !== base)
-    const opciones: { medias: Candidato<P>[]; exterior: Candidato<P> | null }[] = []
-    if (!exteriorObligatoria) {
-      opciones.push({ medias: [], exterior: null })
-      for (const m of mediasLibres) opciones.push({ medias: [m], exterior: null })
-    }
-    for (const e of exterioresLibres) {
-      opciones.push({ medias: [], exterior: e })
-      for (const m of mediasLibres) if (m !== e) opciones.push({ medias: [m], exterior: e })
-      if (contexto.temperatura !== null && contexto.temperatura <= 3) {
-        for (const [i, m1] of mediasLibres.entries()) {
-          for (const m2 of mediasLibres.slice(i + 1)) {
-            if (m1 === e || m2 === e) continue
-            const [fina, gruesa] = m1.prenda.abrigo <= m2.prenda.abrigo ? [m1, m2] : [m2, m1]
-            opciones.push({ medias: [fina, gruesa], exterior: e })
+    const elegirPila = (base: Candidato<P>, resto: readonly Candidato<P>[]) => {
+      const mediasLibres = medias.filter((m) => m !== base)
+      const exterioresLibres = exteriores.filter((e) => e !== base)
+      const opciones: { medias: Candidato<P>[]; exterior: Candidato<P> | null }[] = []
+      if (!exteriorObligatoria) {
+        opciones.push({ medias: [], exterior: null })
+        for (const m of mediasLibres) opciones.push({ medias: [m], exterior: null })
+      }
+      for (const e of exterioresLibres) {
+        opciones.push({ medias: [], exterior: e })
+        for (const m of mediasLibres) if (m !== e) opciones.push({ medias: [m], exterior: e })
+        if (contexto.temperatura !== null && contexto.temperatura <= 3) {
+          for (const [i, m1] of mediasLibres.entries()) {
+            for (const m2 of mediasLibres.slice(i + 1)) {
+              if (m1 === e || m2 === e) continue
+              const [fina, gruesa] = m1.prenda.abrigo <= m2.prenda.abrigo ? [m1, m2] : [m2, m1]
+              opciones.push({ medias: [fina, gruesa], exterior: e })
+            }
           }
         }
       }
-    }
 
-    const valoradas = opciones.flatMap((opcion) => {
-      const pila: Pila<P> = {
-        base: base.prenda,
-        medias: opcion.medias.map((c) => c.prenda),
-        exterior: opcion.exterior?.prenda ?? null,
-      }
-      if (fallaPila(pila, contexto, puedeAbrigarse)) return []
-      const capas = [base, ...opcion.medias, ...(opcion.exterior ? [opcion.exterior] : [])]
-      const fuera = capas.at(-1) ?? base
-      const resultado = puntuarPila(
-        pila,
-        contexto,
-        resto.map((c) => c.prenda),
+      const valoradas = opciones.flatMap((opcion) => {
+        const pila: Pila<P> = {
+          base: base.prenda,
+          medias: opcion.medias.map((c) => c.prenda),
+          exterior: opcion.exterior?.prenda ?? null,
+        }
+        if (fallaPila(pila, contexto, recursos)) return []
+        const capas = [base, ...opcion.medias, ...(opcion.exterior ? [opcion.exterior] : [])]
+        const fuera = capas.at(-1) ?? base
+        const resultado = puntuarPila(
+          pila,
+          contexto,
+          resto.map((c) => c.prenda),
+        )
+        // Si la exterior es obligatoria, repetir abrigo no resta: suele haber pocos y es mejor eso que
+        // quitarlo. Que no salga el mismo en los cuatro ya lo cuida `repetida`.
+        const repetible = (c: Candidato<P>) => exteriorObligatoria && c === opcion.exterior
+        const valor =
+          nota([...capas, ...resto]) +
+          resultado.puntos -
+          capas.slice(1).reduce((suma, c) => suma + (repetible(c) ? 0 : veces(c) * YA_USADA), 0) -
+          (repetible(fuera) ? 0 : fueras.filter((id) => id === fuera.prenda.id).length * YA_USADA) +
+          azar() * VARIEDAD
+        return [{ pila, capas, fuera, valor, ...resultado }]
+      })
+      // Que la misma capa de fuera no salga en los cuatro, si hay otra que valga.
+      const [primera] = fueras
+      const repetida =
+        fueras.length === CUANTOS_OUTFITS - 1 && fueras.every((id) => id === primera)
+          ? primera
+          : undefined
+      const sinRepetir = valoradas.filter((v) => v.fuera.prenda.id !== repetida)
+      const posibles = sinRepetir.length > 0 ? sinRepetir : valoradas
+      return posibles.reduce<(typeof posibles)[number] | null>(
+        (mejor, v) => (!mejor || v.valor > mejor.valor ? v : mejor),
+        null,
       )
-      const valor =
-        nota([...capas, ...resto]) +
-        resultado.puntos -
-        capas.slice(1).reduce((suma, c) => suma + veces(c) * YA_USADA, 0) -
-        fueras.filter((id) => id === fuera.prenda.id).length * YA_USADA +
-        azar() * VARIEDAD
-      return [{ pila, capas, fuera, valor, ...resultado }]
-    })
-    // Que la misma capa de fuera no salga en los cuatro, si hay otra que valga.
-    const [primera] = fueras
-    const repetida =
-      fueras.length === CUANTOS_OUTFITS - 1 && fueras.every((id) => id === primera)
-        ? primera
-        : undefined
-    const sinRepetir = valoradas.filter((v) => v.fuera.prenda.id !== repetida)
-    const posibles = sinRepetir.length > 0 ? sinRepetir : valoradas
-    return posibles.reduce<(typeof posibles)[number] | null>(
-      (mejor, v) => (!mejor || v.valor > mejor.valor ? v : mejor),
-      null,
-    )
-  }
-
-  const completar = (
-    piezas: readonly Candidato<P>[],
-    opciones: readonly Candidato<P>[],
-    obligatoria: boolean,
-  ): Candidato<P> | null => {
-    let mejor: Candidato<P> | null = null
-    let mejorNota = -Infinity
-    for (const opcion of opciones) {
-      const combina = armonia([...piezas, opcion].map((c) => c.prenda)).combina
-      if (!obligatoria && !combina) continue
-      const valor =
-        opcion.puntos - (combina ? 0 : CHOQUE_COLOR) - veces(opcion) * YA_USADA + azar() * VARIEDAD
-      if (valor > mejorNota) {
-        mejor = opcion
-        mejorNota = valor
-      }
     }
-    return mejor
-  }
 
-  /** El outfit completo de una base y su parte de abajo, o `null` si ninguna capa encaja con ella. */
-  const construir = (piezas: NoVacia<Candidato<P>>): OutfitReglas<P> | null => {
-    const [base, inferior] = piezas
-    const pila = elegirPila(base, inferior ? [inferior] : [])
-    if (!pila) return null
-    const { capas } = pila
-    for (const c of capas) usar(c)
-    if (inferior) usar(inferior)
-    const calzado = completar([...capas, ...piezas.slice(1)], calzados, true)
-    if (calzado) usar(calzado)
-    const sinAccesorio = [...capas, ...piezas.slice(1), ...(calzado ? [calzado] : [])]
-    const accesorio = completar(sinAccesorio, accesorios, false)
-    if (accesorio) usar(accesorio)
-    const todas = [...sinAccesorio, ...(accesorio ? [accesorio] : [])]
-    fueras.push((capas.at(-1) ?? base).prenda.id)
+    const completar = (
+      piezas: readonly Candidato<P>[],
+      opciones: readonly Candidato<P>[],
+      obligatoria: boolean,
+    ): Candidato<P> | null => {
+      let mejor: Candidato<P> | null = null
+      let mejorNota = -Infinity
+      for (const opcion of opciones) {
+        const combina = armonia([...piezas, opcion].map((c) => c.prenda)).combina
+        if (!obligatoria && !combina) continue
+        const valor =
+          opcion.puntos -
+          (combina ? 0 : CHOQUE_COLOR) -
+          veces(opcion) * YA_USADA +
+          azar() * VARIEDAD
+        if (valor > mejorNota) {
+          mejor = opcion
+          mejorNota = valor
+        }
+      }
+      return mejor
+    }
 
-    const { prendas, ranuras } = enOrden(
-      pila.pila,
-      inferior?.prenda ?? null,
-      calzado?.prenda ?? null,
-      accesorio ? [accesorio.prenda] : [],
-    )
-    return {
-      prendas,
-      ranuras,
-      principal: base.prenda,
-      puntos: Math.round((nota(todas) + pila.puntos) * 10) / 10,
-      motivo: motivo(
-        contexto,
+    /** El outfit completo de una base y su parte de abajo, o `null` si ninguna capa encaja con ella. */
+    const construir = (piezas: NoVacia<Candidato<P>>): OutfitReglas<P> | null => {
+      const [base, inferior] = piezas
+      const pila = elegirPila(base, inferior ? [inferior] : [])
+      if (!pila) return null
+      const { capas } = pila
+      for (const c of capas) usar(c)
+      if (inferior) usar(inferior)
+      const calzado = completar([...capas, ...piezas.slice(1)], calzados, true)
+      if (calzado) usar(calzado)
+      const sinAccesorio = [...capas, ...piezas.slice(1), ...(calzado ? [calzado] : [])]
+      const accesorio = completar(sinAccesorio, accesorios, false)
+      if (accesorio) usar(accesorio)
+      const todas = [...sinAccesorio, ...(accesorio ? [accesorio] : [])]
+      fueras.push((capas.at(-1) ?? base).prenda.id)
+
+      const { prendas, ranuras } = enOrden(
         pila.pila,
-        todas.map((c) => c.prenda),
-        pila.consejo,
-      ),
+        inferior?.prenda ?? null,
+        calzado?.prenda ?? null,
+        accesorio ? [accesorio.prenda] : [],
+      )
+      return {
+        prendas,
+        ranuras,
+        principal: base.prenda,
+        puntos: Math.round((nota(todas) + pila.puntos) * 10) / 10,
+        motivo: motivo(
+          contexto,
+          pila.pila,
+          todas.map((c) => c.prenda),
+          pila.consejo,
+        ),
+      }
     }
+
+    // Primero sin repetir ni la base ni la de abajo; luego se deja repetir la de abajo; al final,
+    // cualquier combinación nueva.
+    const principales = new Set<string>()
+    const segundas = new Set<string>()
+    const probadas = new Set<string>()
+    // Si ninguna capa encaja con una base, no encaja tampoco con otra parte de abajo.
+    const basesSinPila = new Set<string>()
+    const outfits: OutfitReglas<P>[] = []
+    const pasadas = [
+      (piezas: NoVacia<Candidato<P>>) =>
+        !principales.has(piezas[0].prenda.id) && !segundas.has(piezas[1]?.prenda.id ?? ''),
+      (piezas: NoVacia<Candidato<P>>) => !principales.has(piezas[0].prenda.id),
+      () => true,
+    ]
+    for (const vale of pasadas) {
+      for (const { piezas, clave } of combinaciones) {
+        if (outfits.length === CUANTOS_OUTFITS) break
+        if (probadas.has(clave) || basesSinPila.has(piezas[0].prenda.id) || !vale(piezas)) continue
+        probadas.add(clave)
+        const outfit = construir(piezas)
+        if (!outfit) {
+          basesSinPila.add(piezas[0].prenda.id)
+          continue
+        }
+        outfits.push(outfit)
+        principales.add(piezas[0].prenda.id)
+        if (piezas[1]) segundas.add(piezas[1].prenda.id)
+      }
+    }
+    return outfits
   }
 
-  // Primero sin repetir ni la base ni la de abajo; luego se deja repetir la de abajo; al final,
-  // cualquier combinación nueva.
-  const principales = new Set<string>()
-  const segundas = new Set<string>()
-  const probadas = new Set<string>()
-  // Si ninguna capa encaja con una base, no encaja tampoco con otra parte de abajo.
-  const basesSinPila = new Set<string>()
-  const outfits: OutfitReglas<P>[] = []
-  const pasadas = [
-    (piezas: NoVacia<Candidato<P>>) =>
-      !principales.has(piezas[0].prenda.id) && !segundas.has(piezas[1]?.prenda.id ?? ''),
-    (piezas: NoVacia<Candidato<P>>) => !principales.has(piezas[0].prenda.id),
-    () => true,
-  ]
-  for (const vale of pasadas) {
-    for (const { piezas, clave } of combinaciones) {
-      if (outfits.length === CUANTOS_OUTFITS) break
-      if (probadas.has(clave) || basesSinPila.has(piezas[0].prenda.id) || !vale(piezas)) continue
-      probadas.add(clave)
-      const outfit = construir(piezas)
-      if (!outfit) {
-        basesSinPila.add(piezas[0].prenda.id)
-        continue
-      }
-      outfits.push(outfit)
-      principales.add(piezas[0].prenda.id)
-      if (piezas[1]) segundas.add(piezas[1].prenda.id)
-    }
-  }
+  let outfits = componer(recursos)
   if (outfits.length === 0) {
-    avisos.push('las capas de arriba que tienes no encajan con el tiempo de hoy')
+    // Con lo que hay no se llega a lo que pide el día: mejor algo, y decirlo, que nada.
+    outfits = componer(SIN_RECURSOS)
+    const { temperatura } = contexto
+    if (outfits.length === 0) {
+      avisos.push('las capas de arriba que tienes no encajan con el tiempo de hoy')
+    } else if (temperatura !== null) {
+      avisos.push(`con lo que tienes no vas del todo abrigado para ${String(temperatura)} °C`)
+    }
   }
 
   if (outfits.length > 0 && outfits.length < CUANTOS_OUTFITS) {
@@ -397,9 +439,7 @@ export function comprobarOutfit<P extends PrendaReglas>(
   if (conVestido && arriba.some((c) => c.capas.every((capa) => capa === 'base'))) {
     return { error: 'sobre un vestido no va otra parte de arriba' }
   }
-  const puedeAbrigarse = resultado.candidatos.some(
-    (c) => c.capas.includes('media') || c.capas.includes('exterior'),
-  )
+  const recursos = recursosDe(resultado.candidatos)
   const resto = elegidas.filter((c) => c.capas.length === 0 && c !== vestido).map((c) => c.prenda)
   let mejor: { pila: Pila<P>; puntos: number } | null = null
   let primerFallo: string | null = null
@@ -413,7 +453,11 @@ export function comprobarOutfit<P extends PrendaReglas>(
         medias: orden.filter((_, i) => patron[i] === 'media').map((c) => c.prenda),
         exterior: orden.find((_, i) => patron[i] === 'exterior')?.prenda ?? null,
       }
-      const fallo = fallaPila(pila, contexto, puedeAbrigarse)
+      // Con la exterior obligatoria, una pila sin ella no vale aunque puntúe más.
+      const fallo =
+        contexto.necesitaAbrigo && hayExterior && !pila.exterior
+          ? 'hoy necesita abrigo'
+          : fallaPila(pila, contexto, recursos)
       if (fallo) {
         primerFallo ??= fallo
         continue

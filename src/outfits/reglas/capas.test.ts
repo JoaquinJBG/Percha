@@ -87,12 +87,17 @@ describe('capas de hoy en los candidatos', () => {
     ])
   })
 
-  it('en casa no hay exterior', () => {
-    const resultado = candidatos(peticion(basico(), { ocasion: 'casa', tiempo: tiempo(5) }))
-    expect(resultado.descartadas.find((d) => d.prenda.id === 'abrigo')?.motivo).toBe(
-      'en casa no hace falta abrigo',
+  it('en casa no hay exterior ni chaquetas; un cárdigan sí', () => {
+    const cardigan = prenda({ id: 'cardigan', subcategoria: 'cárdigan', abrigo: 3 })
+    const resultado = candidatos(
+      peticion([...basico(), cardigan], { ocasion: 'casa', tiempo: tiempo(5) }),
     )
-    expect(capasDe(resultado, 'sobrecamisa')?.capas).toEqual(['media'])
+    for (const id of ['abrigo', 'sobrecamisa']) {
+      expect(resultado.descartadas.find((d) => d.prenda.id === id)?.motivo).toBe(
+        'en casa no hace falta abrigo',
+      )
+    }
+    expect(capasDe(resultado, 'cardigan')?.capas).toEqual(['media'])
   })
 
   it('las capas guardadas mandan sobre las de por defecto', () => {
@@ -309,5 +314,147 @@ describe('ranurasDe', () => {
     expect(ranurasDe({ prendas })).toEqual(['base', 'media', 'exterior', 'inferior', 'calzado'])
     const conVestido = [prenda({ categoria: 'vestido' }), prenda({ categoria: 'abrigo' })]
     expect(ranurasDe({ prendas: conVestido })).toEqual(['vestido', 'exterior'])
+    const conSudadera = [
+      prenda(),
+      prenda({ subcategoria: 'sudadera' }),
+      prenda({ categoria: 'inferior' }),
+    ]
+    expect(ranurasDe({ prendas: conSudadera })).toEqual(['base', 'exterior', 'inferior'])
+    const conCardigan = [
+      prenda(),
+      prenda({ subcategoria: 'cárdigan' }),
+      prenda({ categoria: 'inferior' }),
+    ]
+    expect(ranurasDe({ prendas: conCardigan })).toEqual(['base', 'media', 'inferior'])
+  })
+})
+
+describe('con frío, lo que encontró la revisión', () => {
+  const enAbrigo = (o: OutfitReglas) =>
+    o.prendas.filter((_, i) => o.ranuras?.[i] === 'exterior').map((p) => p.categoria)
+
+  it('si hay abrigo, ningún outfit sale con una sudadera de exterior', () => {
+    const armario = [
+      ...[1, 2, 3, 4, 5].map((n) =>
+        prenda({
+          id: `sudadera${String(n)}`,
+          subcategoria: 'sudadera',
+          abrigo: 4,
+          colores: ['gris'],
+        }),
+      ),
+      ...[1, 2, 3, 4].map((n) =>
+        prenda({ id: `camiseta${String(n)}`, subcategoria: 'camiseta', abrigo: 1 }),
+      ),
+      prenda({
+        id: 'plumifero',
+        categoria: 'abrigo',
+        subcategoria: 'plumífero',
+        abrigo: 5,
+        colores: ['negro'],
+      }),
+      prenda({ id: 'vaqueros', categoria: 'inferior', subcategoria: 'vaqueros', abrigo: 3 }),
+      prenda({ id: 'botas', categoria: 'calzado', subcategoria: 'botas', abrigo: 3 }),
+    ]
+    for (const grados of [2, 5, 10]) {
+      const { outfits } = cuatroOutfits(peticion(armario, { tiempo: tiempo(grados) }))
+      expect(outfits.length).toBeGreaterThan(0)
+      for (const outfit of outfits) expect(enAbrigo(outfit)).toEqual(['abrigo'])
+    }
+  })
+
+  it('con el armario de ejemplo a 5 °C, lo de fuera siempre es un abrigo de verdad', () => {
+    for (let semilla = 1; semilla <= 10; semilla++) {
+      const { outfits } = cuatroOutfits(peticion(armarioConCapas(), { tiempo: tiempo(5) }), semilla)
+      for (const outfit of outfits) {
+        const fuera = outfit.prendas.find((_, i) => outfit.ranuras?.[i] === 'exterior')
+        expect(['gabardina', 'plumifero']).toContain(fuera?.id)
+      }
+    }
+  })
+
+  it('sin nada con qué abrigarse del todo, sale igual y lo dice', () => {
+    const armario = [
+      prenda({ id: 'camiseta', subcategoria: 'camiseta', abrigo: 1 }),
+      prenda({ id: 'merino', subcategoria: 'jersey de merino', abrigo: 3 }),
+      prenda({ id: 'vaqueros', categoria: 'inferior', abrigo: 3 }),
+      prenda({ id: 'zapatillas', categoria: 'calzado', abrigo: 2 }),
+    ]
+    const { outfits, avisos } = cuatroOutfits(peticion(armario, { tiempo: tiempo(2) }))
+    expect(outfits.length).toBeGreaterThan(0)
+    expect(avisos).toContain('con lo que tienes no vas del todo abrigado para 2 °C')
+    const conCazadora = [
+      ...armario,
+      prenda({ id: 'cazadora', categoria: 'abrigo', subcategoria: 'cazadora vaquera', abrigo: 3 }),
+    ]
+    expect(
+      cuatroOutfits(peticion(conCazadora, { tiempo: tiempo(2) })).outfits.length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('el abrigo bueno entra aunque haya muchas capas con más puntos', () => {
+    const armario = [
+      ...Array.from({ length: 14 }, (_, n) =>
+        prenda({
+          id: `s${String(n).padStart(2, '0')}`,
+          subcategoria: 'sudadera',
+          abrigo: 3,
+          ocasiones: ['diario'],
+        }),
+      ),
+      prenda({ id: 'camiseta', subcategoria: 'camiseta', abrigo: 1 }),
+      prenda({
+        id: 'plumifero',
+        categoria: 'abrigo',
+        subcategoria: 'plumífero',
+        abrigo: 5,
+        estilos: [],
+      }),
+      prenda({ id: 'vaqueros', categoria: 'inferior', abrigo: 3 }),
+      prenda({ id: 'botas', categoria: 'calzado', abrigo: 3 }),
+    ]
+    const { outfits } = cuatroOutfits(peticion(armario, { tiempo: tiempo(2) }))
+    expect(outfits.length).toBeGreaterThan(0)
+    expect(outfits.every((o) => o.prendas.some((p) => p.id === 'plumifero'))).toBe(true)
+  })
+
+  it('comprobarOutfit acepta una sobrecamisa de exterior a 10 °C', () => {
+    const deHoy = candidatos(
+      peticion(
+        basico().filter((p) => p.id !== 'abrigo'),
+        { tiempo: tiempo(10) },
+      ),
+    )
+    const resultado = comprobarOutfit(['camiseta', 'sobrecamisa', 'vaqueros', 'zapatillas'], deHoy)
+    expect('ranuras' in resultado && resultado.ranuras).toEqual([
+      'base',
+      'exterior',
+      'inferior',
+      'calzado',
+    ])
+  })
+
+  it('a 13 °C, plumífero sobre un jersey de ochos abriga de más', () => {
+    const armario = [
+      prenda({ id: 'camiseta', subcategoria: 'camiseta', abrigo: 1 }),
+      prenda({ id: 'ochos', subcategoria: 'jersey de ochos', abrigo: 4 }),
+      prenda({ id: 'plumifero', categoria: 'abrigo', subcategoria: 'plumífero', abrigo: 5 }),
+      prenda({ id: 'vaqueros', categoria: 'inferior', abrigo: 3 }),
+      prenda({ id: 'botas', categoria: 'calzado', abrigo: 3 }),
+    ]
+    const deHoy = candidatos(peticion(armario, { tiempo: tiempo(13) }))
+    expect(comprobarOutfit(['camiseta', 'ochos', 'plumifero', 'vaqueros', 'botas'], deHoy)).toEqual(
+      {
+        error: 'demasiado abrigo arriba para 13 °C',
+      },
+    )
+  })
+
+  it('con lluvia templada, el motivo nombra lo de fuera si no es un abrigo', () => {
+    const sinAbrigo = basico().filter((p) => p.id !== 'abrigo')
+    const [outfit] = cuatroOutfits(
+      peticion(sinAbrigo, { tiempo: tiempo(18, { precipitacion: 'lluvia' }) }),
+    ).outfits
+    expect(outfit?.motivo).toMatch(/^sobrecamisa por la lluvia/)
   })
 })

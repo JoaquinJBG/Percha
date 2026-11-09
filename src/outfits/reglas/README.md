@@ -19,7 +19,7 @@ T6.2 monta la parte de arriba **por capas** (D18 y §1 de `docs/investigacion/re
   accesorio; `prendas[0]` es siempre `principal`), `puntos` y `motivo` («con sobrecamisa para 18 °C,
   informal para diario, casual»). La misma semilla da siempre lo mismo.
 - `ranurasDe(outfit)`: las `ranuras` del outfit o, si no las trae (outfits guardados de antes o de la IA),
-  deducidas del orden y la categoría. Lo usa el collage.
+  deducidas del orden, la categoría y los papeles. Lo usa el collage.
 - `contexto`: temperatura (sensación media), precipitación, `necesitaAbrigo` (exterior obligatoria),
   `terceraPieza`, temporada, rango de formalidad y estilos afines.
 - `avisos`: frases para el usuario («te falta calzado (con lluvia no va calzado abierto)»). Nunca se lanza
@@ -39,11 +39,17 @@ T6.2 monta la parte de arriba **por capas** (D18 y §1 de `docs/investigacion/re
    (la capa más gruesa + 1 por capa de más) tiene que caer en el rango de `rangoArriba`.
 3. **Reglas de capa** (`pilas.ts`): 1 base (o vestido) + 0–2 medias + 0–1 exterior, y cada prenda solo en un
    papel que tenga (`capas`, o las de por defecto con `capasDe`). Duras: de fino a grueso con un nivel de
-   margen (C1), 4 capas solo con ≤3 °C y una fina (C2), el abrigo largo siempre fuera y una chaqueta de
-   media solo bajo un abrigo largo (C3, C4), un solo estampado (C9), las prohibidas de C10, camisa abierta
-   solo sobre camiseta, nada de partes de arriba sobre un vestido, jersey o sudadera nunca encima de otra
-   capa, con lluvia la exterior es un abrigo, y con ≤3 °C un abrigo de verdad. Blandas: C1 suave, C5, C6,
-   C7, C8, C13 y el abrigo justo; C11 y C12 salen como consejo en el motivo.
+   margen (C1); 4 capas solo con ≤3 °C y una fina (C2); el abrigo largo siempre fuera y una chaqueta de
+   media solo bajo un abrigo largo (C3, C4); una chaqueta encima de todo es la exterior; un solo
+   estampado (C9); las prohibidas de C10 (la sudadera bajo la americana, en toda ocasión arreglada); camisa
+   + chaqueta bajo el abrigo (C13); camisa abierta solo sobre camiseta; sobre un vestido, ni camiseta, ni
+   camisa, ni sudadera; nunca dos jerséis o sudaderas uno encima de otro; y el abrigo de toda la parte de
+   arriba por encima de `rangoArriba`. Las que piden algo mejor solo descartan si el armario lo tiene
+   (`Recursos`): bajo 14 °C o con lluvia la exterior es de la categoría abrigo, bajo 9 °C un abrigo de
+   verdad (largo o de abrigo 4 o más), y el poco abrigo arriba solo si hay más capas que poner. Si así no
+   sale ningún outfit, se vuelve a probar sin exigir y se avisa («con lo que tienes no vas del todo
+   abrigado para 2 °C»). Blandas: C1 suave, C5, C6, C7, C8, el abrigo flojo bajo 9 °C y el abrigo justo;
+   C11 y C12 salen como consejo en el motivo.
 4. **Lluvia o nieve**: exterior salvo que haga 24 °C o más; fuera calzado abierto y ante, serraje o
    terciopelo. Suma lo que diga «agua» o «impermeable» en la subcategoría. En casa no cuenta el tiempo de
    fuera y no hay exterior.
@@ -56,7 +62,8 @@ T6.2 monta la parte de arriba **por capas** (D18 y §1 de `docs/investigacion/re
 8. **Variedad**: no se repite la base ni el vestido si se puede; luego la de abajo; la capa de fuera no es
    la misma en los cuatro si hay otra que valga, y lo demás se repite lo menos posible. Una base con la que
    no encaja ninguna capa se salta. Con armarios grandes combina las 40 mejores bases e inferiores y las
-   12 mejores medias y exteriores.
+   12 mejores medias y exteriores, más los 4 mejores abrigos aunque puntúen menos. Con la exterior
+   obligatoria, repetir abrigo no resta.
 
 `ejemplo.ts` imprime los 4 outfits del armario de ejemplo con capas en varios días:
 `node --experimental-strip-types src/outfits/reglas/ejemplo.ts`.

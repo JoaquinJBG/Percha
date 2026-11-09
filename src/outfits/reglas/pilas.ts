@@ -17,12 +17,8 @@ export interface Pila<P extends PrendaReglas = PrendaReglas> {
 /** Tope de prendas por outfit; el mismo número que `MAX_PRENDAS_POR_OUTFIT` de la IA (T6.3). */
 export const MAX_PRENDAS_POR_OUTFIT = 8
 export const MAX_ACCESORIOS = 3
-/**
- * Por debajo (°C), la exterior debería ser un abrigo largo o algo que abrigue 4 o más (§1.5: de paño o
- * acolchada); a 3 °C o menos, sí o sí.
- */
+/** Por debajo (°C), la exterior es un abrigo largo o uno que abrigue 4 o más (§1.5: de paño o acolchada). */
 const FRIO_DE_ABRIGO = 9
-const FRIO_EXTREMO = 3
 /** Sin tiempo, lo que va encima no puede abrigar más que una tercera pieza ligera. */
 const ABRIGO_SIN_TIEMPO = 3
 
@@ -55,9 +51,45 @@ export function esChalecoDePunto(prenda: PrendaReglas): boolean {
   )
 }
 
-function abrigaDeVerdad(prenda: PrendaReglas): boolean {
-  return es(LARGO, prenda) || prenda.abrigo >= 4
+/** Un abrigo de los de verdad: de la categoría abrigo y largo o que abrigue 4 o más. */
+export function abrigaDeVerdad(prenda: PrendaReglas): boolean {
+  return prenda.categoria === 'abrigo' && (es(LARGO, prenda) || prenda.abrigo >= 4)
 }
+
+/**
+ * Lo que tiene el armario hoy para ir encima. Las reglas que piden algo mejor solo descartan si ese
+ * algo existe; si no, el outfit sale igual y lo dice un aviso.
+ */
+export interface Recursos {
+  /** Hay alguna media o exterior. */
+  puedeAbrigarse: boolean
+  /** Hay alguna exterior de la categoría abrigo. */
+  hayAbrigo: boolean
+  /** Hay alguna exterior que `abrigaDeVerdad`. */
+  hayAbrigoDeVerdad: boolean
+}
+
+export const SIN_RECURSOS: Recursos = {
+  puedeAbrigarse: false,
+  hayAbrigo: false,
+  hayAbrigoDeVerdad: false,
+}
+
+export function recursosDe(
+  candidatas: readonly { prenda: PrendaReglas; capas: readonly string[] }[],
+): Recursos {
+  const exteriores = candidatas.filter((c) => c.capas.includes('exterior')).map((c) => c.prenda)
+  return {
+    puedeAbrigarse: candidatas.some(
+      (c) => c.capas.includes('media') || c.capas.includes('exterior'),
+    ),
+    hayAbrigo: exteriores.some((p) => p.categoria === 'abrigo'),
+    hayAbrigoDeVerdad: exteriores.some(abrigaDeVerdad),
+  }
+}
+
+/** Ocasiones en las que una sudadera bajo la americana no pega. */
+const ARREGLADAS = new Set(['trabajo', 'cita', 'cena', 'fiesta / noche', 'evento formal', 'boda'])
 
 /** De dentro afuera. */
 export function capasDeLaPila<P extends PrendaReglas>(pila: Pila<P>): P[] {
@@ -65,11 +97,10 @@ export function capasDeLaPila<P extends PrendaReglas>(pila: Pila<P>): P[] {
 }
 
 /**
- * Las reglas duras de capa (C1–C4, C9, C10, C13 y el abrigo de la parte de arriba): el motivo por el que la
- * pila no vale o `null`. `puedeAbrigarse` dice si el armario tiene alguna capa más que poner: si no, el
- * poco abrigo solo resta.
+ * Las reglas duras de capa (C1–C4, C9, C10, C13 y el abrigo de la parte de arriba): el motivo por el que
+ * la pila no vale o `null`. `recursos` dice qué hay en el armario para ir encima (`recursosDe`).
  */
-export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolean): string | null {
+export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): string | null {
   const capas = capasDeLaPila(pila)
   const { temperatura, ocasion } = contexto
 
@@ -105,13 +136,26 @@ export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolea
     if (chaqueta < pila.medias.length - 1) return `sobre ${nombre} solo va un abrigo`
     if (pila.exterior && !es(LARGO, pila.exterior)) return `sobre ${nombre} solo va un abrigo`
   }
+  // Una chaqueta encima de todo hace de exterior, con sus reglas, no de media.
+  if (!pila.exterior && pila.medias.some((m) => m.categoria === 'abrigo')) {
+    return 'una chaqueta encima de todo va de exterior'
+  }
   if (pila.exterior?.categoria === 'superior' && pila.medias.length > 0) {
     return 'un jersey o una sudadera no va encima de otra capa'
+  }
+  const gordas = capas.filter((c) => (es(PUNTO, c) || es(CAPUCHA, c)) && !esChalecoDePunto(c))
+  if (gordas.length > 1) return 'dos jerséis o sudaderas, uno encima de otro'
+  const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
+  if (pila.exterior?.categoria === 'superior' && recursos.hayAbrigo) {
+    if (contexto.precipitacion)
+      return `con ${contexto.precipitacion} lo de fuera tiene que ser un abrigo`
+    if (frio) return `a ${String(temperatura)} °C lo de fuera tiene que ser un abrigo`
   }
   if (
     pila.exterior &&
     temperatura !== null &&
-    temperatura <= FRIO_EXTREMO &&
+    temperatura < FRIO_DE_ABRIGO &&
+    recursos.hayAbrigoDeVerdad &&
     !abrigaDeVerdad(pila.exterior)
   ) {
     return `a ${String(temperatura)} °C lo de fuera tiene que ser un abrigo de verdad`
@@ -123,11 +167,13 @@ export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolea
   ) {
     return 'sin saber el tiempo, encima solo algo ligero'
   }
-  if (contexto.precipitacion && pila.exterior?.categoria === 'superior') {
-    return `con ${contexto.precipitacion} lo de fuera tiene que ser un abrigo`
-  }
   if (pila.base.categoria === 'vestido') {
-    if ([...pila.medias, pila.exterior].some((c) => c && capasDe(c).includes('base'))) {
+    const deBase = (c: PrendaReglas) => es(CAMISETA, c) || esCamisa(c) || es(CAPUCHA, c)
+    if (
+      [...pila.medias, pila.exterior].some(
+        (c) => c && (deBase(c) || !capasDe(c).some((x) => x !== 'base')),
+      )
+    ) {
       return 'sobre un vestido no va otra parte de arriba'
     }
   } else if (pila.medias.some(esCamisa) && !es(CAMISETA, pila.base)) {
@@ -149,8 +195,8 @@ export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolea
     return i < 0 ? [] : capas.slice(0, i)
   })()
   if (debajoDeAmericana.some(esPuntoGrueso)) return 'un jersey grueso no va bajo la americana'
-  if (ocasion === 'trabajo' && debajoDeAmericana.some((c) => es(CAPUCHA, c))) {
-    return 'capucha bajo americana no va al trabajo'
+  if (ARREGLADAS.has(ocasion) && debajoDeAmericana.some((c) => es(CAPUCHA, c))) {
+    return `una sudadera bajo la americana no va a ${ocasion}`
   }
   if (
     pila.exterior &&
@@ -164,8 +210,8 @@ export function fallaPila(pila: Pila, contexto: Contexto, puedeAbrigarse: boolea
   if (temperatura !== null) {
     const [minimo, maximo] = rangoArriba(temperatura)
     const abrigo = abrigoDeArriba(capas)
-    if (abrigo > maximo + 1) return `demasiado abrigo arriba para ${String(temperatura)} °C`
-    if (abrigo < minimo - 1 && puedeAbrigarse)
+    if (abrigo > maximo) return `demasiado abrigo arriba para ${String(temperatura)} °C`
+    if (abrigo < minimo - 1 && recursos.puedeAbrigarse)
       return `poco abrigo arriba para ${String(temperatura)} °C`
   }
   return null

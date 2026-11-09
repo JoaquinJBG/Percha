@@ -104,8 +104,10 @@ type Evaluacion =
 function capasDeHoy(prenda: PrendaReglas, contexto: Contexto): Capa[] {
   const { temperatura, necesitaAbrigo, terceraPieza } = contexto
   let capas = capasDe(prenda)
-  if (contexto.ocasion === 'casa') capas = capas.filter((c) => c !== 'exterior')
-  else if (!necesitaAbrigo && !terceraPieza) {
+  // En casa, como mucho un punto o una sudadera encima; nada de chaquetas ni abrigos.
+  if (contexto.ocasion === 'casa') {
+    capas = prenda.categoria === 'abrigo' ? [] : capas.filter((c) => c !== 'exterior')
+  } else if (!necesitaAbrigo && !terceraPieza) {
     // Con calor, solo base; si llueve, también un chubasquero fino por encima.
     const fino = contexto.precipitacion !== null && prenda.abrigo <= 2
     capas = capas.filter((c) => c === 'base' || (fino && c === 'exterior'))

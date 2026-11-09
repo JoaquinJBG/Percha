@@ -152,7 +152,7 @@ Sale de la investigación de moda (`docs/investigacion/reglas-outfits.md`, en la
 |---|---|---|---|
 | T6.1 | Capas en la prenda: campo `capas` (base, media, exterior), etiquetado con IA y por defecto según el tipo, editable y en el detalle (D18) | T5.1 | 👀 |
 | T6.2 | Composición con capas y tercera pieza: 1 base + 0–2 medias + 0–1 exterior con las reglas C1–C13, tercera pieza entre 14 y 23 °C, collage de dentro afuera | T6.1 | ⏳ |
-| T6.3 | Prompt v2 de Gemini para elegir los 4 outfits (§9 de la investigación) | T6.2 | ⏳ |
+| T6.3 | Prompt v2 de Gemini para elegir los 4 outfits (§9 de la investigación) | T6.2 | 👀 |
 | T6.4 | Color y formalidad: clases de color, presupuesto de acentos y escalera de formalidad (§2–3) | T6.2 | ⏳ |
 | T6.5 | Perfil de cuerpo, oficina y sensación térmica (§6 y P7) | T6.2 | ⏳ |
 

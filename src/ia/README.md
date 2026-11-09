@@ -33,4 +33,5 @@ todo desde `src/ia/index.ts`.
 La respuesta se valida con Zod dos veces: con las listas cerradas de la IA (colores, estampados, 1–3
 colores, 1–4 estilos…) y con `etiquetasPrendaSchema` de `src/datos/modelo.ts`. Las `capas` (T6.1) se leen
 aparte: solo en `superior` y `abrigo`, y si faltan, vienen vacías o no valen, se ponen las de
-`capasPorDefecto`, sin perder la prenda.
+`capasPorDefecto`, sin perder la prenda. El corte y
+los detalles (T8.1) también: se quedan solo los que valen para el tipo de la prenda.

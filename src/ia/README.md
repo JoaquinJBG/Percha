@@ -20,7 +20,12 @@ todo desde `src/ia/index.ts`.
 - `crearProveedorGemini({ clave, modelo })`: usa `@google/genai` (se carga al primer uso), salida JSON
   con esquema (`esquema.ts`) y prompt de `prompt.ts`. Las fotos se reducen a 768 px en JPEG con fondo
   blanco (`fotos.ts`).
-- Outfits en Gemini: el prompt está en `prompt-outfits.ts` (v1) y el esquema en `esquema-outfits.ts`. Cada
+- Outfits en Gemini: el prompt está en `prompt-outfits.ts` (v2, §9.1 de la investigación de moda: capas,
+  formalidad, color y variedad, por bloques; el del perfil de cuerpo llega con T6.5) y el esquema en
+  `esquema-outfits.ts` (hasta `MAX_PRENDAS_POR_OUTFIT` = 8 prendas por outfit). En la petición, cada
+  prenda lleva sus `capas` (las guardadas o las de `capasDe`), su composición si la hay y «opcional» si es
+  tercera pieza; el tiempo dice si la capa exterior es `obligatoria`, `opcional` o `no` (lo decide
+  `src/outfits/ia/`). Cada
   prenda va como una línea con una referencia corta (`P1`, `P2`…) en vez de su UUID, que se traduce de
   vuelta al leer; una referencia que no se envió se deja tal cual para que se vea que no existe. La
   `semilla` va como `seed`.

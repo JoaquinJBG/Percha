@@ -10,23 +10,44 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
   usa la pantalla (T2.5).
 - Cada outfit lleva además `origen`: `ia` (su `motivo` es la frase de la IA) o `reglas` (relleno). El
   resultado lleva `errorIA`: el `TipoErrorIA` si no se pudo usar la IA, o `null`.
+- `comprobarConCapas(ids, enviadas, { exterior, temperatura })`: el validador de los outfits de la IA
+  (abajo).
+- `exteriorDeHoy(contexto)` → `obligatoria` | `opcional` | `no`, con `LIMITE_EXTERIOR` (14 °C) y
+  `LIMITE_TERCERA_PIEZA` (23 °C). **T6.2 tiene los mismos umbrales en las reglas:** al juntar las ramas,
+  que salgan de un solo sitio.
 
 ## Qué hace
 
 1. Calcula los 4 de las reglas. Si no sale ninguno (falta base o calzado), los devuelve sin llamar a la IA.
-2. Manda a la IA, en texto y sin fotos, las mejores candidatas de cada categoría (`MAX_POR_CATEGORIA` = 8),
-   el estilo, la ocasión y el tiempo. Como las reglas: solo las de ajuste `pleno` si las hay, abrigos solo
-   si hoy hacen falta y accesorios solo plenos.
-3. Cada outfit de la IA se comprueba con `comprobarOutfit` contra las prendas enviadas: ids que existen,
-   base, un calzado, abrigo si hoy hace falta y hay, como mucho un abrigo y dos accesorios. Se quitan los
-   repetidos.
-4. Los que falten hasta 4 se rellenan con los de las reglas, primero los que no repiten parte de arriba.
-5. Sin clave, sin red, sin cupo (429), respuesta inválida (o ningún outfit de la IA válido) o cualquier
+2. Decide la capa exterior de hoy: `obligatoria` por debajo de 14 °C o con lluvia o nieve (salvo con
+   24 °C o más); `opcional` entre 14 y 23 °C y sin tiempo; `no` con más calor y en casa.
+3. Manda a la IA, en texto y sin fotos, las mejores candidatas de cada categoría
+   (`MAX_POR_CATEGORIA_ARRIBA` = 10 en `superior` y `abrigo`, que reparten tres capas;
+   `MAX_POR_CATEGORIA` = 8 en el resto), el estilo, la ocasión y el tiempo. Cada prenda va con sus
+   `capas` (si faltan, las de por defecto de `src/datos/capas.ts`) y su composición si la hay. Como las
+   reglas: solo las de ajuste `pleno` si las hay y accesorios solo plenos. Categoría `abrigo`: nada con la
+   exterior en `no`; con `opcional`, solo los ligeros (abrigo ≤ 3). Las de arriba van siempre (un punto
+   grueso es capa media). Las ligeras que no pueden ir de base van marcadas `opcional` («tercera
+   pieza»).
+4. Cada outfit de la IA se comprueba con `comprobarConCapas` contra las prendas enviadas: ids que existen
+   y sin repetir; algo de abajo (o un vestido, que hace de base) y un calzado; como mucho 2 «superior», 2
+   «abrigo» y 2 accesorios; una base, hasta 2 medias y 1 exterior según los papeles de cada prenda;
+   exterior si es obligatoria y hay alguna; como mucho 3 capas visibles (4 con 3 °C o menos; 2 sin
+   exterior). Devuelve las prendas en orden de collage y, dentro de cada categoría, de dentro afuera. Se
+   quitan los repetidos. Las reglas finas de capas (C1–C13: de fino a grueso, la de fuera la más
+   larga…) son de T6.2; aquí solo se le piden a la IA en el prompt.
+5. Los que falten hasta 4 se rellenan con los de las reglas, primero los que no repiten parte de arriba.
+6. Sin clave, sin red, sin cupo (429), respuesta inválida (o ningún outfit de la IA válido) o cualquier
    otro fallo: salen los de las reglas con el aviso `outfits sin IA: <mensaje>` y `errorIA`. Nunca lanza, salvo el `AbortError` de una
    cancelación con `signal`.
 
-`ejemplo.ts` imprime el resultado con el proveedor falso (respuesta buena, prenda inventada y 429):
+`ejemplo.ts` imprime el resultado con el proveedor falso (respuesta buena, prenda inventada, 429 y
+tercera pieza a 19 °C):
 `node --experimental-strip-types src/outfits/ia/ejemplo.ts`.
+
+Hasta juntar con T6.2: las reglas aún piden abrigo por debajo de 16 °C (`LIMITE_ABRIGO`), y aquí la
+exterior solo es obligatoria por debajo de 14 °C. A 14–15 °C los outfits de la IA pueden salir sin abrigo
+y los de relleno con él.
 
 Pendiente para la pantalla (T2.5): cada llamada gasta una petición del cupo diario, así que conviene
 guardar el resultado por petición y semilla y cancelar la anterior con `signal`. El `seed` de Gemini no

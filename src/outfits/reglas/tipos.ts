@@ -1,4 +1,4 @@
-import type { Estilo, Ocasion, Prenda, Temporada } from '../../datos/modelo.ts'
+import type { Capa, Estilo, Ocasion, Prenda, Temporada } from '../../datos/modelo.ts'
 import type { Precipitacion, TiempoHoy } from '../../tiempo/tipos.ts'
 
 /** Lo que miran las reglas de una prenda: todo menos las fotos y los datos de alta. */
@@ -15,6 +15,7 @@ export type PrendaReglas = Pick<
   | 'ocasiones'
   | 'temporadas'
   | 'notas'
+  | 'capas'
 >
 
 export interface Peticion<P extends PrendaReglas = PrendaReglas> {
@@ -31,8 +32,10 @@ export interface Contexto {
   /** Sensación térmica media del día en °C, redondeada; `null` sin tiempo. */
   temperatura: number | null
   precipitacion: Precipitacion | null
-  /** Hace falta abrigo: sensación media por debajo de 16 °C, lluvia o nieve. */
+  /** Hace falta capa exterior: sensación media por debajo de 14 °C, o lluvia o nieve sin calor. */
   necesitaAbrigo: boolean
+  /** Entre 14 y 23 °C (o sin tiempo): una media o una exterior ligera es opcional. */
+  terceraPieza: boolean
   temporada: Temporada | null
   /** Rango de formalidad (1–5) que pide la ocasión. */
   formalidad: { minima: number; maxima: number }
@@ -55,6 +58,10 @@ export interface Candidato<P extends PrendaReglas = PrendaReglas> {
   ajuste: Ajuste
   /** Por qué encaja o no del todo, en frases cortas («estilo afín», «de verano»…). */
   motivos: string[]
+  /** Papeles que puede hacer hoy (solo `superior` y `abrigo`; vacío en lo demás). */
+  capas: Capa[]
+  /** Solo puede ir encima (media o exterior) y hoy no hace falta: tercera pieza a elegir. */
+  opcional: boolean
 }
 
 export interface Descartada<P extends PrendaReglas = PrendaReglas> {
@@ -71,10 +78,22 @@ export interface ResultadoCandidatos<P extends PrendaReglas = PrendaReglas> {
   avisos: string[]
 }
 
+/** El sitio de cada prenda en el outfit. */
+export type Ranura =
+  'exterior' | 'media' | 'base' | 'vestido' | 'inferior' | 'calzado' | 'accesorio'
+
 export interface OutfitReglas<P extends PrendaReglas = PrendaReglas> {
-  /** En orden de collage: superior + inferior (o vestido), abrigo, calzado y accesorio. */
+  /**
+   * De dentro afuera: base (o vestido), medias, exterior, inferior, calzado y accesorios. La primera es
+   * siempre `principal`. El collage las pinta en su orden (exterior, media, base…) según `ranuras`.
+   */
   prendas: P[]
-  /** La parte de arriba o el vestido: no se repite entre outfits si se puede. */
+  /**
+   * La ranura de cada prenda, en el mismo orden. `cuatroOutfits` y `comprobarOutfit` siempre la dan; si
+   * falta (outfits de antes de T6.2 o de la IA), `ranurasDe` la deduce del orden.
+   */
+  ranuras?: Ranura[]
+  /** La base de arriba o el vestido: no se repite entre outfits si se puede. */
   principal: P
   puntos: number
   /** «abrigo por 8 °C, formal para trabajo». */

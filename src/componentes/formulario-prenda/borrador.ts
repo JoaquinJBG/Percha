@@ -1,7 +1,9 @@
+import { capasPorDefecto, llevaCapas } from '../../datos/capas.ts'
 import {
   esEnlaceWeb,
   etiquetasPrendaSchema,
   MAX_COMPONENTES,
+  type Capa,
   type Categoria,
   type Componente,
   type DatosEtiqueta,
@@ -29,6 +31,8 @@ export interface Borrador {
   ocasiones: Ocasion[]
   temporadas: Temporada[]
   notas: string
+  /** `null` mientras no se toquen: siguen a la categoría y el tipo (`capasPorDefecto`). */
+  capas: Capa[] | null
   marca: string
   referencia: string
   talla: string
@@ -83,6 +87,7 @@ export function borradorInicial(
     ocasiones: [...(iniciales.ocasiones ?? [])],
     temporadas: [...(iniciales.temporadas ?? [])],
     notas: iniciales.notas ?? '',
+    capas: iniciales.capas && iniciales.capas.length > 0 ? [...iniciales.capas] : null,
     marca: iniciales.marca ?? '',
     referencia: iniciales.referencia ?? '',
     talla: iniciales.talla ?? '',
@@ -109,6 +114,15 @@ export function conDatosEtiqueta(borrador: Borrador, datos: DatosEtiqueta): Borr
     ...(datos.talla && { talla: datos.talla }),
     ...(datos.composicion && { composicion: filasComposicion(datos.composicion) }),
   }
+}
+
+/** Las capas que se ven marcadas: las elegidas o, si no se han tocado, las de por defecto. */
+export function capasVisibles(borrador: Borrador): Capa[] {
+  if (borrador.categoria === null || !llevaCapas(borrador.categoria)) return []
+  return (
+    borrador.capas ??
+    capasPorDefecto({ categoria: borrador.categoria, subcategoria: borrador.subcategoria })
+  )
 }
 
 function vacioAIndefinido(texto: string): string | undefined {
@@ -162,6 +176,8 @@ export function validarBorrador(
   if (enlace !== undefined && !esEnlaceWeb(enlace)) {
     errores.enlace = 'Pega el enlace entero, empezando por https://'
   }
+  const capas = llevaCapas(borrador.categoria) ? capasVisibles(borrador) : undefined
+  if (capas?.length === 0) errores.capas = 'Elige al menos uno.'
   if (Object.keys(errores).length > 0) return { valido: false, errores }
 
   const leido = etiquetasPrendaSchema.safeParse({
@@ -171,6 +187,7 @@ export function validarBorrador(
     talla: vacioAIndefinido(borrador.talla),
     composicion: composicion.valida ? composicion.composicion : undefined,
     enlace,
+    capas,
   })
   if (leido.success) {
     const { data } = leido
@@ -184,6 +201,8 @@ export function validarBorrador(
         talla: data.talla,
         composicion: data.composicion,
         enlace: data.enlace,
+        // Si deja de ser de arriba, `undefined` borra las capas que tuviera al editar.
+        capas: data.capas,
       },
     }
   }

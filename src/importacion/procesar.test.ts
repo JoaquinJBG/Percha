@@ -78,6 +78,22 @@ describe('procesarCola', () => {
     expect(esperas).toEqual([INTERVALO_PETICIONES_MS, INTERVALO_PETICIONES_MS])
   })
 
+  it('guarda las capas que da la IA', async () => {
+    const proveedor = crearProveedorFalso({
+      etiquetas: () => ({
+        ...ETIQUETAS_DE_PRUEBA,
+        categoria: 'abrigo',
+        subcategoria: 'sobrecamisa',
+        capas: ['media', 'exterior'],
+      }),
+    })
+    const { deps, guardadas } = montar(1, { proveedor })
+
+    await procesarCola(deps, { signal: señal() })
+
+    expect(guardadas[0]?.capas).toEqual(['media', 'exterior'])
+  })
+
   it('a la IA le manda la foto recortada; si el recorte falla, la normalizada', async () => {
     const proveedor = crearProveedorFalso()
     let recortes = 0

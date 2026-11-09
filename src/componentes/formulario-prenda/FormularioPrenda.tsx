@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode, type SubmitEvent } from 'react'
+import { llevaCapas } from '../../datos/capas.ts'
 import {
+  CAPAS,
   CATEGORIAS,
   COLORES,
   ESTAMPADOS,
@@ -12,6 +14,8 @@ import { useLecturaEtiqueta, type ObtenerProveedor } from '../etiquetado-ia/inde
 import {
   alternar,
   borradorInicial,
+  capasVisibles,
+  conCambio,
   conDatosEtiqueta,
   conExtras,
   DESCRIPCION_ABRIGO,
@@ -83,16 +87,19 @@ const boton =
 function Grupo({
   titulo,
   error,
+  ayuda,
   children,
 }: {
   titulo: string
   error?: string | undefined
+  ayuda?: string
   children: ReactNode
 }) {
   const idError = useId()
   return (
     <fieldset className="flex flex-col gap-2" aria-describedby={error ? idError : undefined}>
       <legend className="mb-2 font-medium">{titulo}</legend>
+      {ayuda && <p className="-mt-2 text-sm text-suave">{ayuda}</p>}
       <div className="flex flex-wrap gap-2">{children}</div>
       {error && (
         <p id={idError} role="alert" className="text-sm font-medium text-red-800">
@@ -109,15 +116,19 @@ function Casillas<T extends string>({
   elegidas,
   cambiar,
   muestra,
+  error,
+  ayuda,
 }: {
   titulo: string
   opciones: readonly T[]
   elegidas: T[]
   cambiar: (valores: T[]) => void
   muestra?: (valor: T) => string | undefined
+  error?: string | undefined
+  ayuda?: string
 }) {
   return (
-    <Grupo titulo={titulo}>
+    <Grupo titulo={titulo} error={error} {...(ayuda && { ayuda })}>
       {opciones.map((opcion) => {
         const color = muestra?.(opcion)
         return (
@@ -210,7 +221,7 @@ export function FormularioPrenda({
   const nombre = useId()
 
   function cambiar<K extends keyof Borrador>(campo: K, valor: Borrador[K]) {
-    setBorrador((anterior) => ({ ...anterior, [campo]: valor }))
+    setBorrador((anterior) => conCambio(anterior, campo, valor))
     setErrores((anteriores) => ({ ...anteriores, [campo]: undefined }))
   }
 
@@ -260,6 +271,19 @@ export function FormularioPrenda({
           }}
         />
       </label>
+
+      {borrador.categoria && llevaCapas(borrador.categoria) && (
+        <Casillas
+          titulo="Puede ir como"
+          ayuda="Base: sobre la piel. Media: entre capas. Exterior: lo de fuera."
+          opciones={CAPAS}
+          elegidas={capasVisibles(borrador)}
+          error={errores.capas}
+          cambiar={(capas) => {
+            cambiar('capas', capas)
+          }}
+        />
+      )}
 
       <Casillas
         titulo="Colores"

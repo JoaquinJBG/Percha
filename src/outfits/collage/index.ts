@@ -18,5 +18,6 @@ export {
   disponer,
   encajar,
   recuadros,
+  type Lugar,
   type Rect,
 } from './disposicion.ts'

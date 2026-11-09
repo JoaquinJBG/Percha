@@ -11,6 +11,9 @@ import {
 } from '../../ia/index.ts'
 import { FormularioPrenda } from './FormularioPrenda.tsx'
 
+// Estos tests escriben mucho con userEvent: con toda la suite en paralelo pasan de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 const fotoEtiqueta = new File(['etiqueta'], 'etiqueta.jpg', { type: 'image/jpeg' })
 
 function montar({

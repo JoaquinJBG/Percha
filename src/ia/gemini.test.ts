@@ -103,6 +103,45 @@ describe('etiquetar con Gemini', () => {
   })
 })
 
+describe('capas que manda la IA', () => {
+  async function capasCon(cambios: Record<string, unknown>) {
+    const { proveedor } = montar(() => Promise.resolve({ prendas: [etiquetasIA(1, cambios)] }))
+    const [etiquetas] = await proveedor.etiquetarPrendas([{ fotos: [foto()] }])
+    return etiquetas
+  }
+
+  it('las guarda sin repetidos y de dentro afuera', async () => {
+    const etiquetas = await capasCon({
+      categoria: 'abrigo',
+      subcategoria: 'americana',
+      capas: ['exterior', 'media', 'exterior'],
+    })
+
+    expect(etiquetas?.capas).toEqual(['media', 'exterior'])
+  })
+
+  it.each([
+    ['si faltan', undefined],
+    ['si vienen vacías', []],
+    ['si traen un papel que no existe', ['interior']],
+    ['si no son una lista', 'media'],
+  ])('%s, pone las de por defecto sin perder la prenda', async (_caso, capas) => {
+    const etiquetas = await capasCon({ categoria: 'abrigo', subcategoria: 'sobrecamisa', capas })
+
+    expect(etiquetas).toMatchObject({ subcategoria: 'sobrecamisa', capas: ['media', 'exterior'] })
+  })
+
+  it('a lo que no es de arriba no le pone capas aunque la IA las mande', async () => {
+    const etiquetas = await capasCon({
+      categoria: 'inferior',
+      subcategoria: 'vaquero',
+      capas: ['base'],
+    })
+
+    expect(etiquetas).not.toHaveProperty('capas')
+  })
+})
+
 describe('respuestas inválidas de la IA', () => {
   async function etiquetarCon(respuesta: unknown, cuantas = 1) {
     const { proveedor } = montar(() => Promise.resolve(respuesta))

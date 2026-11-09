@@ -1,9 +1,13 @@
 import type { Prenda } from '../../datos/modelo.ts'
+import { ranurasDe } from '../reglas/outfits.ts'
+import type { Ranura } from '../reglas/tipos.ts'
 import { dibujarCollage, type ImagenPrenda, type Pincel } from './dibujar.ts'
 import { ALTO_COLLAGE, ANCHO_COLLAGE } from './disposicion.ts'
 
 export interface OutfitCollage {
-  prendas: readonly Pick<Prenda, 'categoria' | 'subcategoria' | 'fotos'>[]
+  prendas: readonly Pick<Prenda, 'categoria' | 'subcategoria' | 'fotos' | 'capas'>[]
+  /** La ranura de cada prenda; si falta, se deduce del orden y la categoría (`ranurasDe`). */
+  ranuras?: readonly Ranura[] | undefined
   motivo: string
 }
 
@@ -96,20 +100,24 @@ export async function crearCollage(
         }
       }
     }
-    const recuadros = outfits.map((outfit) => ({
-      motivo: outfit.motivo,
-      prendas: outfit.prendas.map((prenda): ImagenPrenda => {
-        const foto = fotoDe(prenda)
-        const imagen = foto ? cargadas.get(foto) : null
-        return {
-          categoria: prenda.categoria,
-          nombre: prenda.subcategoria || prenda.categoria,
-          imagen: imagen?.imagen ?? null,
-          ancho: imagen?.ancho ?? 0,
-          alto: imagen?.alto ?? 0,
-        }
-      }),
-    }))
+    const recuadros = outfits.map((outfit) => {
+      const ranuras = ranurasDe(outfit)
+      return {
+        motivo: outfit.motivo,
+        prendas: outfit.prendas.map((prenda, i): ImagenPrenda => {
+          const foto = fotoDe(prenda)
+          const imagen = foto ? cargadas.get(foto) : null
+          return {
+            categoria: prenda.categoria,
+            ranura: ranuras[i] ?? 'accesorio',
+            nombre: prenda.subcategoria || prenda.categoria,
+            imagen: imagen?.imagen ?? null,
+            ancho: imagen?.ancho ?? 0,
+            alto: imagen?.alto ?? 0,
+          }
+        }),
+      }
+    })
     const lienzo = crearLienzo(ANCHO_COLLAGE, ALTO_COLLAGE)
     dibujarCollage(lienzo.pincel, recuadros)
     return await lienzo.aBlob()

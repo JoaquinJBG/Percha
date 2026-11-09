@@ -5,6 +5,10 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   sus tipos. `COLORES` y `ESTAMPADOS` son las listas cerradas que usan la IA y el formulario (D14); el
   modelo sigue admitiendo texto libre. `etiquetasPrendaSchema` / `EtiquetasPrenda`: solo los campos que
   etiqueta la IA o el formulario (sin `id`, fotos, `etiquetadaPor` ni fecha). Una prenda tiene 1–2 `fotos`, cada una `{ original: Blob, recortada: Blob | null }`.
+- `capas.ts` (T6.1, D18): `capasDe(prenda)` da los papeles de una prenda de arriba (`base`, `media`,
+  `exterior`): los guardados en `capas` o, si no hay (prendas de antes), `capasPorDefecto({ categoria,
+  subcategoria })` con la tabla de la investigación de outfits. `llevaCapas(categoria)`: solo `superior` y
+  `abrigo`. Quien monte outfits debe usar `capasDe`, no `prenda.capas`.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `borrarOutfit`;
   `leerPerfil`/`guardarPerfil` y `leerAjustes`/`guardarAjustes` (guardan solo los campos que se pasan).

@@ -142,3 +142,25 @@ tallas y medidas) y F (*grounding*) quedan para después.
   y genérico); `share_target` GET a `/compartido` para guardar el enlace en una prenda o empezar una nueva.
 - **Fuera:** tallas y medidas (fase E), *grounding* (fase F), probador. La foto de catálogo vuelve como
   captura por el selector de fotos de siempre; recibirla por `share_target` POST pediría `injectManifest`.
+
+## Fase 6 — Outfits con capas
+
+Sale de la investigación de moda (`docs/investigacion/reglas-outfits.md`, en la rama
+`docs/investigacion-moda`): los outfits salen básicos porque Percha solo sabe poner una prenda por ranura.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T6.1 | Capas en la prenda: campo `capas` (base, media, exterior), etiquetado con IA y por defecto según el tipo, editable y en el detalle (D18) | T5.1 | 👀 |
+| T6.2 | Composición con capas y tercera pieza: 1 base + 0–2 medias + 0–1 exterior con las reglas C1–C13, tercera pieza entre 14 y 23 °C, collage de dentro afuera | T6.1 | 👀 |
+| T6.3 | Prompt v2 de Gemini para elegir los 4 outfits (§9 de la investigación) | T6.2 | 👀 |
+| T6.4 | Color y formalidad: clases de color, presupuesto de acentos y escalera de formalidad (§2–3) | T6.2 | ⏳ |
+| T6.5 | Perfil de cuerpo, oficina y sensación térmica (§6 y P7) | T6.2 | ⏳ |
+
+### T6.1 — Capas en la prenda
+- **Qué:** `capas?: ('base' | 'media' | 'exterior')[]` en la prenda (`src/datos/modelo.ts`), sin repetidos y
+  de dentro afuera; `capasPorDefecto` y `capasDe` en `src/datos/capas.ts` (tabla §1.2). Gemini las devuelve
+  en el etiquetado (si faltan o no valen, las de por defecto) y el prompt define «abrigo» como «lo que va
+  encima de otra parte de arriba» (P8). «Puede ir como» en el formulario, solo para `superior` y `abrigo`,
+  y una línea en el detalle. El alta masiva las guarda con lo demás.
+- **Fuera:** usar las capas para montar outfits (T6.2) y el prompt de outfits (T6.3). `largo`, `material` y
+  las subcategorías cerradas (P4, P5) tampoco entran.

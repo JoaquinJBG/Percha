@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { capasDe, llevaCapas } from '../../datos/capas.ts'
 import type { Prenda } from '../../datos/modelo.ts'
 import { textoComposicion } from '../../etiqueta/compartido.ts'
 import { EnlacesBusqueda } from '../../etiqueta/EnlacesBusqueda.tsx'
@@ -54,6 +55,9 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
     ? [
         ['Categoría', ETIQUETA_CATEGORIA[prenda.categoria]],
         ['Tipo', prenda.subcategoria === '' ? '—' : capitalizar(prenda.subcategoria)],
+        ...(llevaCapas(prenda.categoria)
+          ? [['Puede ir como', lista(capasDe(prenda))] as [string, string]]
+          : []),
         ['Colores', lista(prenda.colores)],
         ['Estampado', prenda.estampado === '' ? '—' : capitalizar(prenda.estampado)],
         ['Estilos', lista(prenda.estilos)],

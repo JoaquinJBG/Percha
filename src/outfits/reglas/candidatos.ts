@@ -1,6 +1,8 @@
-import type { Categoria } from '../../datos/modelo.ts'
+import { capasDe, llevaCapas } from '../../datos/capas.ts'
+import type { Capa, Categoria } from '../../datos/modelo.ts'
 import {
-  LIMITE_ABRIGO,
+  LIMITE_EXTERIOR,
+  LIMITE_TERCERA_PIEZA,
   abrigoObjetivo,
   temperaturaDe,
   temporadaDe,
@@ -8,6 +10,7 @@ import {
 } from './clima.ts'
 import { afinidad, estilosAfines } from './estilos.ts'
 import { FORMALIDAD_POR_OCASION, distanciaFormalidad } from './ocasiones.ts'
+import { esChalecoDePunto } from './pilas.ts'
 import { algunaPalabra, normalizar, palabras } from './texto.ts'
 import type {
   Candidato,
@@ -39,6 +42,11 @@ const CORTO = ['corto', 'cortos', 'short', 'shorts', 'bermuda', 'bermudas'] as c
 const LIMITE_CALZADO_ABIERTO = 14
 /** Por encima de esto la lluvia se lleva sin abrigo. */
 const LIMITE_CALOR = 24
+const LIMITE_PANTALON_CORTO = 16
+/** Lo más que abriga una media o una exterior que se pone «por estilo», sin hacer falta. */
+export const ABRIGO_TERCERA_PIEZA = 3
+/** Hasta aquí (°C) un punto grueso de «superior» puede ir de capa media sin que haga falta abrigo. */
+export const LIMITE_PUNTO_GRUESO = 17
 
 export function crearContexto(peticion: Peticion): Contexto {
   const { tiempo, estilo, ocasion } = peticion
@@ -46,13 +54,19 @@ export function crearContexto(peticion: Peticion): Contexto {
   const fuera = ocasion !== 'casa'
   const temperatura = fuera ? temperaturaDe(tiempo) : null
   const precipitacion = fuera ? (tiempo?.clima.precipitacion ?? null) : null
-  const frio = temperatura !== null && temperatura < LIMITE_ABRIGO
+  const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
   const lluviaSinCalor =
     precipitacion !== null && (temperatura === null || temperatura < LIMITE_CALOR)
+  const necesitaAbrigo = frio || lluviaSinCalor
   return {
     temperatura,
     precipitacion,
-    necesitaAbrigo: frio || lluviaSinCalor,
+    necesitaAbrigo,
+    terceraPieza:
+      fuera &&
+      !necesitaAbrigo &&
+      (temperatura === null ||
+        (temperatura >= LIMITE_EXTERIOR && temperatura <= LIMITE_TERCERA_PIEZA)),
     temporada: tiempo
       ? temporadaDe(tiempo.fecha, tiempo.sitio.latitud)
       : temporadaDe(peticion.fecha),
@@ -63,14 +77,17 @@ export function crearContexto(peticion: Peticion): Contexto {
   }
 }
 
-/** Nivel de abrigo que se espera de cada categoría; con abrigo encima, la base puede ir más ligera. */
+/**
+ * Nivel de abrigo que se espera de cada categoría. Lo de arriba solo se mira por si abriga de más:
+ * si se queda corto se pone otra capa, y eso lo decide la pila entera (`pilas.ts`).
+ */
 function objetivoDe(categoria: Categoria, temperatura: number): number {
   const objetivo = abrigoObjetivo(temperatura)
-  const conAbrigo = temperatura < LIMITE_ABRIGO
   switch (categoria) {
     case 'superior':
+      return objetivo
     case 'vestido':
-      return conAbrigo ? Math.max(1, objetivo - 1) : objetivo
+      return temperatura < LIMITE_EXTERIOR ? Math.max(1, objetivo - 1) : objetivo
     case 'inferior':
       return Math.min(objetivo, 4)
     case 'calzado':
@@ -82,7 +99,41 @@ function objetivoDe(categoria: Categoria, temperatura: number): number {
   }
 }
 
-type Evaluacion = { descarte: string } | { puntos: number; parcial: boolean; motivos: string[] }
+type Evaluacion =
+  { descarte: string } | { puntos: number; parcial: boolean; motivos: string[]; capas: Capa[] }
+
+/** Los papeles que puede hacer hoy una prenda de arriba: con calor, solo base; sin frío, encima solo lo ligero. */
+function capasDeHoy(prenda: PrendaReglas, contexto: Contexto): Capa[] {
+  const { temperatura, necesitaAbrigo, terceraPieza } = contexto
+  let capas = capasDe(prenda)
+  // En casa, como mucho un punto o una sudadera encima; nada de chaquetas ni abrigos.
+  if (contexto.ocasion === 'casa') {
+    capas = prenda.categoria === 'abrigo' ? [] : capas.filter((c) => c !== 'exterior')
+  } else if (!necesitaAbrigo && !terceraPieza) {
+    // Con calor, solo base; si llueve, también un chubasquero fino por encima.
+    const fino = contexto.precipitacion !== null && prenda.abrigo <= 2
+    capas = capas.filter((c) => c === 'base' || (fino && c === 'exterior'))
+  } else if (!necesitaAbrigo && temperatura !== null) {
+    // De 14 a 17 °C un punto grueso sí vale de capa media (§1.5: «P1 con punto debajo»); por encima, solo lo ligero.
+    const tope =
+      prenda.categoria === 'superior' && temperatura <= LIMITE_PUNTO_GRUESO
+        ? ABRIGO_TERCERA_PIEZA + 1
+        : ABRIGO_TERCERA_PIEZA
+    capas = capas.filter((c) => c === 'base' || prenda.abrigo <= tope)
+  }
+  if (temperatura !== null && temperatura < LIMITE_EXTERIOR && esChalecoDePunto(prenda)) {
+    capas = capas.filter((c) => c !== 'exterior')
+  }
+  return capas
+}
+
+function sinCapasHoy(contexto: Contexto): string {
+  const { temperatura, ocasion, necesitaAbrigo, terceraPieza } = contexto
+  if (ocasion === 'casa') return 'en casa no hace falta abrigo'
+  const grados = temperatura === null ? '' : ` a ${String(temperatura)} °C`
+  if (!necesitaAbrigo && !terceraPieza) return `hace calor para una capa encima${grados}`
+  return `demasiado abrigo para llevarla encima${grados}`
+}
 
 function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
   const { temperatura, precipitacion, temporada, ocasion, estilo } = contexto
@@ -114,7 +165,7 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
     }
     if (
       prenda.categoria === 'inferior' &&
-      temperatura < LIMITE_ABRIGO &&
+      temperatura < LIMITE_PANTALON_CORTO &&
       algunaPalabra(subcategoria, CORTO)
     ) {
       return { descarte: `con ${grados} no van pantalones cortos` }
@@ -132,10 +183,13 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
     if (diferencia >= (encima ? 2 : 3)) {
       return { descarte: `demasiado abrigo para ${grados}` }
     }
-    if (diferencia <= -3 && prenda.categoria !== 'accesorio') {
+    const deArriba = llevaCapas(prenda.categoria)
+    if (diferencia <= -3 && prenda.categoria !== 'accesorio' && !deArriba) {
       return { descarte: `poco abrigo para ${grados}` }
     }
-    if (Math.abs(diferencia) === 2) {
+    if (deArriba && diferencia < 0) {
+      // Se compensa con capas: lo puntúa la pila.
+    } else if (Math.abs(diferencia) === 2) {
       puntos -= 1
       motivos.push(diferencia > 0 ? 'algo abrigada' : 'algo fresca')
     } else {
@@ -203,7 +257,9 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
       motivos.push('de otro estilo')
   }
 
-  return { puntos, parcial, motivos }
+  const capas = llevaCapas(prenda.categoria) ? capasDeHoy(prenda, contexto) : []
+  if (llevaCapas(prenda.categoria) && capas.length === 0) return { descarte: sinCapasHoy(contexto) }
+  return { puntos, parcial, motivos, capas }
 }
 
 function motivoMasRepetido(descartadas: readonly Descartada[]): string | null {
@@ -236,8 +292,17 @@ function avisosDe(
 ): string[] {
   if (peticion.prendas.length === 0)
     return ['tu armario está vacío: añade prendas para ver outfits']
+  // Lo de arriba cuenta como «parte de arriba» si puede ir de base y como «abrigo» si puede ir fuera.
   const hay = (categoria: Categoria, soloPlenas = false) =>
-    lista.some((c) => c.prenda.categoria === categoria && (!soloPlenas || c.ajuste === 'pleno'))
+    lista.some(
+      (c) =>
+        (!soloPlenas || c.ajuste === 'pleno') &&
+        (categoria === 'superior'
+          ? c.capas.includes('base')
+          : categoria === 'abrigo'
+            ? c.capas.includes('exterior')
+            : c.prenda.categoria === categoria),
+    )
   const hayBase = (soloPlenas = false) =>
     hay('vestido', soloPlenas) || (hay('superior', soloPlenas) && hay('inferior', soloPlenas))
   const avisos: string[] = []
@@ -257,7 +322,7 @@ function avisosDe(
   if (!hay('calzado')) avisos.push(falta('te falta calzado', ['calzado'], descartadas))
   if (contexto.necesitaAbrigo && !hay('abrigo')) {
     const para =
-      contexto.temperatura !== null && contexto.temperatura < LIMITE_ABRIGO
+      contexto.temperatura !== null && contexto.temperatura < LIMITE_EXTERIOR
         ? `${String(contexto.temperatura)} °C`
         : `la ${contexto.precipitacion ?? 'lluvia'}`
     avisos.push(falta(`te falta un abrigo para ${para}`, ['abrigo'], descartadas))
@@ -295,6 +360,11 @@ export function candidatos<P extends PrendaReglas>(peticion: Peticion<P>): Resul
         puntos: evaluacion.puntos,
         ajuste: evaluacion.parcial ? 'parcial' : 'pleno',
         motivos: evaluacion.motivos,
+        capas: evaluacion.capas,
+        opcional:
+          evaluacion.capas.length > 0 &&
+          !evaluacion.capas.includes('base') &&
+          !contexto.necesitaAbrigo,
       })
     }
   }

@@ -3,6 +3,7 @@
 import 'fake-indexeddb/auto'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { capasDe } from './capas.ts'
 import {
   ErrorCopia,
   exportarCopia,
@@ -108,6 +109,31 @@ describe('exportar e importar', () => {
     await importarCopia(copia, 'reemplazar')
 
     expect(await sinBlobs(await leerPrenda(conEtiqueta.id))).toEqual(await sinBlobs(conEtiqueta))
+  })
+
+  it('las capas van y vuelven', async () => {
+    const sobrecamisa = await crearPrenda(
+      nuevaPrenda({ categoria: 'abrigo', subcategoria: 'sobrecamisa', capas: ['exterior'] }),
+    )
+    const copia = await exportarCopia()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect((await leerPrenda(sobrecamisa.id))?.capas).toEqual(['exterior'])
+  })
+
+  it('una copia de antes de T6.1, sin capas, se importa igual y deduce las de por defecto', async () => {
+    const { camiseta } = await sembrar()
+    expect(camiseta.capas).toBeUndefined()
+    const copia = await exportarCopia()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    const leida = await leerPrenda(camiseta.id)
+    expect(leida?.capas).toBeUndefined()
+    expect(leida && capasDe(leida)).toEqual(['base'])
   })
 
   it('una copia de antes de T5.1, sin datos de etiqueta, se importa igual', async () => {

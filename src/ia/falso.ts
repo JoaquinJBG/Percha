@@ -1,9 +1,11 @@
+import { capasDe } from '../datos/capas.ts'
 import type { DatosEtiqueta, EtiquetasPrenda } from '../datos/modelo.ts'
 import { ErrorIA } from './errores.ts'
 import {
   MAX_PRENDAS_POR_PETICION,
   type PeticionOutfits,
   type PrendaAEtiquetar,
+  type PrendaParaOutfit,
   type PropuestaOutfit,
   type ProveedorIA,
   type ResultadoEtiquetado,
@@ -20,6 +22,7 @@ export const ETIQUETAS_DE_PRUEBA: EtiquetasPrenda = {
   ocasiones: ['diario'],
   temporadas: ['primavera', 'verano'],
   notas: '',
+  capas: ['base'],
 }
 
 /** Una etiqueta de Zara: con ella salen los enlaces de búsqueda de `src/etiqueta/`. */
@@ -55,32 +58,36 @@ export interface ProveedorFalso extends ProveedorIA {
 }
 
 /**
- * Hasta 4 outfits válidos y sencillos: la i-ésima prenda de arriba con la i-ésima de abajo (o el
- * i-ésimo vestido), un calzado y un abrigo si hace falta.
+ * Hasta 4 outfits válidos y sencillos: la i-ésima base de arriba con la i-ésima de abajo (o el i-ésimo
+ * vestido) y un calzado. Si hoy hace falta capa exterior, una; si es opcional, una tercera pieza en el
+ * primero y el tercero.
  */
 export function outfitsDePrueba({ prendas, tiempo }: PeticionOutfits): PropuestaOutfit[] {
-  const ids = (categoria: string) =>
-    prendas.filter((p) => p.categoria === categoria).map((p) => p.id)
-  const [superiores, inferiores, vestidos, calzados, abrigos] = [
-    ids('superior'),
-    ids('inferior'),
-    ids('vestido'),
-    ids('calzado'),
-    ids('abrigo'),
-  ]
+  const ids = (vale: (p: PrendaParaOutfit) => boolean) => prendas.filter(vale).map((p) => p.id)
+  const bajos = ids((p) => p.categoria === 'inferior')
+  const calzados = ids((p) => p.categoria === 'calzado')
+  const exteriores = ids((p) => capasDe(p).includes('exterior'))
+  const opcionales = ids((p) => p.opcional === true)
   const bases: string[][] = [
-    ...superiores.flatMap((arriba, i) => {
-      const abajo = inferiores[i % Math.max(inferiores.length, 1)]
+    ...ids((p) => capasDe(p).includes('base')).flatMap((arriba, i) => {
+      const abajo = bajos[i % Math.max(bajos.length, 1)]
       return abajo ? [[arriba, abajo]] : []
     }),
-    ...vestidos.map((vestido) => [vestido]),
+    ...ids((p) => p.categoria === 'vestido').map((vestido) => [vestido]),
   ]
   if (calzados.length === 0) return []
   return bases.slice(0, 4).map((base, i) => {
-    const abrigo = tiempo.necesitaAbrigo ? abrigos[i % Math.max(abrigos.length, 1)] : undefined
+    const libres = (lista: string[]) => lista.filter((id) => !base.includes(id))
+    let encima: string | undefined
+    if (tiempo.exterior === 'obligatoria') {
+      const posibles = libres(exteriores)
+      encima = posibles[i % Math.max(posibles.length, 1)]
+    } else if (tiempo.exterior === 'opcional' && i % 2 === 0) {
+      encima = libres(opcionales)[0]
+    }
     const calzado = calzados[i % calzados.length] ?? ''
     return {
-      prendas: [...base, ...(abrigo ? [abrigo] : []), calzado],
+      prendas: [...base, ...(encima ? [encima] : []), calzado],
       porque: `Outfit de prueba ${String(i + 1)}.`,
     }
   })

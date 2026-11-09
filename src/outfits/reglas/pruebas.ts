@@ -271,3 +271,59 @@ export function armarioEjemplo(): PrendaReglas[] {
     }),
   ]
 }
+
+/** El armario de ejemplo con prendas para capas: sobrecamisa, cárdigan, americana y cazadora vaquera. */
+export function armarioConCapas(): PrendaReglas[] {
+  return [
+    ...armarioEjemplo(),
+    prenda({
+      id: 'camiseta-negra',
+      subcategoria: 'camiseta',
+      colores: ['negro'],
+      estilos: ['casual', 'streetwear', 'minimalista'],
+      abrigo: 1,
+      formalidad: 1,
+      ocasiones: ['diario', 'viaje', 'cita'],
+    }),
+    prenda({
+      id: 'sobrecamisa-caqui',
+      categoria: 'abrigo',
+      subcategoria: 'sobrecamisa',
+      colores: ['verde caqui'],
+      estilos: ['casual', 'smart casual', 'gorpcore'],
+      abrigo: 3,
+      formalidad: 2,
+      ocasiones: ['diario', 'viaje', 'cita'],
+      capas: ['media', 'exterior'],
+    }),
+    prenda({
+      id: 'cardigan-crudo',
+      subcategoria: 'cárdigan',
+      colores: ['crudo'],
+      estilos: ['smart casual', 'minimalista', 'preppy'],
+      abrigo: 3,
+      formalidad: 3,
+      ocasiones: ['trabajo', 'cita', 'diario'],
+    }),
+    prenda({
+      id: 'americana-marino',
+      categoria: 'abrigo',
+      subcategoria: 'americana',
+      colores: ['azul marino'],
+      estilos: ['smart casual', 'business', 'elegante'],
+      abrigo: 3,
+      formalidad: 4,
+      ocasiones: ['trabajo', 'cena', 'cita'],
+    }),
+    prenda({
+      id: 'cazadora-vaquera',
+      categoria: 'abrigo',
+      subcategoria: 'cazadora vaquera',
+      colores: ['azul'],
+      estilos: ['casual', 'streetwear', 'vintage / retro'],
+      abrigo: 3,
+      formalidad: 2,
+      ocasiones: ['diario', 'viaje'],
+    }),
+  ]
+}

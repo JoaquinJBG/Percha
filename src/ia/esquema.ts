@@ -1,5 +1,8 @@
 import { z } from 'zod'
+import { capasPorDefecto, llevaCapas } from '../datos/capas.ts'
 import {
+  capaSchema,
+  capasSchema,
   categoriaSchema,
   COLORES,
   ESTAMPADOS,
@@ -31,7 +34,14 @@ const etiquetasIASchema = z.object({
   notas: z
     .string()
     .describe('Material, corte o detalle útil para combinar. Cadena vacía si no hay nada.'),
+  capas: z
+    .array(capaSchema)
+    .max(3)
+    .describe('Papeles que puede hacer: solo en superior y abrigo; lista vacía en lo demás.'),
 })
+
+// Las capas se leen aparte: si faltan o no valen, la prenda no se pierde, se usan las de por defecto.
+const etiquetasSinCapasSchema = etiquetasIASchema.omit({ capas: true })
 
 const respuestaSchema = z.object({ prendas: z.array(etiquetasIASchema).min(1) })
 
@@ -66,6 +76,12 @@ function sinRepetidos<T>(lista: T[]): T[] {
   return [...new Set(lista)]
 }
 
+/** Las capas que manda la IA, o `undefined` si faltan, no valen o vienen vacías. */
+function capasDeLaIA(valor: unknown) {
+  const leidas = capasSchema.safeParse(valor)
+  return leidas.success && leidas.data.length > 0 ? leidas.data : undefined
+}
+
 /**
  * Valida la respuesta de Gemini prenda a prenda: si una no vale, su hueco queda en `null`.
  * Si no vale ninguna, lanza `ErrorIA('respuesta')`.
@@ -82,15 +98,19 @@ export function leerRespuesta(texto: string, cuantas: number): ResultadoEtiqueta
 
   const resultado: ResultadoEtiquetado = Array.from({ length: cuantas }, () => null)
   for (const candidata of envoltorio.data.prendas) {
-    const leida = etiquetasIASchema.safeParse(candidata)
+    const leida = etiquetasSinCapasSchema.safeParse(candidata)
     if (!leida.success) continue
     const { indice, ...etiquetas } = leida.data
+    const capas = llevaCapas(etiquetas.categoria)
+      ? (capasDeLaIA((candidata as { capas?: unknown }).capas) ?? capasPorDefecto(etiquetas))
+      : undefined
     // Gemini ignora `uniqueItems`, así que los repetidos se quitan aquí.
     const limpias = etiquetasPrendaSchema.safeParse({
       ...etiquetas,
       estilos: sinRepetidos(etiquetas.estilos),
       ocasiones: sinRepetidos(etiquetas.ocasiones),
       temporadas: sinRepetidos(etiquetas.temporadas),
+      ...(capas && { capas }),
     })
     if (limpias.success && indice <= cuantas && resultado[indice - 1] === null) {
       resultado[indice - 1] = limpias.data

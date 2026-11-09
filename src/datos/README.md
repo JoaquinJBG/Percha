@@ -6,7 +6,8 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   modelo sigue admitiendo texto libre. `etiquetasPrendaSchema` / `EtiquetasPrenda`: solo los campos que
   etiqueta la IA o el formulario (sin `id`, fotos, `etiquetadaPor` ni fecha). Una prenda tiene 1–2 `fotos`, cada una `{ original: Blob, recortada: Blob | null }`.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
-  `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `borrarOutfit`;
+  `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `guardarPrueba` (la foto del probador del PC, T7.1),
+  `borrarOutfit`;
   `leerPerfil`/`guardarPerfil` y `leerAjustes`/`guardarAjustes` (guardan solo los campos que se pasan).
   Todo lo que escribe valida con Zod y lanza `ZodError` si los datos no valen.
 - `copia.ts`: `exportarCopia()` devuelve un zip (`percha.json` + `fotos/`) sin la clave de Gemini;

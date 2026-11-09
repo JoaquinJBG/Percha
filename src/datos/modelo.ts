@@ -143,6 +143,8 @@ export const outfitSchema = z.object({
   explicacion: z.string(),
   favorito: z.boolean(),
   creadoEn: z.number().int().nonnegative(),
+  /** La foto del probador del PC con este outfit puesto (T7.1, D19). Los de antes no la tienen. */
+  prueba: blobSchema.optional(),
 })
 
 export const perfilSchema = z.object({
@@ -159,6 +161,19 @@ export const ajustesSchema = z.object({
     .nullable()
     .transform((clave) => (clave === '' ? null : clave)),
   modeloGemini: z.string().trim().min(1),
+  // Probador del PC (D19). Con `default` para que los ajustes guardados antes de T7.1 sigan valiendo.
+  urlProbador: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((url) => (url === '' ? null : url)),
+  claveProbador: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((clave) => (clave === '' ? null : clave)),
 })
 
 export type Categoria = z.infer<typeof categoriaSchema>
@@ -188,6 +203,8 @@ export const PERFIL_VACIO: Perfil = {
 export const AJUSTES_POR_DEFECTO: Ajustes = {
   claveGemini: null,
   modeloGemini: MODELO_GEMINI_POR_DEFECTO,
+  urlProbador: null,
+  claveProbador: null,
 }
 
 /** Colores y estampados que proponen la IA y el formulario. El modelo admite cualquier texto. */

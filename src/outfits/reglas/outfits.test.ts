@@ -5,7 +5,7 @@ import { armonia } from './colores.ts'
 import { candidatos } from './candidatos.ts'
 import { comprobarOutfit, cuatroOutfits } from './outfits.ts'
 import { armarioEjemplo, prenda, tiempo } from './pruebas.ts'
-import type { OutfitReglas, Peticion, PrendaReglas } from './tipos.ts'
+import type { OutfitReglas, Peticion, PrendaReglas, Ranura } from './tipos.ts'
 
 function peticion(prendas: PrendaReglas[], cambios: Partial<Peticion> = {}): Peticion {
   return { prendas, estilo: 'casual', ocasion: 'diario', tiempo: null, ...cambios }
@@ -19,19 +19,22 @@ function cuenta(outfit: OutfitReglas, categoria: string): number {
   return categorias(outfit).filter((c) => c === categoria).length
 }
 
+/** 1 base + inferior (o vestido), 0–2 medias, 0–1 exterior, 1 calzado, 0–3 accesorios, hasta 8. */
 function esValido(outfit: OutfitReglas): boolean {
+  const ranuras = outfit.ranuras ?? []
+  const hay = (ranura: Ranura) => ranuras.filter((r) => r === ranura).length
   const conBase =
-    (cuenta(outfit, 'superior') === 1 &&
-      cuenta(outfit, 'inferior') === 1 &&
-      cuenta(outfit, 'vestido') === 0) ||
-    (cuenta(outfit, 'vestido') === 1 &&
-      cuenta(outfit, 'superior') === 0 &&
-      cuenta(outfit, 'inferior') === 0)
+    (hay('base') === 1 && hay('inferior') === 1 && hay('vestido') === 0) ||
+    (hay('vestido') === 1 && hay('base') === 0 && hay('inferior') === 0)
   return (
+    ranuras.length === outfit.prendas.length &&
+    outfit.prendas[0] === outfit.principal &&
     conBase &&
-    cuenta(outfit, 'calzado') === 1 &&
-    cuenta(outfit, 'abrigo') <= 1 &&
-    cuenta(outfit, 'accesorio') <= 1
+    hay('media') <= 2 &&
+    hay('exterior') <= 1 &&
+    hay('calzado') === 1 &&
+    hay('accesorio') <= 3 &&
+    outfit.prendas.length <= 8
   )
 }
 
@@ -112,11 +115,13 @@ describe('cuatroOutfits con el armario de ejemplo', () => {
     expect(outfits.filter((o) => o.prendas.some((p) => p.id === 'botas')).length).toBeGreaterThan(1)
   })
 
-  it('sin tiempo: sin abrigo y el motivo no habla de grados', () => {
+  it('sin tiempo: encima solo algo ligero y el motivo no habla de grados', () => {
     const { outfits } = cuatroOutfits(peticion(armario))
     expect(outfits).toHaveLength(4)
     for (const outfit of outfits) {
-      expect(cuenta(outfit, 'abrigo')).toBe(0)
+      expect(esValido(outfit)).toBe(true)
+      const encima = outfit.prendas.filter((_, i) => outfit.ranuras?.[i] !== 'base')
+      expect(encima.filter((p) => p.categoria === 'abrigo').every((p) => p.abrigo <= 3)).toBe(true)
       expect(outfit.motivo).not.toMatch(/°C/)
     }
   })
@@ -351,19 +356,18 @@ describe('comprobarOutfit', () => {
     peticion([camiseta, vaqueros, vestido, botas, abrigo], { tiempo: tiempo(8) }),
   )
 
-  it('devuelve las prendas en orden de collage', () => {
+  it('reparte las capas y devuelve las prendas de dentro afuera', () => {
     expect(comprobarOutfit(['botas', 'abrigo', 'vaqueros', 'camiseta'], deHoy)).toEqual({
-      prendas: [camiseta, vaqueros, abrigo, botas],
+      prendas: [camiseta, abrigo, vaqueros, botas],
+      ranuras: ['base', 'exterior', 'inferior', 'calzado'],
+      principal: camiseta,
     })
   })
 
   it.each([
     [['camiseta', 'vaqueros', 'abrigo', 'nada'], 'la prenda nada no está entre los candidatos'],
     [['camiseta', 'camiseta', 'botas', 'abrigo'], 'repite la prenda camiseta'],
-    [
-      ['camiseta', 'vestido', 'botas', 'abrigo'],
-      'necesita una parte de arriba y otra de abajo, o un vestido',
-    ],
+    [['camiseta', 'vestido', 'botas', 'abrigo'], 'sobre un vestido no va otra parte de arriba'],
     [['vestido', 'abrigo'], 'necesita un calzado'],
     [['vestido', 'botas'], 'hoy necesita abrigo'],
   ])('%j → %s', (elegidas, error) => {
@@ -372,7 +376,11 @@ describe('comprobarOutfit', () => {
 
   it('sin abrigos en el armario no lo exige', () => {
     const sinAbrigo = candidatos(peticion([vestido, botas], { tiempo: tiempo(8) }))
-    expect(comprobarOutfit(['vestido', 'botas'], sinAbrigo)).toEqual({ prendas: [vestido, botas] })
+    expect(comprobarOutfit(['vestido', 'botas'], sinAbrigo)).toEqual({
+      prendas: [vestido, botas],
+      ranuras: ['vestido', 'calzado'],
+      principal: vestido,
+    })
   })
 })
 

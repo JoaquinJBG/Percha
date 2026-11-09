@@ -62,6 +62,60 @@ describe('disponer', () => {
   })
 })
 
+describe('disponer con capas', () => {
+  const dentro = (r: { x: number; y: number; ancho: number; alto: number } | undefined) =>
+    r !== undefined &&
+    r.x >= 0 &&
+    r.y >= 0 &&
+    r.x + r.ancho <= 500 + 1e-9 &&
+    r.y + r.alto <= 500 + 1e-9
+  const solapan = (
+    a: { x: number; y: number; ancho: number; alto: number },
+    b: { x: number; y: number; ancho: number; alto: number },
+  ) =>
+    a.x < b.x + b.ancho - 1e-9 &&
+    b.x < a.x + a.ancho - 1e-9 &&
+    a.y < b.y + b.alto - 1e-9 &&
+    b.y < a.y + a.alto - 1e-9
+
+  it('caben 8 prendas sin salirse ni pisarse, de fuera adentro', () => {
+    const rects = disponer(
+      ['base', 'media', 'media', 'exterior', 'inferior', 'calzado', 'accesorio', 'accesorio'],
+      caja,
+    )
+    expect(rects).toHaveLength(8)
+    for (const r of rects) expect(dentro(r)).toBe(true)
+    rects.forEach((a, i) => {
+      rects.slice(i + 1).forEach((b) => {
+        expect(solapan(a, b)).toBe(false)
+      })
+    })
+    const [base, mediaDentro, mediaFuera, exterior, inferior, calzado, accesorio] = rects
+    // A la derecha, de arriba abajo: exterior, la media de fuera, la de dentro y los accesorios.
+    expect(exterior?.y).toBe(0)
+    expect(mediaFuera?.y).toBeGreaterThan(exterior?.y ?? Infinity)
+    expect(mediaDentro?.y).toBeGreaterThan(mediaFuera?.y ?? Infinity)
+    expect(accesorio?.y).toBeGreaterThan(mediaDentro?.y ?? Infinity)
+    // En el centro: base, inferior y calzado.
+    expect(base?.x).toBe(0)
+    expect(inferior?.y).toBeGreaterThan(base?.y ?? Infinity)
+    expect(calzado?.y).toBeGreaterThan(inferior?.y ?? Infinity)
+    // Con la columna llena, el centro cede algo de ancho.
+    expect(base?.ancho).toBeCloseTo(500 * 0.55)
+  })
+
+  it('con 2 o 3 prendas sigue ocupando todo el ancho', () => {
+    expect(disponer(['vestido', 'calzado'], caja).every((r) => r.ancho === 500)).toBe(true)
+    expect(disponer(['base', 'inferior', 'calzado'], caja).every((r) => r.ancho === 500)).toBe(true)
+  })
+
+  it('una media sola va a la derecha, como la exterior', () => {
+    const [base, media] = disponer(['base', 'media', 'inferior', 'calzado'], caja)
+    expect(media?.x).toBeCloseTo(500 * 0.62)
+    expect(base?.ancho).toBeCloseTo(500 * 0.62)
+  })
+})
+
 describe('encajar', () => {
   it('cabe entera, centrada y sin deformarse', () => {
     expect(encajar(200, 100, caja)).toEqual({ x: 0, y: 125, ancho: 500, alto: 250 })
@@ -237,5 +291,32 @@ describe('crearCollage', () => {
     expect(resultado).toBe(blob)
     expect(de('drawImage')).toHaveLength(0)
     expect(de('fillText').map((t) => t.argumentos[0])).toContain('camisa')
+  })
+})
+
+describe('crearCollage con capas', () => {
+  it('coloca cada prenda por su ranura', async () => {
+    const { pincel, de } = pincelFalso()
+    const camiseta = nuevaPrenda({ subcategoria: 'camiseta' })
+    // Una sobrecamisa de `superior` haciendo de exterior: sin ranuras iría al centro como base.
+    const sobrecamisa = nuevaPrenda({ categoria: 'superior', subcategoria: 'sobrecamisa' })
+    const vaqueros = nuevaPrenda({ categoria: 'inferior' })
+    const zapatillas = nuevaPrenda({ categoria: 'calzado' })
+    await crearCollage(
+      [
+        {
+          prendas: [camiseta, sobrecamisa, vaqueros, zapatillas],
+          ranuras: ['base', 'exterior', 'inferior', 'calzado'],
+          motivo: 'con sobrecamisa para 18 °C',
+        },
+      ],
+      {
+        cargar: () => Promise.resolve({ imagen: {} as ImageBitmap, ancho: 100, alto: 100 }),
+        crearLienzo: () => ({ pincel, aBlob: () => Promise.resolve(new Blob()) }),
+      },
+    )
+    const [base, exterior] = de('drawImage').map((t) => t.argumentos as number[])
+    expect(de('drawImage')).toHaveLength(4)
+    expect(exterior?.[1]).toBeGreaterThan(base?.[1] ?? Infinity)
   })
 })

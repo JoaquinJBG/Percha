@@ -122,3 +122,46 @@ export function armonia(prendas: readonly PrendaReglas[]): Armonia {
     colorFuerte: todos.size === 1 ? ([...todos][0] ?? null) : null,
   }
 }
+
+const CLAROS = [
+  'blanco',
+  'crema',
+  'crudo',
+  'hueso',
+  'marfil',
+  'beige',
+  'arena',
+  'nude',
+  'celeste',
+  'claro',
+  'clara',
+  'pastel',
+  'palo',
+] as const
+const OSCUROS = [
+  'negro',
+  'marino',
+  'antracita',
+  'chocolate',
+  'burdeos',
+  'granate',
+  'botella',
+  'oscuro',
+  'oscura',
+  'carbon',
+] as const
+
+/** -1 oscuro, 0 medio, 1 claro, por el primer color de la prenda. */
+export function claridad(prenda: Pick<PrendaReglas, 'colores'>): number {
+  const texto = palabras(prenda.colores[0] ?? '')
+  if (algunaPalabra(texto, OSCUROS)) return -1
+  if (algunaPalabra(texto, CLAROS)) return 1
+  return 0
+}
+
+/** Familia (o neutro) y claridad del color principal: dos capas con el mismo tono se funden. */
+export function tono(prenda: Pick<PrendaReglas, 'colores'>): string {
+  const color = prenda.colores[0] ?? ''
+  const neutro = NEUTROS.find((n) => palabras(color).has(n))
+  return `${neutro ?? familiaColor(color) ?? ''}:${String(claridad(prenda))}`
+}

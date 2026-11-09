@@ -45,12 +45,12 @@ describe('contexto', () => {
 })
 
 describe('abrigo según la temperatura', () => {
-  it('con frío descarta lo de tirantes y los pantalones cortos', () => {
+  it('con frío descarta los pantalones cortos, pero no lo fino de arriba: va de base', () => {
     const tirantes = prenda({ id: 'tirantes', abrigo: 1 })
     const cortos = prenda({ id: 'cortos', categoria: 'inferior', abrigo: 1 })
     const jersey = prenda({ id: 'jersey', abrigo: 4 })
     const resultado = candidatos(peticion([tirantes, cortos, jersey], { tiempo: tiempo(2) }))
-    expect(ids(resultado.candidatos)).toEqual(['jersey'])
+    expect(ids(resultado.candidatos)).toEqual(['jersey', 'tirantes'])
     expect(motivoDe(resultado, 'cortos')).toBe('poco abrigo para 2 °C')
   })
 

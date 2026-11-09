@@ -239,6 +239,26 @@ describe('datos de la etiqueta al editar', () => {
     )
   })
 
+  it('volver a etiquetar con IA conserva el corte que la IA no dice y usa el que sí dice', async () => {
+    const proveedor = crearProveedorFalso({
+      etiquetas: () => ({ ...ETIQUETAS_DE_PRUEBA, corte: undefined, manga: 'corta' }),
+    })
+    const { usuario, actualizar } = montar(
+      prenda({ subcategoria: 'camiseta', corte: 'oversize', manga: 'larga' }),
+      proveedor,
+    )
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+
+    await usuario.click(within(edicion).getByRole('button', { name: 'Volver a etiquetar con IA' }))
+    await within(edicion).findByText(/Etiquetas nuevas de la IA/)
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(actualizar).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ corte: 'oversize', manga: 'corta' }),
+    )
+  })
+
   it('lo escrito en la etiqueta sin guardar sobrevive a volver a etiquetar con IA', async () => {
     const { usuario, actualizar } = montar(prenda())
     const edicion = await abrirEdicion(usuario, 'Camiseta')

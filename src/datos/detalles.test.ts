@@ -8,6 +8,7 @@ describe('detalles que aplican por tipo', () => {
     ['inferior', 'pantalón chino', ['corte', 'tiro', 'largo']],
     ['inferior', 'bermuda', ['corte', 'tiro']],
     ['inferior', 'Shorts', ['corte', 'tiro']],
+    ['inferior', 'pantalón corto', ['corte', 'tiro']],
     ['inferior', 'falda midi', []],
     ['superior', 'camiseta', ['corte', 'largo', 'manga']],
     ['superior', 'sudadera', ['corte', 'largo', 'manga']],

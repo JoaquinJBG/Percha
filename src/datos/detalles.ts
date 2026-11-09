@@ -54,11 +54,11 @@ export function detallesQueAplican({ categoria, subcategoria }: DatosTipo): Opci
     case 'inferior':
       if (tipo.includes('falda')) return {}
       // Unos shorts tienen corte y tiro, pero no largo de pantalón.
-      if (/short|bermuda/.test(tipo)) return { corte: CORTES_PANTALON, tiro: TIROS }
+      if (/short|bermuda|pantalon corto/.test(tipo)) return { corte: CORTES_PANTALON, tiro: TIROS }
       return { corte: CORTES_PANTALON, tiro: TIROS, largo: LARGOS_PANTALON }
     case 'superior':
-      // «camisa» y «sobrecamisa», pero no «camiseta».
-      if (/camisa(?!eta)/.test(tipo) || tipo.includes('overshirt')) {
+      // «camisa» y «sobrecamisa» («camiseta» no contiene «camisa»).
+      if (tipo.includes('camisa') || tipo.includes('overshirt')) {
         return { corte: CORTES_CAMISA, manga: MANGAS, cuello: CUELLOS }
       }
       return { corte: CORTES_CAMISETA, largo: LARGOS_CAMISETA, manga: MANGAS }

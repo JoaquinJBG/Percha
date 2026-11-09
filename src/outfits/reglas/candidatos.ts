@@ -9,7 +9,9 @@ import {
   temporadaOpuesta,
 } from './clima.ts'
 import { afinidad, estilosAfines } from './estilos.ts'
+import { puntosPrendaCuerpo } from './cuerpo.ts'
 import { FORMALIDAD_POR_OCASION, distanciaFormalidad } from './ocasiones.ts'
+import { ajusteTermico, formalidadTrabajo, tipoCuerpo } from './perfil.ts'
 import { esChalecoDePunto } from './pilas.ts'
 import { algunaPalabra, normalizar, palabras } from './texto.ts'
 import type {
@@ -49,28 +51,31 @@ export const ABRIGO_TERCERA_PIEZA = 3
 export const LIMITE_PUNTO_GRUESO = 17
 
 export function crearContexto(peticion: Peticion): Contexto {
-  const { tiempo, estilo, ocasion } = peticion
+  const { tiempo, estilo, ocasion, perfil } = peticion
   // En casa no cuenta el tiempo de fuera; solo la temporada.
   const fuera = ocasion !== 'casa'
   const temperatura = fuera ? temperaturaDe(tiempo) : null
+  const vestir = temperatura === null ? null : temperatura + ajusteTermico(perfil?.sensacionTermica)
   const precipitacion = fuera ? (tiempo?.clima.precipitacion ?? null) : null
-  const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
-  const lluviaSinCalor =
-    precipitacion !== null && (temperatura === null || temperatura < LIMITE_CALOR)
+  const frio = vestir !== null && vestir < LIMITE_EXTERIOR
+  const lluviaSinCalor = precipitacion !== null && (vestir === null || vestir < LIMITE_CALOR)
   const necesitaAbrigo = frio || lluviaSinCalor
+  const fecha = tiempo?.fecha ?? peticion.fecha
+  const deOficina = ocasion === 'trabajo' ? formalidadTrabajo(perfil?.oficina, fecha) : null
   return {
     temperatura,
+    temperaturaVestir: vestir,
+    cuerpo: tipoCuerpo(perfil?.cuerpo),
     precipitacion,
     necesitaAbrigo,
     terceraPieza:
       fuera &&
       !necesitaAbrigo &&
-      (temperatura === null ||
-        (temperatura >= LIMITE_EXTERIOR && temperatura <= LIMITE_TERCERA_PIEZA)),
+      (vestir === null || (vestir >= LIMITE_EXTERIOR && vestir <= LIMITE_TERCERA_PIEZA)),
     temporada: tiempo
       ? temporadaDe(tiempo.fecha, tiempo.sitio.latitud)
       : temporadaDe(peticion.fecha),
-    formalidad: FORMALIDAD_POR_OCASION[ocasion],
+    formalidad: deOficina ?? FORMALIDAD_POR_OCASION[ocasion],
     estilo,
     ocasion,
     estilosAfines: estilosAfines(estilo),
@@ -104,7 +109,7 @@ type Evaluacion =
 
 /** Los papeles que puede hacer hoy una prenda de arriba: con calor, solo base; sin frío, encima solo lo ligero. */
 function capasDeHoy(prenda: PrendaReglas, contexto: Contexto): Capa[] {
-  const { temperatura, necesitaAbrigo, terceraPieza } = contexto
+  const { temperaturaVestir: temperatura, necesitaAbrigo, terceraPieza } = contexto
   let capas = capasDe(prenda)
   // En casa, como mucho un punto o una sudadera encima; nada de chaquetas ni abrigos.
   if (contexto.ocasion === 'casa') {
@@ -136,7 +141,7 @@ function sinCapasHoy(contexto: Contexto): string {
 }
 
 function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
-  const { temperatura, precipitacion, temporada, ocasion, estilo } = contexto
+  const { temperatura, temperaturaVestir, precipitacion, temporada, ocasion, estilo } = contexto
   const motivos: string[] = []
   let puntos = 0
   let parcial = false
@@ -158,26 +163,28 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
     }
   }
 
-  if (temperatura !== null) {
+  if (temperatura !== null && temperaturaVestir !== null) {
+    // Los textos, con la de verdad; las decisiones, con la de vestir (según el perfil).
     const grados = `${String(temperatura)} °C`
-    if (abierto && temperatura < LIMITE_CALZADO_ABIERTO) {
+    const vestir = temperaturaVestir
+    if (abierto && vestir < LIMITE_CALZADO_ABIERTO) {
       return { descarte: `con ${grados} no va calzado abierto` }
     }
     if (
       prenda.categoria === 'inferior' &&
-      temperatura < LIMITE_PANTALON_CORTO &&
+      vestir < LIMITE_PANTALON_CORTO &&
       algunaPalabra(subcategoria, CORTO)
     ) {
       return { descarte: `con ${grados} no van pantalones cortos` }
     }
     if (
       prenda.categoria === 'abrigo' &&
-      temperatura >= LIMITE_CALOR &&
+      vestir >= LIMITE_CALOR &&
       !(precipitacion && prenda.abrigo <= 2)
     ) {
       return { descarte: `hace calor para abrigo a ${grados}` }
     }
-    const diferencia = prenda.abrigo - objetivoDe(prenda.categoria, temperatura)
+    const diferencia = prenda.abrigo - objetivoDe(prenda.categoria, vestir)
     // Lo que va encima (abrigo, gorro, bufanda) se nota más: se tolera un nivel menos de sobra.
     const encima = prenda.categoria === 'abrigo' || prenda.categoria === 'accesorio'
     if (diferencia >= (encima ? 2 : 3)) {
@@ -211,7 +218,7 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
     }
   }
 
-  const distancia = distanciaFormalidad(prenda.formalidad, ocasion)
+  const distancia = distanciaFormalidad(prenda.formalidad, contexto.formalidad)
   const masFormal = prenda.formalidad > contexto.formalidad.maxima
   if (distancia >= 2) {
     return {
@@ -256,6 +263,10 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
       puntos -= 2
       motivos.push('de otro estilo')
   }
+
+  const cuerpo = puntosPrendaCuerpo(prenda, contexto)
+  puntos += cuerpo.puntos
+  motivos.push(...cuerpo.motivos)
 
   const capas = llevaCapas(prenda.categoria) ? capasDeHoy(prenda, contexto) : []
   if (llevaCapas(prenda.categoria) && capas.length === 0) return { descarte: sinCapasHoy(contexto) }
@@ -322,7 +333,9 @@ function avisosDe(
   if (!hay('calzado')) avisos.push(falta('te falta calzado', ['calzado'], descartadas))
   if (contexto.necesitaAbrigo && !hay('abrigo')) {
     const para =
-      contexto.temperatura !== null && contexto.temperatura < LIMITE_EXTERIOR
+      contexto.temperatura !== null &&
+      contexto.temperaturaVestir !== null &&
+      contexto.temperaturaVestir < LIMITE_EXTERIOR
         ? `${String(contexto.temperatura)} °C`
         : `la ${contexto.precipitacion ?? 'lluvia'}`
     avisos.push(falta(`te falta un abrigo para ${para}`, ['abrigo'], descartadas))

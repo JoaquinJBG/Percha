@@ -16,8 +16,10 @@ export const FORMALIDAD_POR_OCASION: Record<Ocasion, { minima: number; maxima: n
 }
 
 /** Cuánto se sale una formalidad del rango: 0 si cae dentro. */
-export function distanciaFormalidad(formalidad: number, ocasion: Ocasion): number {
-  const { minima, maxima } = FORMALIDAD_POR_OCASION[ocasion]
+export function distanciaFormalidad(
+  formalidad: number,
+  { minima, maxima }: { minima: number; maxima: number },
+): number {
   if (formalidad < minima) return minima - formalidad
   if (formalidad > maxima) return formalidad - maxima
   return 0

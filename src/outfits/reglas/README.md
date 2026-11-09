@@ -65,5 +65,22 @@ T6.2 monta la parte de arriba **por capas** (D18 y §1 de `docs/investigacion/re
    12 mejores medias y exteriores, más los 4 mejores abrigos aunque puntúen menos. Con la exterior
    obligatoria, repetir abrigo no resta.
 
+9. **Perfil** (T8.4, `perfil.ts` y `cuerpo.ts`; `Peticion.perfil` con el cuerpo, la oficina y la sensación
+   térmica). Sin perfil, todo sale igual que antes.
+   - **Sensación térmica**: las decisiones usan `contexto.temperaturaVestir` = sensación + 2 °C si es
+     caluroso, −2 °C si es friolero (`ajusteTermico`). Es lo mismo que bajar 2 °C (caluroso) o subir 2 °C
+     (friolero) `LIMITE_EXTERIOR`, `LIMITE_TERCERA_PIEZA`, `LIMITE_PUNTO_GRUESO` y el rango de abrigo de
+     arriba. Los motivos siguen diciendo la temperatura de verdad.
+   - **Oficina**: en «trabajo», formalidad 4–5 (conservadora), 3–4 (estándar) o 2–3 (creativa); el viernes
+     casual baja un punto (`formalidadTrabajo`).
+   - **Silueta** (con `corte`, siempre): amplio arriba y abajo resta (salvo streetwear e y2k); amplio con
+     ajustado suma. Cuenta ya al elegir la base y la parte de abajo.
+   - **Cuerpo** (`tipoCuerpo`: `grande` con complexión grande o atlética, IMC ≥ 28 o «hombros anchos» en las
+     notas): B1 (pitillo −3, recto o relaxed +1), B2 (todo amplio resta más), B3 (capa abierta encima, con
+     consejo en el motivo), B4 (columna de color en trabajo y minimalista), B5 (arriba claro y abajo
+     oscuro), B6 (escote abierto, cuello alto), B7 (calzado con presencia), B8 (abrigo largo en trabajo o
+     estilos arreglados), B9 (raya vertical mejor que horizontal, nada de gráfico), B10 (punto fino bajo
+     estructura, no dos capas gruesas) y B11 (sudadera sin capa ni pantalón sastre). Todas blandas.
+
 `ejemplo.ts` imprime los 4 outfits del armario de ejemplo con capas en varios días:
 `node --experimental-strip-types src/outfits/reglas/ejemplo.ts`.

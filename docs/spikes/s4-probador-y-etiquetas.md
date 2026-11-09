@@ -185,6 +185,37 @@ fotos y los resultados se quedan en esa carpeta, no en el repo.
    20 pasos para bajar de ~45 s.
 4. Solo después, B y C (Tailscale y el botón en Percha).
 
+### Fase A bis — CatVTON y fotos de modelos (2026-11-09)
+
+**Fotos de modelos de Unsplash con FASHN:** el largo del pantalón depende de la pose y no de la bermuda. Con dos
+de los cuatro modelos, aunque lleven pantalón largo, los pantalones salen por la rodilla. Con la pose de
+`foto-de-referencia.jpg` (de frente, manos en los bolsillos, fondo blanco) salen enteros. Cambiar la máscara,
+recortar el margen de la foto o usar la foto original no lo arregla.
+
+**CatVTON** en un entorno aparte (`.venv-cat`):
+- diffusers 0.31, accelerate 1.x;
+- pesos: UNet de SD-inpainting, VAE ft-mse y atención «mix»;
+- el *safety checker* no se descarga.
+
+Las máscaras salen del parser humano de FASHN (`mascaras.py`): arriba = top, torso y brazos; abajo = pantalón y
+piernas. Así no hace falta DensePose ni detectron2, que en Windows dan problemas.
+
+| Dato | CatVTON | FASHN |
+|---|---|---|
+| Disco (además de lo común) | +4,6 GB de entorno + 4,0 GB de pesos (total de la carpeta: 12 GB) | 7,1 GB |
+| Tiempo por prenda | **~76 s** (50 pasos, 768 × 1024) | ~58 s (30 pasos, 576 × 864) |
+| VRAM (pico en PyTorch) | 3,6 GB | 3,0 GB |
+| Pantalones con su foto en bermuda | **Largos hasta el zapato** | Por la rodilla |
+| Prendas de arriba | Bien; la sobrecamisa sale cerrada, como camisa | Bien; la sobrecamisa sale abierta sobre camiseta |
+
+**Outfit encadenado** con su foto (pinzas → camisa → abrigo): pantalón y camisa salen bien. El abrigo
+**sustituye** a la camisa en vez de ir encima, porque la máscara de arriba lo tapa todo. En cada pasada la cara
+pierde algo de detalle.
+
+**Veredicto:** CatVTON es mejor para Percha. Viste **pantalón + parte de arriba** con la foto que el usuario ya
+tiene, a ~2,5 min por outfit de dos prendas. Las capas (prenda abierta sobre otra) siguen sin resolver en local:
+habría que probar una máscara que deje libre la franja central del pecho, o dejar las capas para Gemini.
+
 ## Plan propuesto por fases
 
 | Fase | Qué | Esfuerzo | Necesita | Criterio de corte |

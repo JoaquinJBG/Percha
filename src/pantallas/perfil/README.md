@@ -5,6 +5,11 @@ ciudad por defecto y estilos favoritos.
   que cambia. Las fotos pasan por `normalizarFoto` (EXIF, 1280 px, JPEG) antes de guardarse; no se
   recortan. La ciudad se guarda con su botón y los estilos al tocarlos. Recibe `leer`, `guardar` y
   `normalizar` para los tests.
+- **Fotos (T8.3, D21):** la de cuerpo entero es la **foto de referencia** y lleva al lado
+  `GuiaFotoReferencia.tsx`, plegada: ropa (tirantes ajustada y mallas, lisas), pose y encuadre, con un
+  dibujo SVG hecho en código. La sección «Foto en ropa interior» es opcional y solo para el probador del
+  PC: se lee y guarda con `leerFotoInterior` / `guardarFotoInterior` (props `leerInterior` y
+  `guardarInterior`), aparte del perfil; nunca va a Gemini ni en la copia.
 - `FotoPerfil.tsx`: la tarjeta de una foto, con «Cámara» (frontal para la cara, trasera para el cuerpo),
   «Galería» y «Borrar» con confirmación.
 - `CuerpoPerfil.tsx` (T8.2): medidas con «Cómo medirte» en cada una, complexión y una línea libre. Se

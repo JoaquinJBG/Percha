@@ -25,3 +25,7 @@ de instalación, en [`docs/probador-pc.md`](../../docs/probador-pc.md).
 La interfaz es `BotonPruebatelo` (`src/componentes/`) y la sección «Probador en tu PC» de Ajustes
 (`ProbadorPC.tsx`). La URL y la clave se guardan solo en el móvil y no van en la copia; la foto de la
 prueba se guarda con el outfit (`Outfit.prueba`) y sí va en la copia.
+
+**Qué foto va al PC (T8.3, D21):** la foto en ropa interior del perfil (`leerFotoInterior`) si la hay; si
+no, la de referencia (`fotoCuerpo`). «Pruébatelo en Gemini» y «Probar con Gemini» usan siempre la de
+referencia: la de ropa interior nunca sale hacia Gemini.

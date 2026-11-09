@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { strFromU8, unzipSync } from 'fflate'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -18,9 +18,18 @@ function montar(error?: TipoErrorIA) {
   return { usuario: userEvent.setup({ delay: null }), crearProveedor, proveedor }
 }
 
+/** El botón está desactivado hasta que se leen los ajustes: con la CPU cargada, eso tarda. */
+async function botonGuardar() {
+  const boton = screen.getByRole('button', { name: 'Guardar y comprobar' })
+  await waitFor(() => {
+    expect(boton).toBeEnabled()
+  })
+  return boton
+}
+
 async function pegarYGuardar(usuario: ReturnType<typeof userEvent.setup>, clave = CLAVE_FALSA) {
   await usuario.type(await screen.findByLabelText('Tu clave'), clave)
-  await usuario.click(screen.getByRole('button', { name: 'Guardar y comprobar' }))
+  await usuario.click(await botonGuardar())
 }
 
 const consola = {
@@ -90,7 +99,7 @@ describe('clave de Gemini en Ajustes', () => {
     const { usuario, crearProveedor } = montar()
 
     await screen.findByLabelText('Tu clave')
-    await usuario.click(screen.getByRole('button', { name: 'Guardar y comprobar' }))
+    await usuario.click(await botonGuardar())
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Pega la clave primero.')
     expect(crearProveedor).not.toHaveBeenCalled()

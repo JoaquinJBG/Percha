@@ -16,9 +16,11 @@ import { imagen, nuevaPrenda, sinBlobs, vaciarBase } from './pruebas.ts'
 import {
   crearPrenda,
   guardarAjustes,
+  guardarFotoInterior,
   guardarOutfit,
   guardarPerfil,
   leerAjustes,
+  leerFotoInterior,
   leerPerfil,
   leerPrenda,
   listarOutfits,
@@ -315,6 +317,58 @@ describe('la clave de Gemini', () => {
     await importarCopia(copia, 'reemplazar')
 
     expect((await leerAjustes()).claveGemini).toBeNull()
+  })
+})
+
+describe('la foto en ropa interior (D21)', () => {
+  /** Una foto con bytes que no salen en ninguna otra imagen sintética, para buscarla en el zip. */
+  const interior = () =>
+    new Blob([Uint8Array.from({ length: 64 }, (_, i) => (i * 7 + 201) % 256)], {
+      type: 'image/jpeg',
+    })
+
+  function contiene(fichero: Uint8Array, buscado: Uint8Array): boolean {
+    return fichero.some((_, i) => buscado.every((byte, j) => fichero[i + j] === byte))
+  }
+
+  it('no va en la copia, ni su foto ni su nombre', async () => {
+    await sembrar()
+    await guardarPerfil({ fotoCuerpo: imagen(8, 'image/jpeg') })
+    await guardarFotoInterior(interior())
+
+    const ficheros = unzipSync(new Uint8Array(await (await exportarCopia()).arrayBuffer()))
+    const bytes = new Uint8Array(await interior().arrayBuffer())
+
+    expect(strFromU8(ficheros['percha.json'] ?? new Uint8Array())).not.toMatch(/interior/i)
+    for (const fichero of Object.values(ficheros)) expect(contiene(fichero, bytes)).toBe(false)
+    // La de referencia sí va, como siempre.
+    expect((await leerPerfil()).fotoCuerpo).not.toBeNull()
+    expect(strFromU8(ficheros['percha.json'] ?? new Uint8Array())).toMatch(/"fotoCuerpo":\{/)
+  })
+
+  it('importar nunca la trae, aunque la copia la meta a mano', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      const perfil = json.perfil as Record<string, unknown>
+      perfil.fotoInterior = { ruta: 'fotos/1.jpg', tipo: 'image/jpeg' }
+      json.privado = { fotoInterior: { ruta: 'fotos/1.jpg', tipo: 'image/jpeg' } }
+    })
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await leerFotoInterior()).toBeNull()
+    expect(Object.keys(await leerPerfil())).not.toContain('fotoInterior')
+  })
+
+  it('importar no borra la que ya hay en el móvil, ni al reemplazar', async () => {
+    await sembrar()
+    const copia = await exportarCopia()
+    await guardarFotoInterior(interior())
+
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await sinBlobs(await leerFotoInterior())).toEqual(await sinBlobs(interior()))
   })
 })
 

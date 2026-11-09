@@ -19,6 +19,10 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   (`tallaMarcaSchema`, como mucho `MAX_TALLAS`), `oficina` (`TIPOS_OFICINA` y `viernesCasual`) y
   `sensacionTermica` (`SENSACIONES_TERMICAS`). Los perfiles y copias de antes siguen valiendo; al fusionar
   una copia, el cuerpo se mezcla medida a medida.
+- Privado (T8.3, D21): `privadoSchema` con `fotoInterior`, la foto en ropa interior solo para el probador
+  del PC. Va en su propia tabla `privado` (Dexie v3) y no en el perfil: la copia no la exporta ni la
+  importa (tampoco la borra al reemplazar) y Gemini nunca la ve. `leerFotoInterior()` y
+  `guardarFotoInterior(foto | null)` en `repositorio.ts`.
 - `cuerpo.ts`: `resumenCuerpo(perfil)`, el cuerpo en una línea corta para un prompt.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `guardarPrueba` (la foto del probador del PC, T7.1),

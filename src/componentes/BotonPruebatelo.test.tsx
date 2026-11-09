@@ -42,6 +42,8 @@ function montar({
 }: Opciones = {}) {
   const copiar = vi.fn(() => Promise.resolve(copiado))
   const leerFotoCuerpo = vi.fn(() => Promise.resolve(fotoCuerpo))
+  // Hay foto en ropa interior en el móvil: con Gemini nunca se usa (D21).
+  const leerFotoInterior = vi.fn(() => Promise.resolve(new Blob(['ropa-interior'])))
   const prendas = [nuevaPrenda({ subcategoria: 'camiseta' })].map((p, i) => ({
     ...p,
     id: String(i),
@@ -56,6 +58,7 @@ function montar({
             prendas={prendas}
             numero={2}
             leerFotoCuerpo={leerFotoCuerpo}
+            leerFotoInterior={leerFotoInterior}
             leerProbador={sinProbador}
             preparar={preparar}
             copiar={copiar}
@@ -69,7 +72,15 @@ function montar({
     { initialEntries: ['/outfits'] },
   )
   render(<RouterProvider router={router} />)
-  return { usuario: userEvent.setup(), router, copiar, preparar, leerFotoCuerpo, prendas }
+  return {
+    usuario: userEvent.setup(),
+    router,
+    copiar,
+    preparar,
+    leerFotoCuerpo,
+    leerFotoInterior,
+    prendas,
+  }
 }
 
 const sinProbador = () => Promise.resolve(null)
@@ -109,6 +120,25 @@ describe('BotonPruebatelo', () => {
     expect(share).toHaveBeenCalledWith({ files: [tryon.fichero] })
     // El texto no va en share(): Gemini no lo recibe (D13). Y se copia antes de abrir la hoja.
     expect(pasos).toEqual(['copiar', 'share'])
+  })
+
+  it('con Gemini usa siempre la foto de referencia, nunca la de ropa interior (D21)', async () => {
+    const { usuario, preparar, leerFotoInterior } = montar()
+
+    await usuario.click(boton())
+
+    expect(await screen.findByText(INSTRUCCION)).toBeInTheDocument()
+    expect(preparar).toHaveBeenCalledWith(foto, expect.any(Array))
+    expect(leerFotoInterior).not.toHaveBeenCalled()
+  })
+
+  it('con solo la foto en ropa interior, Gemini no la usa y pide la de referencia', async () => {
+    const { usuario, preparar } = montar({ fotoCuerpo: null })
+
+    await usuario.click(boton())
+
+    expect(await screen.findByText(/necesitas una foto tuya de cuerpo entero/)).toBeInTheDocument()
+    expect(preparar).not.toHaveBeenCalled()
   })
 
   it('avisa de la privacidad solo la primera vez', async () => {

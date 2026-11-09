@@ -16,6 +16,8 @@ function montar(inicial: Partial<DatosPerfil> = {}) {
       leer={() => Promise.resolve(guardado)}
       guardar={guardar}
       normalizar={(foto) => Promise.resolve(foto)}
+      leerInterior={() => Promise.resolve(null)}
+      guardarInterior={(foto) => Promise.resolve(foto)}
     />,
   )
   return { usuario: userEvent.setup(), guardar, guardado: () => guardado }

@@ -7,6 +7,8 @@ import {
   PERFIL_VACIO,
   perfilSchema,
   prendaSchema,
+  PRIVADO_VACIO,
+  privadoSchema,
   type Ajustes,
   type CambiosPrenda,
   type Categoria,
@@ -113,6 +115,18 @@ export function guardarPerfil(cambios: Partial<Perfil>): Promise<Perfil> {
     await db.perfil.put(perfil, FILA_UNICA)
     return perfil
   })
+}
+
+/** La foto en ropa interior, solo para el probador del PC (D21), o `null`. */
+export async function leerFotoInterior(): Promise<Blob | null> {
+  return ((await db.privado.get(FILA_UNICA)) ?? PRIVADO_VACIO).fotoInterior
+}
+
+/** Guarda la foto en ropa interior; con `null`, la borra del móvil. */
+export async function guardarFotoInterior(foto: Blob | null): Promise<Blob | null> {
+  const privado = privadoSchema.parse({ fotoInterior: foto })
+  await db.privado.put(privado, FILA_UNICA)
+  return privado.fotoInterior
 }
 
 export async function leerAjustes(): Promise<Ajustes> {

@@ -12,9 +12,11 @@ import {
   crearPrenda,
   guardarAjustes,
   guardarOutfit,
+  guardarFotoInterior,
   guardarPerfil,
   guardarPrueba,
   leerAjustes,
+  leerFotoInterior,
   leerPerfil,
   leerPrenda,
   listarOutfits,
@@ -250,6 +252,21 @@ describe('outfits', () => {
     const [leido] = await listarOutfits()
     expect(await sinBlobs(leido?.prueba)).toEqual(await sinBlobs(imagen(2, 'image/jpeg')))
     await expect(guardarPrueba(nuevoId(), imagen(3))).rejects.toThrow(/No existe/)
+  })
+})
+
+describe('foto en ropa interior', () => {
+  it('se guarda aparte del perfil y se borra con null', async () => {
+    expect(await leerFotoInterior()).toBeNull()
+
+    await guardarFotoInterior(imagen(1, 'image/jpeg'))
+    expect(await sinBlobs(await leerFotoInterior())).toEqual(
+      await sinBlobs(imagen(1, 'image/jpeg')),
+    )
+    expect(Object.keys(await leerPerfil())).not.toContain('fotoInterior')
+
+    await guardarFotoInterior(null)
+    expect(await leerFotoInterior()).toBeNull()
   })
 })
 

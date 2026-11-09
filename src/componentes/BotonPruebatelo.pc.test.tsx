@@ -28,6 +28,7 @@ interface Opciones {
   prendas?: ReturnType<typeof ropa>[]
   fotoCuerpo?: Blob | null
   leerFotoCuerpo?: () => Promise<Blob | null>
+  fotoInterior?: Blob | null
   esperar?: (ms: number, signal?: AbortSignal) => Promise<void>
   compartidor?: CompartidorTryOn
 }
@@ -38,6 +39,7 @@ function montar({
   prendas = [ropa('superior', 1, 'camiseta'), ropa('inferior', 2, 'vaquero')],
   fotoCuerpo = foto,
   leerFotoCuerpo = () => Promise.resolve(fotoCuerpo),
+  fotoInterior = null,
   esperar = sinEsperas,
   compartidor = { share: vi.fn(() => Promise.resolve()), canShare: () => true },
 }: Opciones = {}) {
@@ -54,6 +56,7 @@ function montar({
             numero={2}
             alGuardarPrueba={alGuardarPrueba}
             leerFotoCuerpo={leerFotoCuerpo}
+            leerFotoInterior={() => Promise.resolve(fotoInterior)}
             leerProbador={() => Promise.resolve({ url: URL_FALSA, clave })}
             crearCliente={(config) => crearClienteProbador(config, { fetch: servidor.fetch })}
             esperar={esperar}
@@ -292,6 +295,39 @@ describe('BotonPruebatelo con el probador del PC', () => {
     await new Promise((resolver) => setTimeout(resolver, 0))
 
     expect(servidor.peticiones).toEqual([])
+  })
+
+  it('con foto en ropa interior, el PC recibe esa y no la de referencia (D21)', async () => {
+    const interior = new Blob(['ropa-interior'], { type: 'image/jpeg' })
+    const { usuario, servidor } = montar({ fotoInterior: interior })
+
+    await usuario.click(boton())
+
+    await screen.findByRole('img', { name: /vestido en tu PC/ })
+    const persona = servidor.peticiones[1]?.datos?.get('persona') as Blob
+    expect(await persona.text()).toBe('ropa-interior')
+  })
+
+  it('si el PC falla, Gemini recibe la de referencia y nunca la de ropa interior', async () => {
+    const interior = new Blob(['ropa-interior'], { type: 'image/jpeg' })
+    const { usuario, preparar } = montar({ servidor: { caido: true }, fotoInterior: interior })
+
+    await usuario.click(boton())
+    await usuario.click(await screen.findByRole('button', { name: 'Probar con Gemini' }))
+
+    await screen.findByText(/En Gemini, toca la sugerencia/)
+    expect(preparar).toHaveBeenCalledTimes(1)
+    expect(preparar).toHaveBeenCalledWith(foto, expect.any(Array))
+  })
+
+  it('solo con la foto en ropa interior, el PC la usa', async () => {
+    const interior = new Blob(['ropa-interior'], { type: 'image/jpeg' })
+    const { usuario, servidor } = montar({ fotoCuerpo: null, fotoInterior: interior })
+
+    await usuario.click(boton())
+
+    await screen.findByRole('img', { name: /vestido en tu PC/ })
+    expect(servidor.peticiones.filter((p) => p.metodo === 'POST')).toHaveLength(1)
   })
 
   it('sin foto de cuerpo no llama al PC', async () => {

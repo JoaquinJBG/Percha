@@ -117,6 +117,40 @@ describe('el cuerpo en la copia', () => {
     expect(await leerPerfil()).toMatchObject({ ciudad: 'Sevilla', estilosFavoritos: ['boho'] })
   })
 
+  it('al fusionar una copia de antes, se queda todo lo del cuerpo', async () => {
+    const copia = await exportarCopia()
+    await guardarPerfil({
+      cuerpo: { altura: 176 },
+      tallas: [{ marca: 'Zara', tipo: 'pantalón', talla: '44' }],
+      oficina: { tipo: 'creativa', viernesCasual: false },
+    })
+
+    await importarCopia(copia, 'fusionar')
+
+    expect(await leerPerfil()).toMatchObject({
+      cuerpo: { altura: 176 },
+      tallas: [{ marca: 'Zara', tipo: 'pantalón', talla: '44' }],
+      oficina: { tipo: 'creativa', viernesCasual: false },
+    })
+  })
+
+  it('al fusionar, unas notas vacías en la copia no borran las del móvil', async () => {
+    await guardarPerfil({ cuerpo: { altura: 176 } })
+    const ficheros = unzipSync(new Uint8Array(await (await exportarCopia()).arrayBuffer()))
+    const json = JSON.parse(strFromU8(ficheros['percha.json'] ?? new Uint8Array())) as {
+      perfil: { cuerpo: Record<string, unknown> }
+    }
+    json.perfil.cuerpo.notas = ''
+    const retocada = new Blob([
+      zipSync({ ...ficheros, 'percha.json': strToU8(JSON.stringify(json)) }),
+    ])
+    await guardarPerfil({ cuerpo: { notas: 'hombros anchos' } })
+
+    await importarCopia(retocada, 'fusionar')
+
+    expect((await leerPerfil()).cuerpo).toEqual({ altura: 176, notas: 'hombros anchos' })
+  })
+
   it('al fusionar, la copia no borra las medidas que no trae', async () => {
     await guardarPerfil({ cuerpo: { altura: 176, cadera: 112 }, sensacionTermica: 'caluroso' })
     const copia = await exportarCopia()

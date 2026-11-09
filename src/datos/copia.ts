@@ -163,6 +163,12 @@ export async function importarCopia(
   }
 }
 
+function sinVacios<T extends object>(objeto: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(objeto).filter(([, valor]) => valor !== undefined && valor !== ''),
+  ) as Partial<T>
+}
+
 /** Al fusionar, un campo vacío en la copia no borra lo que ya hay en el móvil (p. ej. la foto de cara). */
 function fusionarPerfil(local: Perfil, copia: Perfil): Perfil {
   return {
@@ -171,8 +177,11 @@ function fusionarPerfil(local: Perfil, copia: Perfil): Perfil {
     ciudad: copia.ciudad || local.ciudad,
     estilosFavoritos:
       copia.estilosFavoritos.length > 0 ? copia.estilosFavoritos : local.estilosFavoritos,
-    // Las medidas también van una a una: una copia sin la cadera no borra la que ya hay.
-    cuerpo: copia.cuerpo || local.cuerpo ? { ...local.cuerpo, ...copia.cuerpo } : undefined,
+    // Las medidas también van una a una: una copia sin la cadera (o con las notas vacías) no borra lo que ya hay.
+    cuerpo:
+      copia.cuerpo || local.cuerpo
+        ? { ...local.cuerpo, ...sinVacios(copia.cuerpo ?? {}) }
+        : undefined,
     tallas: copia.tallas?.length ? copia.tallas : local.tallas,
     oficina: copia.oficina ?? local.oficina,
     sensacionTermica: copia.sensacionTermica ?? local.sensacionTermica,

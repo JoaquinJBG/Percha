@@ -48,18 +48,21 @@ const CAMPOS: { medida: Medida; nombre: string; ayuda: string }[] = [
   },
 ]
 
-const SOLO_NUMERO = /^\d{1,3}([.,]\d{1,2})?$/
+const SOLO_NUMERO = /^\d{1,3}([.,]\d+)?$/
 
 function texto(valor: number | undefined): string {
   return valor === undefined ? '' : String(valor).replace('.', ',')
 }
 
-/** Lee lo escrito: vacío es «sin medida»; «84,5» vale igual que «84.5». */
+/**
+ * Lee lo escrito: vacío es «sin medida»; «84,5» vale igual que «84.5». Se queda con un decimal, que es
+ * lo que da una cinta métrica (y lo que enseña `resumenCuerpo`).
+ */
 function leerNumero(escrito: string): number | undefined | null {
   const limpio = escrito.trim()
   if (limpio === '') return undefined
   if (!SOLO_NUMERO.test(limpio)) return null
-  return Number(limpio.replace(',', '.'))
+  return Math.round(Number(limpio.replace(',', '.')) * 10) / 10
 }
 
 type Errores = Partial<Record<Medida | 'notas', string>>
@@ -143,14 +146,16 @@ export function CuerpoPerfil({ cuerpo, guardar }: Props) {
                   value={textos[medida]}
                   disabled={guardando}
                   aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? `${id}-error` : undefined}
+                  aria-describedby={error ? `${id}-unidad ${id}-error` : `${id}-unidad`}
                   onChange={(evento) => {
                     const valor = evento.target.value
                     setTextos((actuales) => ({ ...actuales, [medida]: valor }))
                   }}
                   className={campoTexto}
                 />
-                <span className="text-sm text-suave">{MEDIDAS[medida].unidad}</span>
+                <span id={`${id}-unidad`} className="text-sm text-suave">
+                  {MEDIDAS[medida].unidad}
+                </span>
               </div>
               {error && (
                 <p id={`${id}-error`} className="text-xs font-medium text-red-800">
@@ -158,7 +163,9 @@ export function CuerpoPerfil({ cuerpo, guardar }: Props) {
                 </p>
               )}
               <details className="text-xs text-suave">
-                <summary className="min-h-8 cursor-pointer content-center">Cómo medirte</summary>
+                <summary className="min-h-8 cursor-pointer content-center">
+                  Cómo medirte<span className="sr-only"> {nombre.toLocaleLowerCase('es')}</span>
+                </summary>
                 <p>{ayuda}</p>
               </details>
             </div>

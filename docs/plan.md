@@ -142,3 +142,9 @@ tallas y medidas) y F (*grounding*) quedan para después.
   y genérico); `share_target` GET a `/compartido` para guardar el enlace en una prenda o empezar una nueva.
 - **Fuera:** tallas y medidas (fase E), *grounding* (fase F), probador. La foto de catálogo vuelve como
   captura por el selector de fotos de siempre; recibirla por `share_target` POST pediría `injectManifest`.
+
+## Fase 8 — Ficha completa
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T8.2 | Perfil de cuerpo: medidas, complexión, tallas habituales por marca, oficina y sensación térmica (absorbe T6.5) | — | 👀 |

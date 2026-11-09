@@ -261,7 +261,7 @@ export function Perfil({
               Tu cuerpo
             </h2>
             <p className="text-sm text-suave">
-              Todo es opcional. Sirve para que los outfits y las tallas te encajen mejor. Se queda
+              Todo es opcional. Servirá para ajustar los outfits y las tallas a tu cuerpo. Se queda
               en este móvil y no se manda a Gemini; solo sale si exportas la copia en Ajustes.
             </p>
             <CuerpoPerfil

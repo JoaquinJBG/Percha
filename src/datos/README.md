@@ -5,6 +5,12 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   sus tipos. `COLORES` y `ESTAMPADOS` son las listas cerradas que usan la IA y el formulario (D14); el
   modelo sigue admitiendo texto libre. `etiquetasPrendaSchema` / `EtiquetasPrenda`: solo los campos que
   etiqueta la IA o el formulario (sin `id`, fotos, `etiquetadaPor` ni fecha). Una prenda tiene 1–2 `fotos`, cada una `{ original: Blob, recortada: Blob | null }`.
+- Perfil (T8.2): además de fotos, ciudad y estilos, lleva opcionales `cuerpo` (`cuerpoSchema`: medidas
+  en cm y kg con su rango en `MEDIDAS`, `complexion` de `COMPLEXIONES` y `notas`), `tallas`
+  (`tallaMarcaSchema`, como mucho `MAX_TALLAS`), `oficina` (`TIPOS_OFICINA` y `viernesCasual`) y
+  `sensacionTermica` (`SENSACIONES_TERMICAS`). Los perfiles y copias de antes siguen valiendo; al fusionar
+  una copia, el cuerpo se mezcla medida a medida.
+- `cuerpo.ts`: `resumenCuerpo(perfil)`, el cuerpo en una línea corta para un prompt.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `borrarOutfit`;
   `leerPerfil`/`guardarPerfil` y `leerAjustes`/`guardarAjustes` (guardan solo los campos que se pasan).

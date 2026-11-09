@@ -28,6 +28,7 @@ export function TallasPerfil({ tallas, guardar }: Props) {
   const [talla, setTalla] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState<Aviso | null>(null)
+  const [faltan, setFaltan] = useState({ marca: false, talla: false })
 
   async function cambiar(nuevas: TallaMarca[], hecho: string): Promise<boolean> {
     setGuardando(true)
@@ -48,6 +49,7 @@ export function TallasPerfil({ tallas, guardar }: Props) {
   async function añadir(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault()
     const resultado = tallaMarcaSchema.safeParse({ marca, tipo, talla })
+    setFaltan({ marca: !marca.trim(), talla: !talla.trim() })
     if (!resultado.success) {
       setAviso({ tipo: 'error', texto: 'Escribe la marca y la talla.' })
       return
@@ -59,8 +61,12 @@ export function TallasPerfil({ tallas, guardar }: Props) {
       setAviso({ tipo: 'error', texto: `Como mucho ${String(MAX_TALLAS)} tallas.` })
       return
     }
+    // Una copia podría traer «Zara» y «zara» con el mismo tipo: se queda una sola, en el sitio de la primera.
+    const primera = tallas.findIndex((una) => mismaMarcaYTipo(una, nueva))
     const nuevas = yaEstaba
-      ? tallas.map((una) => (mismaMarcaYTipo(una, nueva) ? nueva : una))
+      ? tallas.flatMap((una, indice) =>
+          indice === primera ? [nueva] : mismaMarcaYTipo(una, nueva) ? [] : [una],
+        )
       : [...tallas, nueva]
     const guardadas = await cambiar(
       nuevas,
@@ -119,6 +125,8 @@ export function TallasPerfil({ tallas, guardar }: Props) {
               maxLength={40}
               placeholder="Por ejemplo, Zara"
               disabled={guardando}
+              aria-invalid={faltan.marca ? true : undefined}
+              aria-describedby={faltan.marca ? 'tallas-aviso' : undefined}
               onChange={(evento) => {
                 setMarca(evento.target.value)
               }}
@@ -150,6 +158,8 @@ export function TallasPerfil({ tallas, guardar }: Props) {
               maxLength={20}
               placeholder="44, L, 45…"
               disabled={guardando}
+              aria-invalid={faltan.talla ? true : undefined}
+              aria-describedby={faltan.talla ? 'tallas-aviso' : undefined}
               onChange={(evento) => {
                 setTalla(evento.target.value)
               }}
@@ -161,7 +171,7 @@ export function TallasPerfil({ tallas, guardar }: Props) {
           Añadir talla
         </button>
       </form>
-      <LineaAviso aviso={aviso} />
+      <LineaAviso id="tallas-aviso" aviso={aviso} />
     </div>
   )
 }

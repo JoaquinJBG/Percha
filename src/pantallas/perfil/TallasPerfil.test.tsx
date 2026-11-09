@@ -86,7 +86,27 @@ describe('Tallas por marca', () => {
     await añadir(usuario, '   ', 'calzado', '45')
 
     expect(screen.getByRole('alert')).toHaveTextContent('Escribe la marca y la talla.')
+    const campoMarca = screen.getByRole('textbox', { name: 'Marca' })
+    expect(campoMarca).toHaveAttribute('aria-invalid', 'true')
+    expect(campoMarca).toHaveAccessibleDescription('Escribe la marca y la talla.')
+    expect(screen.getByRole('textbox', { name: 'Talla' })).not.toHaveAttribute('aria-invalid')
     expect(guardar).not.toHaveBeenCalled()
+  })
+
+  it('si una copia trajo la misma marca y tipo dos veces, al cambiarla queda una', async () => {
+    const { usuario, guardadas } = montar([
+      { marca: 'Zara', tipo: 'pantalón', talla: '44' },
+      { marca: 'Nike', tipo: 'calzado', talla: '45' },
+      { marca: 'zara', tipo: 'pantalón', talla: '46' },
+    ])
+
+    await añadir(usuario, 'ZARA', 'pantalón', '48')
+
+    expect(await screen.findByText('Talla cambiada: ZARA · pantalón · 48.')).toBeInTheDocument()
+    expect(guardadas()).toEqual([
+      { marca: 'ZARA', tipo: 'pantalón', talla: '48' },
+      { marca: 'Nike', tipo: 'calzado', talla: '45' },
+    ])
   })
 
   it('no pasa del máximo, pero sí deja cambiar una que ya está', async () => {

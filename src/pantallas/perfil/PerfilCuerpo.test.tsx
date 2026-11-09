@@ -109,9 +109,9 @@ describe('Tu cuerpo', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Revisa las medidas marcadas.')
     expect(altura).toHaveAttribute('aria-invalid', 'true')
-    expect(altura).toHaveAccessibleDescription('Entre 100 y 230 cm.')
+    expect(altura).toHaveAccessibleDescription('cm Entre 100 y 230 cm.')
     expect(screen.getByRole('textbox', { name: 'Pecho' })).toHaveAccessibleDescription(
-      'Escribe solo el número, por ejemplo 84 o 84,5.',
+      'cm Escribe solo el número, por ejemplo 84 o 84,5.',
     )
     expect(guardar).not.toHaveBeenCalled()
   })
@@ -120,8 +120,33 @@ describe('Tu cuerpo', () => {
     montar()
     const cuerpo = within(await screen.findByRole('region', { name: 'Tu cuerpo' }))
 
-    expect(cuerpo.getAllByText('Cómo medirte')).toHaveLength(6)
+    expect(cuerpo.getAllByText(/^Cómo medirte/)).toHaveLength(6)
+    // El nombre de la medida va oculto a la vista, para que un lector distinga los seis desplegables.
+    expect(
+      cuerpo.getByText(
+        (_, elemento) =>
+          elemento?.tagName === 'SUMMARY' &&
+          elemento.textContent === 'Cómo medirte largo de pierna',
+      ),
+    ).toBeInTheDocument()
     expect(cuerpo.getByText(/de la entrepierna al suelo/)).toBeInTheDocument()
+  })
+
+  it('cada medida dice su unidad', async () => {
+    montar()
+
+    expect(await screen.findByRole('textbox', { name: 'Peso' })).toHaveAccessibleDescription('kg')
+    expect(screen.getByRole('textbox', { name: 'Altura' })).toHaveAccessibleDescription('cm')
+  })
+
+  it('se queda con un decimal, aunque se escriban más', async () => {
+    const { usuario, guardar } = montar()
+
+    await escribir(usuario, await screen.findByRole('textbox', { name: 'Cintura' }), '98,36')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar medidas' }))
+
+    expect(await screen.findByText('Medidas guardadas.')).toBeInTheDocument()
+    expect(guardar).toHaveBeenCalledWith({ cuerpo: { cintura: 98.4 } })
   })
 
   it('avisa de que se queda en el móvil y no va a Gemini', async () => {

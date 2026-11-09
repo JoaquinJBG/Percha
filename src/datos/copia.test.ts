@@ -154,6 +154,50 @@ describe('exportar e importar', () => {
     expect(leida?.subcategoria).toBe('camiseta')
   })
 
+  it('la foto del probador va con su outfit en la copia y vuelve', async () => {
+    const { camiseta } = await sembrar()
+    const prueba = imagen(7, 'image/jpeg')
+    const conPrueba = await guardarOutfit({
+      prendas: [camiseta.id],
+      estilo: 'casual',
+      ocasion: 'diario',
+      tiempo: null,
+      explicacion: 'Probado en el PC.',
+      favorito: false,
+      prueba,
+    })
+    const antes = await sinBlobs(await listarOutfits())
+    const copia = await exportarCopia()
+    const ficheros = unzipSync(new Uint8Array(await copia.arrayBuffer()))
+    const json = JSON.parse(strFromU8(ficheros['percha.json'] ?? strToU8('{}'))) as {
+      outfits: { id: string; prueba?: { ruta: string } }[]
+    }
+    const ruta = json.outfits.find((o) => o.id === conPrueba.id)?.prueba?.ruta ?? ''
+    expect(ruta).toMatch(/^fotos\/\d+\.jpg$/)
+    expect(ficheros[ruta]).toBeDefined()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await sinBlobs(await listarOutfits())).toEqual(antes)
+  })
+
+  it('una copia de antes de T7.1, sin foto del probador, se importa igual', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      for (const outfit of json.outfits as Record<string, unknown>[]) {
+        expect(outfit).not.toHaveProperty('prueba')
+      }
+    })
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    const [outfit] = await listarOutfits()
+    expect(outfit?.prueba).toBeUndefined()
+    expect(outfit?.explicacion).toBe('Para el día a día.')
+  })
+
   it('reemplazar borra lo que no estaba en la copia', async () => {
     await sembrar()
     const copia = await exportarCopia()
@@ -234,6 +278,8 @@ describe('la clave de Gemini', () => {
     expect(await leerAjustes()).toEqual({
       claveGemini: 'otra-clave-falsa',
       modeloGemini: 'gemini-otro',
+      urlProbador: null,
+      claveProbador: null,
     })
   })
 

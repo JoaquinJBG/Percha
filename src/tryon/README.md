@@ -16,7 +16,9 @@ lo recibe).
   copió.
 
 La interfaz es `BotonPruebatelo` (`src/componentes/`), montado en cada outfit de
-`pantallas/outfits/Resultado.tsx`: lee `fotoCuerpo` del perfil al pulsar (sin foto, explica y enlaza a
+`pantallas/outfits/Resultado.tsx`. Desde T7.1, si hay probador del PC en Ajustes va primero allí
+(`src/probador/`, D19) y Gemini queda como «Probar con Gemini» cuando el PC falla o hay capas. Con Gemini:
+lee `fotoCuerpo` del perfil al pulsar (sin foto, explica y enlaza a
 Perfil), prepara la imagen una vez, copia el texto, comprueba `navigator.canShare({ files })` y abre la hoja
 de compartir con **solo** la imagen. Sin Web Share con ficheros ofrece «Descargar imagen» y «Copiar texto».
 Si `share()` da `NotAllowedError` (el toque ya no cuenta como gesto porque preparar tardó), pide otro

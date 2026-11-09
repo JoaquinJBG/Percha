@@ -13,6 +13,7 @@ import {
   guardarAjustes,
   guardarOutfit,
   guardarPerfil,
+  guardarPrueba,
   leerAjustes,
   leerPerfil,
   leerPrenda,
@@ -223,6 +224,25 @@ describe('outfits', () => {
     expect(await listarOutfits()).toEqual([])
     await expect(marcarFavorito(outfit.id, true)).rejects.toThrow(/No existe/)
   })
+
+  it('guarda con el outfit la foto del probador y la cambia por otra', async () => {
+    const outfit = await guardarOutfit({
+      prendas: [nuevoId()],
+      estilo: 'casual',
+      ocasion: 'diario',
+      tiempo: null,
+      explicacion: '',
+      favorito: false,
+    })
+    expect(outfit.prueba).toBeUndefined()
+
+    await guardarPrueba(outfit.id, imagen(1, 'image/jpeg'))
+    await guardarPrueba(outfit.id, imagen(2, 'image/jpeg'))
+
+    const [leido] = await listarOutfits()
+    expect(await sinBlobs(leido?.prueba)).toEqual(await sinBlobs(imagen(2, 'image/jpeg')))
+    await expect(guardarPrueba(nuevoId(), imagen(3))).rejects.toThrow(/No existe/)
+  })
 })
 
 describe('perfil', () => {
@@ -249,10 +269,34 @@ describe('perfil', () => {
 })
 
 describe('ajustes', () => {
+  it('los guardados antes de T7.1, sin probador, se leen con el probador vacío', async () => {
+    await db.ajustes.put({ claveGemini: null, modeloGemini: 'gemini-viejo' } as never, 'unica')
+
+    expect(await leerAjustes()).toEqual({
+      claveGemini: null,
+      modeloGemini: 'gemini-viejo',
+      urlProbador: null,
+      claveProbador: null,
+    })
+  })
+
+  it('guarda la URL y la clave del probador; vacías, las quita', async () => {
+    await guardarAjustes({ urlProbador: ' https://pc.tail0000.ts.net ', claveProbador: 'c' })
+    expect(await leerAjustes()).toMatchObject({
+      urlProbador: 'https://pc.tail0000.ts.net',
+      claveProbador: 'c',
+    })
+
+    await guardarAjustes({ urlProbador: '', claveProbador: '  ' })
+    expect(await leerAjustes()).toMatchObject({ urlProbador: null, claveProbador: null })
+  })
+
   it('sin guardar nada: sin clave y el modelo por defecto', async () => {
     expect(await leerAjustes()).toEqual({
       claveGemini: null,
       modeloGemini: 'gemini-3.5-flash-lite',
+      urlProbador: null,
+      claveProbador: null,
     })
   })
 
@@ -264,6 +308,8 @@ describe('ajustes', () => {
     expect(await leerAjustes()).toEqual({
       claveGemini: null,
       modeloGemini: 'gemini-3.5-flash-lite',
+      urlProbador: null,
+      claveProbador: null,
     })
   })
 })

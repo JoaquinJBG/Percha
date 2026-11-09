@@ -89,6 +89,12 @@ export async function marcarFavorito(id: string, favorito: boolean): Promise<voi
   if (cambiados === 0) throw new Error(`No existe el outfit ${id}`)
 }
 
+/** Guarda con el outfit la foto del probador del PC; si ya tenía una, la cambia. */
+export async function guardarPrueba(id: string, prueba: Blob): Promise<void> {
+  const cambiados = await db.outfits.update(id, { prueba })
+  if (cambiados === 0) throw new Error(`No existe el outfit ${id}`)
+}
+
 export function borrarOutfit(id: string): Promise<void> {
   return db.outfits.delete(id)
 }
@@ -107,7 +113,8 @@ export function guardarPerfil(cambios: Partial<Perfil>): Promise<Perfil> {
 }
 
 export async function leerAjustes(): Promise<Ajustes> {
-  return (await db.ajustes.get(FILA_UNICA)) ?? AJUSTES_POR_DEFECTO
+  // Los ajustes guardados antes de T7.1 no tienen los campos del probador.
+  return { ...AJUSTES_POR_DEFECTO, ...(await db.ajustes.get(FILA_UNICA)) }
 }
 
 /** Guarda solo los campos que se pasan; una clave vacía se guarda como `null`. */

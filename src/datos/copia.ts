@@ -8,6 +8,7 @@ import {
   outfitSchema,
   perfilSchema,
   type FotoPrenda,
+  type Outfit,
   type Perfil,
   type Prenda,
 } from './modelo.ts'
@@ -38,7 +39,7 @@ type RefBlob = z.infer<typeof refBlobSchema>
 
 const cabeceraSchema = z.object({ formato: z.literal(FORMATO_COPIA), version: z.number() })
 
-// La clave de Gemini se queda en el móvil: la copia solo lleva el modelo.
+// Las claves (Gemini y probador) y la URL del PC se quedan en el móvil: la copia solo lleva el modelo.
 const manifiestoSchema = z.object({
   formato: z.literal(FORMATO_COPIA),
   version: z.literal(VERSION_COPIA),
@@ -51,11 +52,11 @@ const manifiestoSchema = z.object({
         .max(2),
     }),
   ),
-  outfits: z.array(outfitSchema),
+  outfits: z.array(outfitSchema.extend({ prueba: refBlobSchema.optional() })),
   perfil: perfilSchema
     .extend({ fotoCara: refBlobSchema.nullable(), fotoCuerpo: refBlobSchema.nullable() })
     .nullable(),
-  ajustes: ajustesSchema.omit({ claveGemini: true }),
+  ajustes: ajustesSchema.pick({ modeloGemini: true }),
 })
 type Manifiesto = z.input<typeof manifiestoSchema>
 
@@ -105,7 +106,7 @@ export async function exportarCopia(): Promise<Blob> {
     version: VERSION_COPIA,
     exportadaEn: new Date().toISOString(),
     prendas: [],
-    outfits,
+    outfits: [],
     perfil: null,
     ajustes: { modeloGemini: (ajustes ?? AJUSTES_POR_DEFECTO).modeloGemini },
   }
@@ -118,6 +119,9 @@ export async function exportarCopia(): Promise<Blob> {
       })
     }
     manifiesto.prendas.push({ ...campos, fotos: refs })
+  }
+  for (const { prueba, ...campos } of outfits) {
+    manifiesto.outfits.push(prueba ? { ...campos, prueba: await meterBlob(prueba) } : campos)
   }
   if (perfil) {
     manifiesto.perfil = {
@@ -234,9 +238,13 @@ function leerCopia(bytes: Uint8Array) {
     fotoCuerpo: sacarBlobOpcional(manifiesto.perfil.fotoCuerpo),
   }
 
+  const outfits: Outfit[] = manifiesto.outfits.map(({ prueba, ...campos }) =>
+    prueba ? { ...campos, prueba: sacarBlob(prueba) } : campos,
+  )
+
   return {
     prendas,
-    outfits: manifiesto.outfits,
+    outfits,
     perfil,
     modeloGemini: manifiesto.ajustes.modeloGemini,
   }

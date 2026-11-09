@@ -78,6 +78,14 @@ describe('procesarCola', () => {
     expect(esperas).toEqual([INTERVALO_PETICIONES_MS, INTERVALO_PETICIONES_MS])
   })
 
+  it('guarda el corte y los detalles que da la IA', async () => {
+    const { deps, guardadas } = montar(1)
+
+    await procesarCola(deps, { signal: señal() })
+
+    expect(guardadas[0]).toMatchObject({ corte: 'regular', largo: 'regular', manga: 'corta' })
+  })
+
   it('guarda las capas que da la IA', async () => {
     const proveedor = crearProveedorFalso({
       etiquetas: () => ({

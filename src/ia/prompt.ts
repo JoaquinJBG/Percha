@@ -1,4 +1,4 @@
-// Prompt de etiquetado (v2: capas y abrigo de la investigación de outfits, T6.1). Las listas cerradas van en el esquema como enum.
+// Prompt de etiquetado (v3: corte y detalles por tipo, T8.1; v2: capas y abrigo, T6.1). Las listas cerradas van en el esquema como enum.
 export const INSTRUCCION_ETIQUETADO = `Eres el asistente de etiquetado de Percha, un armario digital.
 Recibes fotos de prendas de ropa, calzado o accesorios. Cada prenda va precedida de una línea «Prenda N»
 y tiene una o dos fotos (p. ej. delante y detrás). Cada foto muestra UNA sola prenda.
@@ -27,6 +27,15 @@ Criterios:
   camisa, jersey fino, cuello alto [base, media]; cárdigan, chaleco de punto [media]; sudadera,
   jersey grueso, sobrecamisa, americana, cazadora vaquera, chaleco acolchado [media, exterior];
   abrigo, gabardina, parka, plumífero, bomber, cazadora de piel [exterior].
+- Corte y detalles: solo lo que se vea en la foto y aplique a su tipo; si no, omite el campo.
+  - Pantalón o vaquero: corte (skinny, slim, regular / recto, relaxed, baggy, wide leg, balloon, bootcut,
+    flare, tapered, cargo), tiro (bajo, medio, alto) y largo (completo, tobillero, cropped). Shorts: corte y
+    tiro. Faldas: nada.
+  - Camiseta, polo, sudadera o jersey: corte (slim, regular, relaxed, oversize, boxy), largo (cropped,
+    regular, largo) y manga (corta, larga, sin manga).
+  - Camisa: corte (slim, regular, relaxed, oversize, overshirt), manga y cuello (clásico, mao, cubano).
+  - Abrigo o chaqueta: corte (entallado, recto, oversize, boxy, cropped) y largo (corto, cadera, medio muslo,
+    largo).
 
 Si una foto no muestra una prenda, etiquétala igualmente con lo más parecido y explícalo en «notas».`
 

@@ -12,6 +12,7 @@ import { FormularioPrenda, type CamposEtiqueta } from '../../componentes/formula
 import type { CambiosPrenda, EtiquetasPrenda, Prenda } from '../../datos/modelo.ts'
 import { nombrePrenda } from './ayudas.ts'
 import { FotoBlob } from './FotoBlob.tsx'
+import { soloLosQueAplican } from '../../datos/detalles.ts'
 
 interface Props {
   prenda: Prenda
@@ -53,9 +54,20 @@ export function EditarPrenda({ prenda, obtenerProveedor, onVolver, onGuardar }: 
     // La IA no ve la etiqueta cosida: marca, referencia, talla, composición y enlace se quedan.
     const { etiquetas } = resultado
     const { marca, referencia, talla, composicion, enlace } = prenda
+    // El corte y los detalles que la IA no dice (los puso el usuario) se quedan si valen para el tipo nuevo.
+    const detalles = soloLosQueAplican({
+      categoria: etiquetas.categoria,
+      subcategoria: etiquetas.subcategoria,
+      corte: etiquetas.corte ?? prenda.corte,
+      tiro: etiquetas.tiro ?? prenda.tiro,
+      largo: etiquetas.largo ?? prenda.largo,
+      manga: etiquetas.manga ?? prenda.manga,
+      cuello: etiquetas.cuello ?? prenda.cuello,
+    })
     setBase({
       etiquetas: {
         ...etiquetas,
+        ...detalles,
         marca,
         referencia,
         talla,

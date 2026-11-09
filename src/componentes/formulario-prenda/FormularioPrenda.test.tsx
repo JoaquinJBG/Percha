@@ -73,6 +73,9 @@ describe('formulario de etiquetas', () => {
 
     expect(alGuardar).toHaveBeenCalledWith({
       capas: ['base', 'media', 'exterior'],
+      corte: 'regular',
+      largo: 'regular',
+      manga: 'corta',
       categoria: 'superior',
       subcategoria: 'sudadera',
       colores: ['blanco', 'azul marino'],
@@ -166,6 +169,88 @@ describe('formulario de etiquetas', () => {
       await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
 
       expect(alGuardar.mock.calls[0]?.[0]).toHaveProperty('capas', undefined)
+    })
+  })
+
+  describe('corte y detalles', () => {
+    function seccion() {
+      return screen.queryByRole('region', { name: 'Corte y detalles' })
+    }
+    function selectores() {
+      const actual = seccion()
+      return actual
+        ? within(actual)
+            .getAllByRole('combobox')
+            .map((selector) => selector.closest('label')?.firstChild?.textContent)
+        : []
+    }
+
+    it('en un pantalón: corte, tiro y largo, y se guardan', async () => {
+      const { usuario, alGuardar } = montar()
+
+      await usuario.click(screen.getByRole('radio', { name: 'Parte de abajo' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'vaquero')
+      expect(selectores()).toEqual(['Corte', 'Tiro', 'Largo'])
+      await usuario.selectOptions(screen.getByRole('combobox', { name: 'Corte' }), 'balloon')
+      await usuario.selectOptions(screen.getByRole('combobox', { name: 'Tiro' }), 'alto')
+      await usuario.selectOptions(screen.getByRole('combobox', { name: 'Largo' }), 'tobillero')
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar).toHaveBeenCalledWith(
+        expect.objectContaining({ corte: 'balloon', tiro: 'alto', largo: 'tobillero' }),
+      )
+    })
+
+    it('en una camisa: corte, manga y cuello; sin categoría o en calzado, nada', async () => {
+      const { usuario } = montar()
+
+      expect(seccion()).not.toBeInTheDocument()
+      await usuario.click(screen.getByRole('radio', { name: 'Calzado' }))
+      expect(seccion()).not.toBeInTheDocument()
+      await usuario.click(screen.getByRole('radio', { name: 'Parte de arriba' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'camisa')
+      expect(selectores()).toEqual(['Corte', 'Manga', 'Cuello'])
+      expect(
+        within(screen.getByRole('combobox', { name: 'Corte' }))
+          .getAllByRole('option')
+          .map((o) => o.textContent),
+      ).toEqual(['Sin indicar', 'slim', 'regular', 'relaxed', 'oversize', 'overshirt'])
+    })
+
+    it('si cambia el tipo, lo que ya no aplica se borra al guardar', async () => {
+      const vaquero = {
+        ...ETIQUETAS_DE_PRUEBA,
+        categoria: 'inferior' as const,
+        subcategoria: 'vaquero',
+        capas: undefined,
+        manga: undefined,
+        corte: 'baggy' as const,
+        tiro: 'medio' as const,
+        largo: 'completo' as const,
+      }
+      const { usuario, alGuardar } = montar({ iniciales: vaquero })
+
+      expect(screen.getByRole('combobox', { name: 'Corte' })).toHaveValue('baggy')
+      await usuario.clear(screen.getByRole('textbox', { name: 'Tipo de prenda' }))
+      await usuario.type(screen.getByRole('textbox', { name: 'Tipo de prenda' }), 'falda')
+      expect(seccion()).not.toBeInTheDocument()
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      const etiquetas = alGuardar.mock.calls[0]?.[0]
+      expect(etiquetas).toHaveProperty('corte', undefined)
+      expect(etiquetas).toHaveProperty('tiro', undefined)
+      expect(etiquetas).toHaveProperty('largo', undefined)
+    })
+
+    it('un corte que no es de la lista del tipo no se enseña ni se guarda', async () => {
+      const { usuario, alGuardar } = montar({
+        iniciales: { ...ETIQUETAS_DE_PRUEBA, subcategoria: 'camisa', corte: 'boxy' },
+      })
+
+      expect(screen.getByRole('combobox', { name: 'Corte' })).toHaveValue('')
+      await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+
+      expect(alGuardar.mock.calls[0]?.[0]).toHaveProperty('corte', undefined)
     })
   })
 

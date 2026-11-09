@@ -23,7 +23,8 @@ function repositorio(iniciales: Prenda[]) {
         (p) =>
           (filtros.categoria === undefined || p.categoria === filtros.categoria) &&
           (filtros.estilo === undefined || p.estilos.includes(filtros.estilo)) &&
-          (filtros.color === undefined || p.colores.includes(filtros.color)),
+          (filtros.color === undefined || p.colores.includes(filtros.color)) &&
+          (filtros.corte === undefined || p.corte === filtros.corte),
       ),
     ),
   )
@@ -136,6 +137,35 @@ describe('lista del armario', () => {
       'aria-pressed',
       'true',
     )
+  })
+
+  it('filtra por corte, con solo los cortes que hay en el armario', async () => {
+    const repo = repositorio([
+      { ...vaquero(), corte: 'balloon' as const },
+      { ...chino(), corte: 'slim' as const },
+      camiseta(),
+    ])
+    const { usuario } = montar(repo)
+    await screen.findByText('3 prendas')
+
+    const corte = screen.getByLabelText('Corte')
+    expect(
+      within(corte)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['Todos', 'Balloon', 'Slim'])
+    await usuario.selectOptions(corte, 'balloon')
+
+    expect(await screen.findByText('1 de 3 prendas')).toBeInTheDocument()
+    expect(repo.listar).toHaveBeenLastCalledWith({ corte: 'balloon' })
+    expect(nombresEnLista()).toEqual(['Vaquero'])
+  })
+
+  it('sin cortes en el armario no enseña el filtro de corte', async () => {
+    montar(repositorio([camiseta(), chino()]))
+    await screen.findByText('2 prendas')
+
+    expect(screen.queryByLabelText('Corte')).not.toBeInTheDocument()
   })
 
   it('sin resultados deja quitar los filtros', async () => {

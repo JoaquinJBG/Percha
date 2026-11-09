@@ -142,6 +142,57 @@ describe('capas que manda la IA', () => {
   })
 })
 
+describe('corte y detalles que manda la IA', () => {
+  async function detallesCon(cambios: Record<string, unknown>) {
+    const { proveedor } = montar(() => Promise.resolve({ prendas: [etiquetasIA(1, cambios)] }))
+    const [etiquetas] = await proveedor.etiquetarPrendas([{ fotos: [foto()] }])
+    return etiquetas
+  }
+
+  it('guarda los que valen para el tipo, sin importar mayúsculas ni espacios', async () => {
+    const etiquetas = await detallesCon({
+      categoria: 'inferior',
+      subcategoria: 'vaquero',
+      corte: ' Balloon ',
+      tiro: 'alto',
+      largo: 'tobillero',
+      manga: undefined,
+    })
+
+    expect(etiquetas).toMatchObject({ corte: 'balloon', tiro: 'alto', largo: 'tobillero' })
+  })
+
+  it('quita lo que no vale o no aplica sin perder la prenda', async () => {
+    const etiquetas = await detallesCon({
+      categoria: 'superior',
+      subcategoria: 'camisa',
+      corte: 'boxy',
+      largo: 'largo',
+      manga: 'tres cuartos',
+      cuello: 'mao',
+      tiro: 'alto',
+    })
+
+    expect(etiquetas?.subcategoria).toBe('camisa')
+    expect(etiquetas).toMatchObject({ cuello: 'mao' })
+    for (const campo of ['corte', 'largo', 'manga', 'tiro']) {
+      expect(etiquetas).not.toHaveProperty(campo)
+    }
+  })
+
+  it('en calzado no guarda ninguno', async () => {
+    const etiquetas = await detallesCon({
+      categoria: 'calzado',
+      subcategoria: 'bota',
+      corte: 'slim',
+      manga: 'corta',
+    })
+
+    expect(etiquetas).not.toHaveProperty('corte')
+    expect(etiquetas).not.toHaveProperty('manga')
+  })
+})
+
 describe('respuestas inválidas de la IA', () => {
   async function etiquetarCon(respuesta: unknown, cuantas = 1) {
     const { proveedor } = montar(() => Promise.resolve(respuesta))

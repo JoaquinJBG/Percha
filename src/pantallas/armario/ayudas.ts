@@ -1,5 +1,5 @@
 import type { FiltrosPrendas } from '../../datos/repositorio.ts'
-import type { Categoria, Estilo, Prenda } from '../../datos/modelo.ts'
+import type { Categoria, Corte, Estilo, Prenda } from '../../datos/modelo.ts'
 
 export const ETIQUETA_CATEGORIA: Record<Categoria, string> = {
   superior: 'Parte de arriba',
@@ -35,19 +35,26 @@ export interface Filtros {
   categoria: Categoria | null
   estilo: Estilo | null
   color: string | null
+  corte: Corte | null
 }
 
-export const SIN_FILTROS: Filtros = { categoria: null, estilo: null, color: null }
+export const SIN_FILTROS: Filtros = { categoria: null, estilo: null, color: null, corte: null }
 
 export function hayFiltros(filtros: Filtros): boolean {
-  return filtros.categoria !== null || filtros.estilo !== null || filtros.color !== null
+  return (
+    filtros.categoria !== null ||
+    filtros.estilo !== null ||
+    filtros.color !== null ||
+    filtros.corte !== null
+  )
 }
 
 /** Lo que pide `listarPrendas`: sin las claves de los filtros que no se usan. */
-export function aFiltrosPrendas({ categoria, estilo, color }: Filtros): FiltrosPrendas {
+export function aFiltrosPrendas({ categoria, estilo, color, corte }: Filtros): FiltrosPrendas {
   return {
     ...(categoria !== null && { categoria }),
     ...(estilo !== null && { estilo }),
     ...(color !== null && { color }),
+    ...(corte !== null && { corte }),
   }
 }

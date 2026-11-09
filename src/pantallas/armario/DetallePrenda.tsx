@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { capasDe, llevaCapas } from '../../datos/capas.ts'
+import { resumenCorte } from '../../datos/detalles.ts'
 import type { Prenda } from '../../datos/modelo.ts'
 import { textoComposicion } from '../../etiqueta/compartido.ts'
 import { EnlacesBusqueda } from '../../etiqueta/EnlacesBusqueda.tsx'
@@ -58,6 +59,17 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
         ...(llevaCapas(prenda.categoria)
           ? [['Puede ir como', lista(capasDe(prenda))] as [string, string]]
           : []),
+        ...(
+          [
+            ['Corte', prenda.corte],
+            ['Tiro', prenda.tiro],
+            ['Largo', prenda.largo],
+            ['Manga', prenda.manga],
+            ['Cuello', prenda.cuello],
+          ] as [string, string | undefined][]
+        )
+          .filter((fila): fila is [string, string] => Boolean(fila[1]))
+          .map(([nombre, valor]): [string, string] => [nombre, capitalizar(valor)]),
         ['Colores', lista(prenda.colores)],
         ['Estampado', prenda.estampado === '' ? '—' : capitalizar(prenda.estampado)],
         ['Estilos', lista(prenda.estilos)],
@@ -117,6 +129,9 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
         </h2>
 
         {!prenda && <p className="text-suave">Puede que la hayas borrado.</p>}
+        {prenda && resumenCorte(prenda) !== '' && (
+          <p className="-mt-3 text-suave">{resumenCorte(prenda)}</p>
+        )}
 
         {prenda && (
           <>

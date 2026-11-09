@@ -1,4 +1,5 @@
 import type { Categoria } from '../../datos/modelo.ts'
+import type { Ranura } from '../reglas/tipos.ts'
 import {
   ALTO_COLLAGE,
   ALTO_TEXTO,
@@ -31,6 +32,8 @@ export type Pincel = Pick<
 
 export interface ImagenPrenda {
   categoria: Categoria
+  /** Su sitio en el outfit (base, media, exterior…); sin él, se coloca por la categoría. */
+  ranura?: Ranura
   /** `null` si la foto no se pudo leer: se pinta un hueco con el nombre. */
   imagen: CanvasImageSource | null
   ancho: number
@@ -149,7 +152,7 @@ function dibujarRecuadro(pincel: Pincel, recuadro: RecuadroCollage, celda: Rect,
     alto: celda.alto - RELLENO * 2 - ALTO_TEXTO,
   }
   const cajas = disponer(
-    recuadro.prendas.map((p) => p.categoria),
+    recuadro.prendas.map((p) => p.ranura ?? p.categoria),
     zonaPrendas,
   )
   recuadro.prendas.forEach((prenda, i) => {

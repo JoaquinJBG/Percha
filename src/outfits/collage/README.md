@@ -7,10 +7,14 @@ Collage 2×2 de los outfits en un canvas, para verlo, descargarlo y compartirlo.
   los recuadros que sobran quedan vacíos.
 - `dibujarCollage(pincel, recuadros)`: el dibujo, sin cargar nada; `pincel` es lo que se usa del contexto
   2D (`Pincel`). Los tests le pasan `pincelFalso()`, que apunta cada orden.
-- `disponer(categorias, caja)`: dónde va cada prenda en su recuadro. En el centro, de arriba abajo, la parte
-  de arriba (o el vestido), la de abajo y el calzado; el abrigo y los accesorios, en una columna a la
-  derecha (62/38). Sin abrigo ni accesorios, el centro ocupa todo. `encajar` mete la foto entera, centrada
-  y sin deformarla.
+- `disponer(lugares, caja)`: dónde va cada prenda en su recuadro, por su ranura (`base`, `media`,
+  `exterior`…; si solo se sabe la categoría, `superior` cuenta como base y `abrigo` como exterior). En el
+  centro, de arriba abajo, la base (o el vestido), la de abajo y el calzado; a la derecha, de fuera adentro,
+  la exterior y las medias, y debajo los accesorios (62/38, o 55/45 con cuatro o más a la derecha). Caben
+  hasta 8 prendas; sin nada a la derecha, el centro ocupa todo. `encajar` mete la foto entera, centrada y
+  sin deformarla.
+- Cada outfit puede traer `ranuras`; si no, salen de `ranurasDe` (`src/outfits/reglas/`), que las deduce del
+  orden de dentro afuera.
 - Cada recuadro lleva abajo su número (el mismo que la lista de la pantalla) y, a su lado, el motivo
   en dos líneas como mucho, con «…» si no cabe. Las fotos se leen una vez cada una, de una en una y a
   640 px de alto como mucho, para no disparar la memoria del móvil.

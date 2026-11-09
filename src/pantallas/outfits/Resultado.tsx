@@ -195,32 +195,37 @@ export function Resultado({
         {outfits.map((outfit, i) => {
           const favorito = guardados[i]?.favorito ?? false
           return (
-            <li key={i} className="flex items-center gap-3 rounded-2xl bg-white shadow-tarjeta p-3">
-              <span
-                aria-hidden="true"
-                className="grid size-7 shrink-0 place-items-center rounded-full bg-oliva text-sm font-semibold text-papel"
-              >
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p>{conMayuscula(outfit.motivo)}</p>
-                <p className="text-xs text-suave">
-                  {outfit.origen === 'ia' ? 'Elegido por Gemini' : 'Elegido por las reglas'}
-                </p>
-              </div>
-              <BotonPruebatelo prendas={outfit.prendas} numero={i + 1} />
-              <button
-                type="button"
-                onClick={() => void cambiarFavorito(i)}
-                disabled={ocupado}
-                aria-pressed={favorito}
-                aria-label={`Favorito: outfit ${String(i + 1)}`}
-                className="grid size-11 shrink-0 place-items-center rounded-full text-2xl disabled:opacity-60"
-              >
-                <span aria-hidden="true" className={favorito ? 'text-acento' : 'text-suave'}>
-                  {favorito ? '★' : '☆'}
+            <li key={i} className="flex flex-col gap-2 rounded-2xl bg-white shadow-tarjeta p-3">
+              <div className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="grid size-7 shrink-0 place-items-center rounded-full bg-oliva text-sm font-semibold text-papel"
+                >
+                  {i + 1}
                 </span>
-              </button>
+                <div className="min-w-0 flex-1">
+                  <p>{conMayuscula(outfit.motivo)}</p>
+                  <p className="text-xs text-suave">
+                    {outfit.origen === 'ia' ? 'Elegido por Gemini' : 'Elegido por las reglas'}
+                  </p>
+                </div>
+              </div>
+              {/* Los botones van debajo: a su lado, el texto quedaba en una columna de una palabra por línea. */}
+              <div className="flex items-center justify-end gap-2">
+                <BotonPruebatelo prendas={outfit.prendas} numero={i + 1} />
+                <button
+                  type="button"
+                  onClick={() => void cambiarFavorito(i)}
+                  disabled={ocupado}
+                  aria-pressed={favorito}
+                  aria-label={`Favorito: outfit ${String(i + 1)}`}
+                  className="grid size-11 shrink-0 place-items-center rounded-full text-2xl disabled:opacity-60"
+                >
+                  <span aria-hidden="true" className={favorito ? 'text-acento' : 'text-suave'}>
+                    {favorito ? '★' : '☆'}
+                  </span>
+                </button>
+              </div>
             </li>
           )
         })}

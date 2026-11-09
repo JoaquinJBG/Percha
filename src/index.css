@@ -24,6 +24,11 @@ body,
   min-height: 100dvh;
 }
 
+/* Sin «tirar para recargar»: en la PWA recargaba la página y se perdían los outfits recién generados. */
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
   background-color: var(--color-papel);
   color: var(--color-tinta);

@@ -18,3 +18,11 @@ Tablas de tallas de las tiendas (T10.1, D22).
     ignoran.
   - Errores claros para la marca vacía, una talla sin medidas, números raros y tallas repetidas.
 - La captura la hace el usuario. Percha nunca descarga la guía de la tienda.
+- `AjusteTalla.tsx` (T10.2): bajo cada tabla, cómo te queda la talla o cuál pedir (`src/datos/ajuste.ts`).
+  - Si faltan medidas, dice cuáles: fuera de Perfil, con enlace a Perfil; en Perfil, «en Tu cuerpo».
+  - `TablasTallas` recibe `prenda` (talla, corte, largo) en el detalle y `cuerpo` en Perfil. Sin la prop
+    `cuerpo`, las lee del perfil (`leerCuerpo`).
+- `lineaAjusteOutfit(prendas, tablas, cuerpo)` (`tablas.ts`): la línea «Vaquero 44: justa de cintura
+  (−2 cm)» que `BotonPruebatelo` pone bajo la prueba del PC; `null` si ninguna prenda tiene marca, talla y
+  tabla.
+

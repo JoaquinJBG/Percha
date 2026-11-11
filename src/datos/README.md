@@ -30,6 +30,10 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   `guardarTablaTallas(datos, anterior?)` (sustituye la de la misma marca y tipo; con `anterior`, quita la de
   antes si cambió la marca o el tipo) y `borrarTablaTallas(id)`. Tabla `tablasTallas` de Dexie (versión 4);
   van en la copia y las copias de antes, sin tablas, se importan igual.
+- `ajuste.ts` (T10.2, D23): `ajusteDeTalla(tabla, talla, cuerpo, prenda?)` (por medida: justa, bien,
+  holgada, corta o larga, y la diferencia en cm), `tallaRecomendada` (mejor y alternativa) y los textos
+  (`textoAjuste`, `textoRecomendacion`, `textoFaltan`, `medidasQueFaltan`). Tolerancias y holgura por corte
+  en constantes. Puro: no lee la base ni manda nada a ningún sitio.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `guardarPrueba` (la foto del probador del PC, T7.1),
   `borrarOutfit`;

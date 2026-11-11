@@ -1,8 +1,13 @@
+import { ajusteDeTalla, resumenAjuste } from '../../datos/ajuste.ts'
 import {
+  idTablaTallas,
   datosTablaTallasSchema,
   MEDIDAS_POR_TIPO,
   MEDIDAS_TALLA,
   type Categoria,
+  type Cuerpo,
+  type Prenda,
+  type TablaTallas,
   type DatosTablaTallas,
   type MedidaTalla,
   type TipoTalla,
@@ -112,4 +117,31 @@ export function validarBorradorTabla(
   return leida.success
     ? { valida: true, datos: leida.data }
     : { valida: false, error: 'Revisa la tabla: algún dato no vale.' }
+}
+
+export type PrendaConTalla = Pick<Prenda, 'categoria' | 'subcategoria'> &
+  Partial<Pick<Prenda, 'marca' | 'talla' | 'corte' | 'largo'>>
+
+/**
+ * Una línea para debajo de la prueba del PC: «Vaquero 44: justa de cintura (−2 cm) · Camisa M: bien de
+ * pecho». Solo las prendas con marca, talla y tabla de esa marca; `null` si no hay ninguna.
+ */
+export function lineaAjusteOutfit(
+  prendas: readonly PrendaConTalla[],
+  tablas: readonly TablaTallas[],
+  cuerpo: Cuerpo | undefined,
+): string | null {
+  const partes = prendas.flatMap((prenda) => {
+    const tipo = tipoTallaDe(prenda.categoria)
+    if (!prenda.marca || !prenda.talla || !tipo) return []
+    const id = idTablaTallas(prenda.marca, tipo)
+    const tabla = tablas.find((t) => t.id === id)
+    const ajuste = tabla && ajusteDeTalla(tabla, prenda.talla, cuerpo, prenda)
+    if (!ajuste || ajuste.medidas.length === 0) return []
+    const nombre = prenda.subcategoria.trim() || prenda.categoria
+    return [
+      `${nombre.charAt(0).toLocaleUpperCase('es')}${nombre.slice(1)} ${ajuste.talla}: ${resumenAjuste(ajuste)}`,
+    ]
+  })
+  return partes.length > 0 ? partes.join(' · ') : null
 }

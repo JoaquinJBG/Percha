@@ -347,7 +347,7 @@ export function Perfil({
               guardar={(tallas) => guardarCampo('tallas', tallas)}
             />
             <h3 className="mt-2 font-semibold">Tablas de tallas de las tiendas</h3>
-            <TablasTallas />
+            <TablasTallas cuerpo={perfil.cuerpo ?? null} />
           </section>
 
           <section aria-labelledby="titulo-trabajo" className="flex flex-col gap-3">

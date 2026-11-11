@@ -166,7 +166,10 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
             />
 
             {prenda.marca && tipoTalla && (
-              <TablasTallas de={{ marca: prenda.marca, tipo: tipoTalla }} />
+              <TablasTallas
+                de={{ marca: prenda.marca, tipo: tipoTalla }}
+                prenda={{ talla: prenda.talla, corte: prenda.corte, largo: prenda.largo }}
+              />
             )}
 
             {fase === 'libre' || fase === 'error' ? (

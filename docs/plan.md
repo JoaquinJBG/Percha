@@ -232,7 +232,7 @@ cruzarla con las medidas del perfil (T8.2). Percha no descarga nada de la tienda
 | ID | Tarea | Depende de | Estado |
 |---|---|---|---|
 | T10.1 | Tabla de tallas por foto: captura de la guía → Gemini → JSON en cm, guardada por marca y tipo; se ve, se edita y se borra en el detalle de la prenda y en Perfil, y va en la copia (D22) | T8.1 | 👀 |
-| T10.2 | Cruce con tus medidas («te quedará justa de cintura y larga de pierna») en la ficha y en el probador | T8.2, T10.1 | ⏳ |
+| T10.2 | Cruce con tus medidas («te quedará justa de cintura y larga de pierna») en la ficha, en Perfil y bajo la prueba del PC (D23) | T8.2, T10.1 | 👀 |
 
 ### T10.1 — Tabla de tallas por foto
 - **Qué:**
@@ -244,3 +244,17 @@ cruzarla con las medidas del perfil (T8.2). Percha no descarga nada de la tienda
     antes de guardar, ver, editar y borrar. En el detalle de una prenda con marca, la de su marca y tipo;
     en Perfil, todas.
 - **Fuera:** comparar con las medidas del usuario (T10.2).
+
+### T10.2 — Cruce de la tabla de tallas con tus medidas
+- **Qué:**
+  - `ajusteDeTalla(tabla, talla, cuerpo, prenda?)` y `tallaRecomendada(tabla, cuerpo, prenda?)` en
+    `src/datos/ajuste.ts`, puras y con tests;
+  - por cada medida comparable (pecho, cintura, cadera, largo de pierna), dice justa, bien, holgada, corta o
+    larga, con la diferencia en cm;
+  - con tablas del cuerpo, ±2 cm; con tablas de la prenda, se descuenta la holgura del corte (T8.1) y ±3 cm;
+  - la frase («Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm). Mejor la 46.») sale
+    en el detalle de la prenda;
+  - en Perfil sale la talla recomendada de cada tabla, y bajo la prueba del PC una línea «Tallas · …»;
+  - si faltan medidas, dice cuáles.
+- **Fuera:** el largo total de la prenda y los hombros, que el perfil no tiene; avisos dentro de Gemini.
+

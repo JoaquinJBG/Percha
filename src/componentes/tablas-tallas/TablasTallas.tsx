@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import {
   idTablaTallas,
   MEDIDAS_TALLA,
+  type Cuerpo,
   type DatosTablaTallas,
   type TablaTallas,
   type TipoTalla,
@@ -9,8 +10,10 @@ import {
 import {
   borrarTablaTallas,
   guardarTablaTallas,
+  leerPerfil,
   listarTablasTallas,
 } from '../../datos/repositorio.ts'
+import type { PrendaAjuste } from '../../datos/ajuste.ts'
 import {
   AvisoEtiquetado,
   avisoDeError,
@@ -18,12 +21,18 @@ import {
   type AvisoIA,
   type ObtenerProveedor,
 } from '../etiquetado-ia/index.ts'
+import { AjusteTalla } from './AjusteTalla.tsx'
 import { EditorTablaTallas } from './EditorTablaTallas.tsx'
 import { NOMBRE_MEDIDA } from './tablas.ts'
 
 interface Props {
   /** Solo la de esta marca y tipo (detalle de una prenda); sin él, todas (Perfil). */
   de?: { marca: string; tipo: TipoTalla }
+  /** La prenda del detalle, para decir cómo le queda su talla (T10.2). */
+  prenda?: PrendaAjuste & { talla?: string | undefined }
+  /** Las medidas del perfil. Sin la prop, se leen del perfil; `null`, que no hay. */
+  cuerpo?: Cuerpo | null
+  leerCuerpo?: () => Promise<Cuerpo | undefined>
   listar?: () => Promise<TablaTallas[]>
   guardar?: (datos: DatosTablaTallas, anterior?: string) => Promise<TablaTallas>
   borrar?: (id: string) => Promise<void>
@@ -105,14 +114,22 @@ function VistaTabla({ tabla }: { tabla: TablaTallas }) {
  * Tablas de tallas (T10.1, D22): leerlas de una captura de la guía de la tienda, verlas, editarlas y
  * borrarlas. Percha no descarga nada de la tienda: la captura la hace el usuario.
  */
+async function cuerpoDelPerfil(): Promise<Cuerpo | undefined> {
+  return (await leerPerfil()).cuerpo
+}
+
 export function TablasTallas({
   de,
+  prenda,
+  cuerpo,
+  leerCuerpo = cuerpoDelPerfil,
   listar = listarTablasTallas,
   guardar = guardarTablaTallas,
   borrar = borrarTablaTallas,
   obtenerProveedor = proveedorConClave,
 }: Props) {
   const [tablas, setTablas] = useState<TablaTallas[] | null>(null)
+  const [cuerpoLeido, setCuerpoLeido] = useState<Cuerpo | undefined>(undefined)
   const [errorLectura, setErrorLectura] = useState(false)
   const [edicion, setEdicion] = useState<Edicion | null>(null)
   const [abierta, setAbierta] = useState<string | null>(null)
@@ -146,6 +163,25 @@ export function TablasTallas({
       vigente = false
     }
   }, [listar])
+
+  // Perfil pasa las medidas que tiene en pantalla; el detalle de la prenda las lee del perfil.
+  const leerDelPerfil = cuerpo === undefined
+  useEffect(() => {
+    if (!leerDelPerfil) return
+    let vigente = true
+    leerCuerpo().then(
+      (leido) => {
+        if (vigente) setCuerpoLeido(leido)
+      },
+      () => {
+        // Sin perfil no hay ajuste: la tabla se sigue viendo igual.
+      },
+    )
+    return () => {
+      vigente = false
+    }
+  }, [leerDelPerfil, leerCuerpo])
+  const medidas = leerDelPerfil ? cuerpoLeido : (cuerpo ?? undefined)
 
   const visibles = (tablas ?? []).filter((t) => !de || mismaMarcaYTipo(t, de))
   const deLaPrenda = de ? visibles[0] : undefined
@@ -332,6 +368,12 @@ export function TablasTallas({
                   {abierta === tabla.id ? 'Ocultar' : 'Ver'}
                 </button>
               </div>
+              <AjusteTalla
+                tabla={tabla}
+                cuerpo={medidas}
+                enPerfil={!de}
+                {...(prenda && { prenda })}
+              />
               {abierta === tabla.id && (
                 <>
                   <VistaTabla tabla={tabla} />

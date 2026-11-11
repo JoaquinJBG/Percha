@@ -1,3 +1,4 @@
+import { AccesoLaboratorio } from '../componentes/AccesoLaboratorio.tsx'
 import { ClaveGemini } from '../componentes/ClaveGemini.tsx'
 import { CopiaArmario } from '../componentes/CopiaArmario.tsx'
 import { Pantalla } from '../componentes/Pantalla.tsx'
@@ -9,6 +10,7 @@ export function Ajustes() {
       <ClaveGemini />
       <ProbadorPC />
       <CopiaArmario />
+      <AccesoLaboratorio />
     </Pantalla>
   )
 }

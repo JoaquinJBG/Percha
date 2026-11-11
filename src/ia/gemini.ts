@@ -1,4 +1,10 @@
-import type { GenerateContentParameters, GetModelParameters, Part } from '@google/genai'
+import type {
+  Candidate,
+  GenerateContentResponseUsageMetadata,
+  GenerateContentParameters,
+  GetModelParameters,
+  Part,
+} from '@google/genai'
 import type { DatosEtiqueta } from '../datos/modelo.ts'
 import { ErrorIA, traducirError } from './errores.ts'
 import { esquemaParaGemini, leerRespuesta } from './esquema.ts'
@@ -20,11 +26,24 @@ import {
   type PropuestaOutfit,
   type ProveedorIA,
   type ResultadoEtiquetado,
+  type ResultadoFicha,
 } from './tipos.ts'
+import { leerCandidatas } from './esquema-ficha.ts'
+import { INSTRUCCION_FICHA, textoFicha } from './prompt-ficha.ts'
 
 /** Lo que se usa de `GoogleGenAI.models`; en los tests se sustituye por uno falso. */
+/** Lo que se lee de una respuesta: el texto y, en la búsqueda, el uso y lo que buscó. */
+export interface RespuestaGemini {
+  text?: string | undefined
+  usageMetadata?: GenerateContentResponseUsageMetadata | undefined
+  candidates?: Candidate[] | undefined
+}
+
+/** Modelo del laboratorio S9: la búsqueda de Google es gratis en 2.5 Flash y no en Gemini 3 (D12). */
+export const MODELO_BUSQUEDA = 'gemini-2.5-flash'
+
 export interface ClienteGemini {
-  generateContent(params: GenerateContentParameters): Promise<{ text?: string | undefined }>
+  generateContent(params: GenerateContentParameters): Promise<RespuestaGemini>
   get(params: GetModelParameters): Promise<unknown>
 }
 
@@ -56,13 +75,16 @@ export function crearProveedorGemini({
   crearCliente = crearClienteReal,
   prepararFoto = prepararFotoPorDefecto,
 }: OpcionesGemini): ProveedorIA {
-  async function llamar<T>(tarea: (cliente: ClienteGemini) => Promise<T>): Promise<T> {
+  async function llamar<T>(
+    tarea: (cliente: ClienteGemini) => Promise<T>,
+    modeloDeLaLlamada = modelo,
+  ): Promise<T> {
     if (!clave) throw new ErrorIA('sin-clave')
     if (!navigator.onLine) throw new ErrorIA('sin-red')
     try {
       return await tarea(await crearCliente(clave))
     } catch (error) {
-      throw traducirError(error, modelo)
+      throw traducirError(error, modeloDeLaLlamada)
     }
   }
 
@@ -144,6 +166,51 @@ export function crearProveedorGemini({
         return respuesta.text ?? ''
       })
       return leerRespuestaEtiqueta(texto)
+    },
+
+    async buscarFicha(prenda, { signal }: OpcionesPeticion = {}): Promise<ResultadoFicha> {
+      const foto = prenda.fotos[0]
+      if (!foto) throw new RangeError('La prenda no tiene foto')
+      const inicio = performance.now()
+      const respuesta = await llamar(async (cliente) => {
+        const { datos, tipo } = await prepararFoto(foto.recortada ?? foto.original).catch(() => {
+          throw new ErrorIA('foto')
+        })
+        return cliente.generateContent({
+          model: MODELO_BUSQUEDA,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: textoFicha(prenda) },
+                { inlineData: { data: datos, mimeType: tipo } },
+              ],
+            },
+          ],
+          config: {
+            systemInstruction: INSTRUCCION_FICHA,
+            tools: [{ googleSearch: {} }],
+            temperature: 0,
+            ...(signal && { abortSignal: signal }),
+          },
+        })
+      }, MODELO_BUSQUEDA)
+      const metadatos = respuesta.candidates?.[0]?.groundingMetadata
+      const uso = respuesta.usageMetadata
+      return {
+        candidatas: leerCandidatas(respuesta.text ?? ''),
+        fuentes: (metadatos?.groundingChunks ?? []).flatMap(({ web }) =>
+          web?.uri ? [{ titulo: web.title ?? web.uri, enlace: web.uri }] : [],
+        ),
+        busquedas: metadatos?.webSearchQueries ?? [],
+        tokens: {
+          entrada: uso?.promptTokenCount ?? null,
+          salida: uso?.candidatesTokenCount ?? null,
+          total: uso?.totalTokenCount ?? null,
+        },
+        ms: Math.round(performance.now() - inicio),
+        modelo: MODELO_BUSQUEDA,
+      }
     },
 
     async comprobarClave({ signal }: OpcionesPeticion = {}): Promise<void> {

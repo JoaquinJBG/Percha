@@ -223,3 +223,24 @@ talla de verdad). T8.2 absorbe la T6.5.
 |---|---|---|---|
 | S9 | Laboratorio de grounding: pantalla oculta `/laboratorio` que busca con Gemini 2.5 Flash y Google la ficha de hasta 10 prendas, marca acierto, a medias o fallo y exporta un JSON ([informe](spikes/s9-grounding.md)) | T5.1 | 👀 |
 | T9.1 | Con foto, marca y referencia, Gemini propone 2–3 fichas con su foto y el usuario elige; se guarda el enlace y la foto de catálogo | S9 (≥ 6 de 10) | ⏳ |
+
+## Fase 10 — Ajuste de talla de verdad
+
+Sale de [S4](spikes/s4-probador-y-etiquetas.md) §3, pasos 4–6: la tabla de tallas de la tienda en cm y
+cruzarla con las medidas del perfil (T8.2). Percha no descarga nada de la tienda: la captura la hace el usuario.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T10.1 | Tabla de tallas por foto: captura de la guía → Gemini → JSON en cm, guardada por marca y tipo; se ve, se edita y se borra en el detalle de la prenda y en Perfil, y va en la copia (D22) | T8.1 | 👀 |
+| T10.2 | Cruce con tus medidas («te quedará justa de cintura y larga de pierna») en la ficha y en el probador | T8.2, T10.1 | ⏳ |
+
+### T10.1 — Tabla de tallas por foto
+- **Qué:**
+  - `leerTablaTallas(foto)` en `ProveedorIA`: marca (si sale), tipo (parte de arriba, pantalón, calzado),
+    si son medidas del cuerpo o de la prenda, y una fila por talla con pecho, cintura, cadera, hombros,
+    manga, largo, largo de pierna y pie en cm. Pasa pulgadas a cm; un rango es su punto medio.
+  - Tabla `tablasTallas` de Dexie (versión 4), una por marca (sin mayúsculas) y tipo. Va en la copia.
+  - `TablasTallas` (`src/componentes/tablas-tallas/`): «Añadir desde foto» o «Escribirla a mano», revisar
+    antes de guardar, ver, editar y borrar. En el detalle de una prenda con marca, la de su marca y tipo;
+    en Perfil, todas.
+- **Fuera:** comparar con las medidas del usuario (T10.2).

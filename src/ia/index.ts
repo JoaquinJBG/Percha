@@ -7,10 +7,16 @@ export {
   crearProveedorFalso,
   ETIQUETA_DE_PRUEBA,
   ETIQUETAS_DE_PRUEBA,
+  fichaDePrueba,
   outfitsDePrueba,
   type ProveedorFalso,
 } from './falso.ts'
-export { crearProveedorGemini, type ClienteGemini, type OpcionesGemini } from './gemini.ts'
+export {
+  crearProveedorGemini,
+  MODELO_BUSQUEDA,
+  type ClienteGemini,
+  type OpcionesGemini,
+} from './gemini.ts'
 export { OUTFITS_POR_PETICION } from './esquema-outfits.ts'
 export * from './tipos.ts'
 

@@ -5,6 +5,7 @@ import type {
   Estilo,
   EtiquetasPrenda,
   Ocasion,
+  Prenda,
   Temporada,
 } from '../datos/modelo.ts'
 import type { Precipitacion } from '../tiempo/tipos.ts'
@@ -93,6 +94,36 @@ export interface ProveedorIA {
    * devolver `{}`. La foto no se guarda en ningún sitio. Lanza `ErrorIA` si no se puede leer.
    */
   leerEtiqueta(foto: Blob, opciones?: OpcionesPeticion): Promise<DatosEtiqueta>
+  /**
+   * Busca con Google (grounding) la ficha de la prenda en su tienda: el laboratorio S9. Hasta 3
+   * candidatas; `[]` si no encuentra nada. Lanza `ErrorIA` si no se puede (sin cupo, de pago…).
+   */
+  buscarFicha(prenda: PrendaABuscar, opciones?: OpcionesPeticion): Promise<ResultadoFicha>
   /** Se resuelve si la clave y el modelo valen; si no, lanza `ErrorIA`. */
   comprobarClave(opciones?: OpcionesPeticion): Promise<void>
+}
+
+/** Lo que se manda para buscar una prenda: la foto y lo que se sabe de ella. */
+export type PrendaABuscar = Pick<
+  Prenda,
+  'fotos' | 'categoria' | 'subcategoria' | 'colores' | 'marca' | 'referencia' | 'corte'
+>
+
+export interface CandidataFicha {
+  nombre: string
+  enlace: string
+  /** La foto de catálogo; se pinta con `<img>`, Percha nunca la descarga. */
+  foto: string | null
+  tienda: string | null
+}
+
+export interface ResultadoFicha {
+  candidatas: CandidataFicha[]
+  /** Las páginas que Google dio a Gemini (enlaces de Google que redirigen a la página). */
+  fuentes: { titulo: string; enlace: string }[]
+  /** Lo que buscó en Google. */
+  busquedas: string[]
+  tokens: { entrada: number | null; salida: number | null; total: number | null }
+  ms: number
+  modelo: string
 }

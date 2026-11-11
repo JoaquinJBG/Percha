@@ -367,6 +367,7 @@ describe('volver a etiquetar con IA', () => {
       comprobarClave: () => Promise.resolve(),
       elegirOutfits: () => Promise.resolve([]),
       leerEtiqueta: () => Promise.resolve({}),
+      buscarFicha: () => Promise.reject(new Error('no se usa')),
     }
     const { usuario } = montar(chino(), proveedor)
     const edicion = await abrirEdicion(usuario, 'Chino')

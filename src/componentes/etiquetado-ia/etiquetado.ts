@@ -23,6 +23,7 @@ const TIPOS_ERROR: TipoErrorIA[] = [
   'no-disponible',
   'respuesta',
   'foto',
+  'de-pago',
   'otro',
 ]
 

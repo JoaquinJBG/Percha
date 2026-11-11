@@ -314,6 +314,39 @@ describe('cuatroOutfits con un perfil de cuerpo', () => {
     expect(con.amplios).toBe(0)
   })
 
+  it('con la exterior obligatoria y solo una sobrecamisa amplia, evita el pantalón amplio', () => {
+    const conLluvia = [
+      camiseta({ id: 'camiseta', corte: 'regular' }),
+      prenda({
+        id: 'henley',
+        subcategoria: 'henley',
+        abrigo: 2,
+        corte: 'regular',
+        colores: ['gris'],
+      }),
+      pantalon({ id: 'baggy', corte: 'baggy', colores: ['gris'] }),
+      pantalon({ id: 'recto', corte: 'regular / recto', colores: ['azul marino'] }),
+      pantalon({ id: 'chinos', subcategoria: 'chinos', corte: 'relaxed', colores: ['beige'] }),
+      prenda({
+        id: 'sobrecamisa',
+        categoria: 'abrigo',
+        subcategoria: 'sobrecamisa',
+        abrigo: 3,
+        corte: 'oversize',
+        colores: ['verde caqui'],
+      }),
+      prenda({ id: 'chelsea', categoria: 'calzado', subcategoria: 'botas chelsea', abrigo: 2 }),
+    ]
+    for (let semilla = 1; semilla <= 5; semilla++) {
+      const { outfits } = cuatroOutfits(
+        peticion(conLluvia, { tiempo: tiempo(17, { precipitacion: 'lluvia' }), perfil: GRANDE }),
+        semilla,
+      )
+      expect(outfits.length).toBeGreaterThan(0)
+      for (const o of outfits) expect(o.prendas.map((p) => p.id)).not.toContain('baggy')
+    }
+  })
+
   it('sin perfil sale lo mismo que antes de T8.4', () => {
     const a = cuatroOutfits(peticion(armario), 3)
     const b = cuatroOutfits(peticion(armario, { perfil: {} }), 3)

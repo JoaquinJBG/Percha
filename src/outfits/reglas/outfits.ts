@@ -38,6 +38,8 @@ const YA_USADA = 1.5
 const MAX_BASE_POR_CATEGORIA = 40
 /** Y solo las mejores medias y exteriores entran en las capas de cada outfit. */
 const MAX_CAPA = 12
+/** Cuántas exteriores se prueban para la silueta de cada pareja de base y parte de abajo. */
+const MAX_EXTERIORES_SILUETA = 4
 /** Y además, siempre, los mejores abrigos de verdad. */
 const MAX_ABRIGOS = 4
 
@@ -182,16 +184,26 @@ export function cuatroOutfits<P extends PrendaReglas>(
   const recursos = recursosDe([...medias, ...exteriores])
   const exteriorObligatoria = contexto.necesitaAbrigo && exteriores.length > 0
 
+  /**
+   * La silueta (y el cuerpo) ya cuentan al elegir la base y la parte de abajo, no solo las capas. Con la
+   * exterior obligatoria, con la mejor de las primeras exteriores: si todas son amplias, un pantalón
+   * amplio acabará en «todo amplio».
+   */
+  const silueta = ([base, inferior]: NoVacia<Candidato<P>>) => {
+    const abajo = inferior?.prenda ?? null
+    if (!exteriorObligatoria) return puntuarConjunto([base.prenda], abajo, contexto).puntos
+    return Math.max(
+      ...exteriores
+        .slice(0, MAX_EXTERIORES_SILUETA)
+        .map((e) => puntuarConjunto([base.prenda, e.prenda], abajo, contexto).puntos),
+    )
+  }
   const combinaciones: { piezas: NoVacia<Candidato<P>>; clave: string; nota: number }[] = []
   const anadir = (piezas: NoVacia<Candidato<P>>) => {
     combinaciones.push({
       piezas,
       clave: piezas.map((c) => c.prenda.id).join('+'),
-      // La silueta (y el cuerpo) ya cuentan al elegir la base y la parte de abajo, no solo las capas.
-      nota:
-        nota(piezas) +
-        puntuarConjunto([piezas[0].prenda], piezas[1]?.prenda ?? null, contexto).puntos +
-        azar() * VARIEDAD,
+      nota: nota(piezas) + silueta(piezas) + azar() * VARIEDAD,
     })
   }
   const abajo = inferiores.slice(0, MAX_BASE_POR_CATEGORIA)

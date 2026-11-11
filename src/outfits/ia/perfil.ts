@@ -1,25 +1,41 @@
 import type { Cuerpo, Oficina } from '../../datos/modelo.ts'
 import type { PerfilParaOutfits } from '../../ia/tipos.ts'
-import type { PerfilReglas } from '../reglas/perfil.ts'
+import { tipoCuerpo, type PerfilReglas } from '../reglas/perfil.ts'
+import { normalizar } from '../reglas/texto.ts'
 
 const numero = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 })
 
 /**
- * El cuerpo que se manda a Gemini: altura, complexión y la línea de notas sin cifras. Nunca el peso ni
- * el pecho, la cintura, la cadera o el largo de pierna: son datos personales que no hacen falta para
- * vestir (T8.4). Vacío si no hay nada.
+ * Rasgos de las notas que sirven para vestir. Las notas son texto libre y pueden llevar medidas en letra
+ * o datos de salud: solo sale lo que está en esta lista, con su forma fija.
+ */
+const RASGOS: readonly [RegExp, string][] = [
+  [/hombros? anchos?|espalda ancha/, 'hombros anchos'],
+  [/hombros? estrechos?|espalda estrecha/, 'hombros estrechos'],
+  [/muslos? (grandes?|anchos?|gruesos?)|piernas? (anchas?|gruesas?)/, 'muslo ancho'],
+  [/piernas? largas?/, 'piernas largas'],
+  [/piernas? cortas?/, 'piernas cortas'],
+  [/(torso|tronco) largo/, 'torso largo'],
+  [/(torso|tronco) corto/, 'torso corto'],
+  [/brazos? largos?/, 'brazos largos'],
+  [/brazos? cortos?/, 'brazos cortos'],
+  [/cuello corto/, 'cuello corto'],
+  [/cuello largo/, 'cuello largo'],
+]
+
+/**
+ * El cuerpo que se manda a Gemini: altura, complexión (la del perfil o «grande» si las reglas lo ven
+ * así) y los rasgos conocidos de las notas. Nunca el peso, el pecho, la cintura, la cadera, el largo de
+ * pierna ni el resto de las notas: son datos personales que no hacen falta para vestir (T8.4).
  */
 export function cuerpoParaIA(cuerpo: Cuerpo | undefined): string {
   if (!cuerpo) return ''
   const partes: string[] = []
   if (cuerpo.altura !== undefined) partes.push(`${numero.format(cuerpo.altura)} cm`)
   if (cuerpo.complexion) partes.push(`complexión ${cuerpo.complexion}`)
-  // Cada trozo de la nota con una cifra fuera entero: «pecho 112» no deja «pecho» suelto.
-  const notas = (cuerpo.notas ?? '')
-    .split(/[,;.]/)
-    .map((trozo) => trozo.replace(/\s+/g, ' ').trim())
-    .filter((trozo) => trozo !== '' && !/\d/.test(trozo))
-  partes.push(...notas)
+  else if (tipoCuerpo(cuerpo) === 'grande') partes.push('complexión grande')
+  const notas = normalizar(cuerpo.notas ?? '')
+  for (const [patron, rasgo] of RASGOS) if (patron.test(notas)) partes.push(rasgo)
   return partes.join(', ')
 }
 

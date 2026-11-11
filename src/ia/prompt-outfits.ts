@@ -91,7 +91,14 @@ const MAX_COMPONENTES = 4
 function textoTiempo(peticion: PeticionOutfits): string {
   const { tiempo, prendas } = peticion
   const partes: string[] = []
-  if (tiempo.temperatura !== null) partes.push(`${String(tiempo.temperatura)} °C de sensación`)
+  if (tiempo.temperatura !== null) {
+    const vestir = tiempo.temperaturaVestir
+    const persona =
+      vestir !== undefined && vestir !== null && vestir !== tiempo.temperatura
+        ? ` (la persona es ${vestir > tiempo.temperatura ? 'calurosa' : 'friolera'}: viste como con ${String(vestir)} °C)`
+        : ''
+    partes.push(`${String(tiempo.temperatura)} °C de sensación${persona}`)
+  }
   if (tiempo.precipitacion) partes.push(tiempo.precipitacion)
   if (tiempo.temporada) partes.push(tiempo.temporada)
   const dia = partes.length > 0 ? partes.join(', ') : 'no se sabe'

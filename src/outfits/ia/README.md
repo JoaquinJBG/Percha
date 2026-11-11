@@ -16,9 +16,11 @@ candidatos). Usa `src/outfits/reglas/` tal cual y el `ProveedorIA` de `src/ia/`.
   `LIMITE_TERCERA_PIEZA` (23 °C) de las reglas, sobre `contexto.temperaturaVestir` (con el ajuste del
   perfil por sensación térmica).
 - `perfilParaIA(perfil)` → `{ cuerpo?, oficina? }` o `undefined`: lo que va del perfil a Gemini (T8.4).
-  El cuerpo, con `cuerpoParaIA`: altura, complexión y los trozos de las notas sin cifras. **Nunca** el
-  peso ni el pecho, la cintura, la cadera o el largo de pierna. La sensación térmica no va: ya cuenta en
-  la exterior de hoy.
+  El cuerpo, con `cuerpoParaIA`: altura, complexión (la del perfil, o «grande» si las reglas lo ven así)
+  y solo los rasgos de las notas que están en la lista blanca `RASGOS` («hombros anchos», «piernas
+  largas»…). **Nunca** el peso, el pecho, la cintura, la cadera, el largo de pierna ni el resto de las
+  notas, que pueden llevar medidas en letra o datos de salud. La sensación térmica va solo como «la
+  persona es calurosa: viste como con 20 °C» junto al tiempo.
 
 ## Qué hace
 

@@ -58,7 +58,9 @@ export function crearContexto(peticion: Peticion): Contexto {
   const vestir = temperatura === null ? null : temperatura + ajusteTermico(perfil?.sensacionTermica)
   const precipitacion = fuera ? (tiempo?.clima.precipitacion ?? null) : null
   const frio = vestir !== null && vestir < LIMITE_EXTERIOR
-  const lluviaSinCalor = precipitacion !== null && (vestir === null || vestir < LIMITE_CALOR)
+  // La lluvia moja igual a un caluroso: esto va con la temperatura de verdad.
+  const lluviaSinCalor =
+    precipitacion !== null && (temperatura === null || temperatura < LIMITE_CALOR)
   const necesitaAbrigo = frio || lluviaSinCalor
   const fecha = tiempo?.fecha ?? peticion.fecha
   const deOficina = ocasion === 'trabajo' ? formalidadTrabajo(perfil?.oficina, fecha) : null
@@ -179,7 +181,7 @@ function evaluar(prenda: PrendaReglas, contexto: Contexto): Evaluacion {
     }
     if (
       prenda.categoria === 'abrigo' &&
-      vestir >= LIMITE_CALOR &&
+      temperatura >= LIMITE_CALOR &&
       !(precipitacion && prenda.abrigo <= 2)
     ) {
       return { descarte: `hace calor para abrigo a ${grados}` }

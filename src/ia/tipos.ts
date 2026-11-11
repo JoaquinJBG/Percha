@@ -64,6 +64,8 @@ export type ExteriorHoy = 'obligatoria' | 'opcional' | 'no'
 export interface TiempoParaOutfits {
   /** Sensación térmica media en °C; `null` si no se sabe. */
   temperatura: number | null
+  /** La que usan las reglas para vestir si el perfil es caluroso o friolero (±2 °C). */
+  temperaturaVestir?: number | null
   precipitacion: Precipitacion | null
   temporada: Temporada | null
   exterior: ExteriorHoy

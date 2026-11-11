@@ -31,6 +31,7 @@ const PUNTO = /jersey|sueter|pullover|punto|merino|cachemir/
 const CAPUCHA = /sudadera|hoodie|capucha/
 const ESTRUCTURA = /americana|blazer|abrigo|gabardina|trench|chaqueton/
 const SASTRE = /pinzas|sastre|traje|chino|vestir|lana/
+const LARGO = /abrigo|gabardina|trench|parka|plumifero|chaqueton|anorak|pano/
 
 const tipo = (p: PrendaReglas) => normalizar(p.subcategoria)
 const corte = (p: PrendaReglas | null | undefined) => p?.corte ?? ''
@@ -53,7 +54,8 @@ export function puntosPrendaCuerpo(prenda: PrendaReglas, contexto: Contexto): Pu
   if (prenda.categoria === 'inferior') {
     const c = corte(prenda)
     if (c === 'skinny') {
-      puntos -= 3
+      // «Nunca pitillo» (B1): blanda, pero que pese más que un estilo exacto.
+      puntos -= 5
       motivos.push('el pitillo no favorece')
     } else if (c === 'slim') {
       puntos -= 1
@@ -113,7 +115,9 @@ export function puntuarConjunto(
   const abajoAmplio = AMPLIO_ABAJO.has(corte(inferior))
   // B2 y silueta: una sola pieza amplia; amplio con ajustado suma.
   if (arribaAmplio && abajoAmplio) {
-    if (!CON_VOLUMEN.has(contexto.estilo)) puntos -= grande ? 3 : 2
+    // En streetwear se deja, salvo en un cuerpo grande: el §4 pide ahí también una sola pieza amplia.
+    if (grande) puntos -= 3
+    else if (!CON_VOLUMEN.has(contexto.estilo)) puntos -= 2
   } else if (abajoAmplio && capas.some((c) => AJUSTADO_ARRIBA.has(corte(c)))) {
     puntos += 1
   } else if (arribaAmplio && AJUSTADO_ABAJO.has(corte(inferior)) && corte(inferior) !== 'skinny') {
@@ -122,18 +126,23 @@ export function puntuarConjunto(
 
   if (!grande || !base || !fuera) return { puntos, consejo }
 
-  // B3: una capa abierta encima marca una línea vertical.
-  const encimaAbierta =
-    capas.length > 1 && !(PUNTO.test(tipo(fuera)) && !/cardigan|rebeca/.test(tipo(fuera)))
-  if (encimaAbierta && !CAPUCHA.test(tipo(fuera))) {
+  // B3: una capa ligera abierta encima marca una línea vertical; un abrigo con frío va cerrado.
+  const ligeraAbierta =
+    capas.length > 1 &&
+    !contexto.necesitaAbrigo &&
+    fuera.abrigo <= 3 &&
+    !LARGO.test(tipo(fuera)) &&
+    !CAPUCHA.test(tipo(fuera)) &&
+    !(PUNTO.test(tipo(fuera)) && !/cardigan|rebeca/.test(tipo(fuera)))
+  if (ligeraAbierta) {
     puntos += 1
     consejo = 'lo de fuera abierto, que alarga'
   }
   // B4: columna de color en trabajo y minimalista.
   const columna = inferior && familia(base) !== '' && familia(base) === familia(inferior)
   if (columna && (contexto.ocasion === 'trabajo' || contexto.estilo === 'minimalista')) puntos += 1
-  // B5: arriba claro y abajo oscuro resta, más si arriba es amplio.
-  if (inferior && claridad(fuera) > claridad(inferior)) puntos -= arribaAmplio ? 1 : 0.5
+  // B5: arriba claro y amplio con abajo oscuro resta (claro y ajustado arriba no).
+  if (inferior && arribaAmplio && claridad(fuera) > claridad(inferior)) puntos -= 1
   // B10: punto fino bajo estructura suma; dos capas gruesas seguidas, no.
   for (let i = 1; i < capas.length; i++) {
     const dentro = capas[i - 1]

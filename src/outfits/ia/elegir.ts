@@ -164,6 +164,7 @@ export async function elegirOutfitsConIA<P extends PrendaIA>(
         ocasion: peticion.ocasion,
         tiempo: {
           temperatura: contexto.temperatura,
+          temperaturaVestir: contexto.temperaturaVestir,
           precipitacion: contexto.precipitacion,
           temporada: contexto.temporada,
           exterior,

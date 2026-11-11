@@ -39,15 +39,33 @@ function sinMedidas(texto: string) {
 describe('perfil para Gemini', () => {
   it('el cuerpo va sin peso ni medidas: altura, complexión y notas sin cifras', () => {
     const texto = cuerpoParaIA(CUERPO_COMPLETO)
-    expect(texto).toBe('176 cm, complexión grande, hombros anchos, muslo grande')
+    expect(texto).toBe('176 cm, complexión grande, hombros anchos, muslo ancho')
     sinMedidas(texto)
   })
 
   it('notas con medidas sueltas no dejan restos', () => {
+    // «hombros anchos» sin complexión: las reglas lo ven grande y así se le dice a Gemini, sin el peso.
     expect(cuerpoParaIA({ notas: 'cintura 98; hombros anchos. 1,80 de alto' })).toBe(
-      'hombros anchos',
+      'complexión grande, hombros anchos',
     )
     expect(cuerpoParaIA({ peso: 90, cintura: 90 })).toBe('')
+  })
+
+  it('de las notas solo salen rasgos conocidos: ni medidas en letra o en otras cifras, ni salud', () => {
+    const notas = [
+      'cintura noventa y ocho, pecho １１２, hombros anchos',
+      'peso cien kilos; cintura ٩٨',
+      'diabético, prótesis en la rodilla, piernas largas',
+    ]
+    expect(notas.map((n) => cuerpoParaIA({ complexion: 'media', notas: n }))).toEqual([
+      'complexión media, hombros anchos',
+      'complexión media',
+      'complexión media, piernas largas',
+    ])
+  })
+
+  it('el cuerpo grande por el IMC llega a Gemini como complexión, sin el peso', () => {
+    expect(cuerpoParaIA({ altura: 176, peso: 100 })).toBe('176 cm, complexión grande')
   })
 
   it('oficina en texto', () => {
@@ -87,14 +105,15 @@ describe('petición a Gemini con perfil y corte', () => {
     await elegirOutfitsConIA(peticion, 1, { proveedor })
     const [enviada] = proveedor.peticionesOutfits
     expect(enviada?.perfil).toEqual({
-      cuerpo: '176 cm, complexión grande, hombros anchos, muslo grande',
+      cuerpo: '176 cm, complexión grande, hombros anchos, muslo ancho',
       oficina: 'oficina estándar',
     })
     if (!enviada) throw new Error('no se pidió nada a la IA')
     const texto = textoPeticionOutfits(enviada, [])
     expect(texto).toContain(
-      'Perfil: 176 cm, complexión grande, hombros anchos, muslo grande. oficina estándar.',
+      'Perfil: 176 cm, complexión grande, hombros anchos, muslo ancho. oficina estándar.',
     )
+    expect(texto).toContain('18 °C de sensación (la persona es calurosa: viste como con 20 °C)')
     sinMedidas(JSON.stringify(enviada))
   })
 

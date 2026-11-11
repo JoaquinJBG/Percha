@@ -47,12 +47,17 @@ describe('perfil', () => {
 
   it('la oficina mueve la formalidad de «trabajo», y el viernes casual la baja', () => {
     expect(formalidadTrabajo(undefined, '2026-11-13')).toBeNull()
+    // Conservadora: techo 5 y suelo de estándar (con 4–5 el armario de ejemplo se queda sin outfits).
     expect(formalidadTrabajo({ tipo: 'conservadora', viernesCasual: false }, '2026-11-12')).toEqual(
       {
-        minima: 4,
+        minima: 3,
         maxima: 5,
       },
     )
+    expect(formalidadTrabajo({ tipo: 'conservadora', viernesCasual: true }, '2026-11-13')).toEqual({
+      minima: 2,
+      maxima: 4,
+    })
     expect(formalidadTrabajo({ tipo: 'estándar', viernesCasual: true }, '2026-11-12')).toEqual({
       minima: 3,
       maxima: 4,
@@ -66,6 +71,23 @@ describe('perfil', () => {
       minima: 2,
       maxima: 3,
     })
+  })
+})
+
+describe('lo que encontró la revisión', () => {
+  it('la complexión declarada manda sobre las notas y el IMC', () => {
+    expect(tipoCuerpo({ complexion: 'delgada', notas: 'hombros anchos' })).toBe('otro')
+    expect(tipoCuerpo({ complexion: 'media', altura: 170, peso: 95 })).toBe('otro')
+    expect(tipoCuerpo({ notas: 'talla grande, fuerte de piernas' })).toBe('otro')
+  })
+
+  it('un caluroso con lluvia a 22 °C lleva igual algo para la lluvia', () => {
+    expect(
+      contexto({
+        tiempo: tiempo(22, { precipitacion: 'lluvia' }),
+        perfil: { sensacionTermica: 'caluroso' },
+      }).necesitaAbrigo,
+    ).toBe(true)
   })
 })
 
@@ -121,15 +143,15 @@ describe('sensación térmica en el contexto', () => {
 })
 
 describe('oficina en los candidatos', () => {
-  it('en oficina conservadora una camisa de formalidad 3 se queda corta; en creativa vale', () => {
-    const camisa = prenda({ subcategoria: 'camisa', formalidad: 3, estilos: [] })
+  it('en oficina conservadora un polo de formalidad 2 se queda corto; en creativa vale', () => {
+    const camisa = prenda({ subcategoria: 'polo', formalidad: 2, estilos: [] })
     const conservadora = candidatos(
       peticion([camisa], {
         ocasion: 'trabajo',
         perfil: { oficina: { tipo: 'conservadora', viernesCasual: false } },
       }),
     )
-    expect(conservadora.contexto.formalidad).toEqual({ minima: 4, maxima: 5 })
+    expect(conservadora.contexto.formalidad).toEqual({ minima: 3, maxima: 5 })
     expect(conservadora.candidatos[0]?.ajuste).toBe('parcial')
     const sudadera = prenda({ subcategoria: 'sudadera', formalidad: 2, estilos: [] })
     const creativa = candidatos(
@@ -164,7 +186,7 @@ describe('reglas de cuerpo por prenda (B1, B6, B7, B9)', () => {
   })
 
   it('B1: el pitillo resta mucho y el recto o relaxed suma', () => {
-    expect(puntos(pantalon({ corte: 'skinny' }))).toBe(-3)
+    expect(puntos(pantalon({ corte: 'skinny' }))).toBe(-5)
     expect(puntos(pantalon({ corte: 'relaxed' }))).toBe(1)
     expect(puntos(pantalon({ corte: 'regular / recto' }))).toBe(1)
     expect(puntos(pantalon({ corte: 'wide leg' }))).toBe(-1)
@@ -252,9 +274,30 @@ describe('silueta y reglas de conjunto (B2–B5, B10, B11)', () => {
     expect(nota([marino('superior')], marino('inferior'), trabajo)).toBe(1)
   })
 
-  it('B5: arriba claro y abajo oscuro resta', () => {
-    const negro = pantalon({ colores: ['negro'] })
-    expect(nota([camiseta({ colores: ['blanco'] })], negro, grande)).toBe(-0.5)
+  it('B5: arriba claro y amplio con abajo oscuro resta; claro y ajustado, no', () => {
+    const negro = pantalon({ colores: ['negro'], corte: 'regular / recto' })
+    expect(nota([camiseta({ colores: ['blanco'] })], negro, grande)).toBe(0)
+    // Amplio con ajustado suma 1 y B5 resta 1.
+    expect(nota([camiseta({ colores: ['blanco'], corte: 'oversize' })], negro, grande)).toBe(0)
+    expect(nota([camiseta({ colores: ['negro'], corte: 'oversize' })], negro, grande)).toBe(1)
+  })
+
+  it('en un cuerpo grande, streetwear no salva el todo amplio', () => {
+    const street = contexto({ perfil: GRANDE, estilo: 'streetwear' })
+    expect(
+      nota([camiseta({ corte: 'oversize' })], pantalon({ corte: 'baggy' }), street),
+    ).toBeLessThanOrEqual(-3)
+  })
+
+  it('B3 no aconseja abrir un abrigo cuando hace frío', () => {
+    const plumifero = prenda({
+      categoria: 'abrigo',
+      subcategoria: 'plumífero',
+      abrigo: 5,
+      colores: ['negro'],
+    })
+    const frio = contexto({ perfil: GRANDE, tiempo: tiempo(2, { precipitacion: 'lluvia' }) })
+    expect(puntuarConjunto([camiseta(), plumifero], pantalon(), frio).consejo).toBeNull()
   })
 
   it('B10: punto fino bajo americana suma; dos capas gruesas seguidas restan', () => {
@@ -292,6 +335,7 @@ describe('cuatroOutfits con un perfil de cuerpo', () => {
     pantalon({ id: 'pitillo', corte: 'skinny' }),
     pantalon({ id: 'recto', corte: 'regular / recto', colores: ['beige'] }),
     pantalon({ id: 'baggy', corte: 'baggy', colores: ['gris'] }),
+    pantalon({ id: 'chinos', subcategoria: 'chinos', corte: 'relaxed', colores: ['beige'] }),
     prenda({ id: 'chelsea', categoria: 'calzado', subcategoria: 'botas chelsea', abrigo: 2 }),
   ]
 

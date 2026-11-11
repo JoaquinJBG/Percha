@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import {
+  idTablaTallas,
   MEDIDAS_TALLA,
   type DatosTablaTallas,
   type TablaTallas,
@@ -31,6 +32,8 @@ interface Props {
 
 interface Edicion {
   inicial: Partial<DatosTablaTallas>
+  /** Ya había otra tabla de esa marca y tipo: se espera a que diga si la sustituye. */
+  pisar?: DatosTablaTallas | undefined
   /** El `id` de la tabla que se edita, para quitarla si cambia la marca o el tipo. */
   anterior?: string
 }
@@ -164,7 +167,8 @@ export function TablasTallas({
       setEdicion({
         inicial: {
           ...leida,
-          marca: leida.marca ?? de?.marca ?? '',
+          // En el detalle, la tabla es la de la prenda aunque la captura diga «Zara Man».
+          marca: de?.marca ?? leida.marca ?? '',
           tipo: de?.tipo ?? leida.tipo,
         },
         ...(deLaPrenda && { anterior: deLaPrenda.id }),
@@ -176,7 +180,13 @@ export function TablasTallas({
     }
   }
 
-  async function guardarEdicion(datos: DatosTablaTallas) {
+  async function guardarEdicion(datos: DatosTablaTallas, confirmado = false) {
+    const id = idTablaTallas(datos.marca, datos.tipo)
+    const otra = (tablas ?? []).find((t) => t.id === id && t.id !== edicion?.anterior)
+    if (otra && !confirmado) {
+      setEdicion((anterior) => anterior && { ...anterior, inicial: datos, pisar: datos })
+      return
+    }
     setOcupado(true)
     try {
       await guardar(datos, edicion?.anterior)
@@ -205,8 +215,38 @@ export function TablasTallas({
   }
 
   if (edicion) {
+    const { pisar } = edicion
+    if (pisar) {
+      return (
+        <div role="group" aria-label="Sustituir tabla" className="flex flex-col gap-2">
+          <p>Ya tienes una tabla de {nombreTabla(pisar)}. ¿La sustituyes por esta?</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`${boton} bg-oliva text-papel`}
+              disabled={ocupado}
+              onClick={() => void guardarEdicion(pisar, true)}
+            >
+              Sí, sustituir
+            </button>
+            <button
+              type="button"
+              className={botonSecundario}
+              disabled={ocupado}
+              onClick={() => {
+                setEdicion({ ...edicion, pisar: undefined })
+              }}
+            >
+              No, volver
+            </button>
+          </div>
+        </div>
+      )
+    }
     return (
       <EditorTablaTallas
+        // Al volver de «No», el editor se monta otra vez con lo que se había escrito.
+        key={JSON.stringify(edicion.inicial)}
         inicial={edicion.inicial}
         ocupado={ocupado}
         alGuardar={(datos) => void guardarEdicion(datos)}

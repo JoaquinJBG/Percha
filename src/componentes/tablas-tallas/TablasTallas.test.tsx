@@ -189,6 +189,48 @@ describe('tablas de tallas', () => {
     )
   })
 
+  it('antes de sustituir otra tabla de la misma marca y tipo, pregunta', async () => {
+    const { usuario, repo } = montar(repositorio([pantalonZara]))
+
+    await usuario.click(await screen.findByRole('button', { name: 'Escribirla a mano' }))
+    await usuario.type(screen.getByRole('textbox', { name: 'Marca' }), ' zara ')
+    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Tipo' }), 'pantalón')
+    await usuario.type(screen.getByRole('textbox', { name: 'Talla de la fila 1' }), '46')
+    await usuario.type(screen.getByRole('textbox', { name: 'Cintura de la talla 46 (cm)' }), '90')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar tabla' }))
+
+    expect(screen.getByText(/Ya tienes una tabla de zara · pantalón/)).toBeInTheDocument()
+    expect(repo.guardar).not.toHaveBeenCalled()
+    await usuario.click(screen.getByRole('button', { name: 'No, volver' }))
+    expect(screen.getByRole('textbox', { name: 'Cintura de la talla 46 (cm)' })).toHaveValue('90')
+
+    await usuario.click(screen.getByRole('button', { name: 'Guardar tabla' }))
+    await usuario.click(screen.getByRole('button', { name: 'Sí, sustituir' }))
+    expect(repo.guardar).toHaveBeenCalledWith(
+      expect.objectContaining({ marca: 'zara', filas: [{ talla: '46', cintura: 90 }] }),
+      undefined,
+    )
+  })
+
+  it('en el detalle, la marca es la de la prenda aunque la captura diga otra', async () => {
+    const proveedor = crearProveedorFalso({
+      tablaTallas: () => ({
+        marca: 'Zara Man',
+        tipo: 'pantalón',
+        medidaDe: 'cuerpo',
+        filas: [{ talla: '42', cintura: 82 }],
+      }),
+    })
+    const { usuario } = montar(repositorio(), {
+      de: { marca: 'Zara', tipo: 'pantalón' },
+      proveedor,
+    })
+
+    await subirCaptura(usuario)
+
+    expect(await screen.findByRole('textbox', { name: 'Marca' })).toHaveValue('Zara')
+  })
+
   it('borrar pide confirmación', async () => {
     const { usuario, repo } = montar(repositorio([pantalonZara]))
 

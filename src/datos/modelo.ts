@@ -273,11 +273,11 @@ export const MEDIDAS_POR_TIPO: Record<TipoTalla, readonly MedidaTalla[]> = {
 export const MEDIDA_DE = ['cuerpo', 'prenda'] as const
 export const MAX_FILAS_TABLA = 30
 
+// Se redondea antes de validar: 0,04 quedaría en 0 y la copia que lo lleve no se podría importar.
 const cmSchema = z
   .number()
-  .positive()
-  .max(300)
   .transform((cm) => Math.round(cm * 10) / 10)
+  .pipe(z.number().positive().max(300))
 
 export const filaTallaSchema = z.object({
   talla: z.string().trim().min(1).max(20),
@@ -290,7 +290,14 @@ export const datosTablaTallasSchema = z.object({
   tipo: z.enum(TIPOS_TALLA),
   /** La guía de Zara da medidas del cuerpo; otras, de la prenda en plano (S4 §3). */
   medidaDe: z.enum(MEDIDA_DE),
-  filas: z.array(filaTallaSchema).min(1).max(MAX_FILAS_TABLA),
+  filas: z
+    .array(filaTallaSchema)
+    .min(1)
+    .max(MAX_FILAS_TABLA)
+    .refine(
+      (filas) => new Set(filas.map((f) => f.talla.toLocaleLowerCase('es'))).size === filas.length,
+      'Hay una talla repetida.',
+    ),
 })
 
 /** Una por marca y tipo: guardar otra con la misma marca (sin mayúsculas) y tipo la sustituye. */

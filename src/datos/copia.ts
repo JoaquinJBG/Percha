@@ -7,6 +7,7 @@ import {
   camposPrendaSchema,
   outfitSchema,
   perfilSchema,
+  idTablaTallas,
   tablaTallasSchema,
   type FotoPrenda,
   type Outfit,
@@ -273,6 +274,10 @@ function leerCopia(bytes: Uint8Array) {
     outfits,
     perfil,
     modeloGemini: manifiesto.ajustes.modeloGemini,
-    tablasTallas: manifiesto.tablasTallas ?? [],
+    // El `id` se recalcula: una copia manipulada no puede dejar dos tablas de la misma marca y tipo.
+    tablasTallas: (manifiesto.tablasTallas ?? []).map((tabla) => ({
+      ...tabla,
+      id: idTablaTallas(tabla.marca, tabla.tipo),
+    })),
   }
 }

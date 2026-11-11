@@ -36,6 +36,20 @@ describe('esquema de la tabla de tallas', () => {
     }
     expect(datosTablaTallasSchema.safeParse({ ...zara, filas: [] }).success).toBe(false)
   })
+
+  it('una medida que redondeada queda en 0 no vale (la copia con ella no se podría importar)', () => {
+    expect(
+      datosTablaTallasSchema.safeParse({ ...zara, filas: [{ talla: 'M', pecho: 0.04 }] }).success,
+    ).toBe(false)
+  })
+
+  it('no admite tallas repetidas, sin mirar mayúsculas', () => {
+    const filas = [
+      { talla: 'M', pecho: 100 },
+      { talla: 'm', pecho: 101 },
+    ]
+    expect(datosTablaTallasSchema.safeParse({ ...zara, filas }).success).toBe(false)
+  })
 })
 
 describe('tablas de tallas en la base', () => {
@@ -97,6 +111,24 @@ describe('tablas de tallas en la copia', () => {
     await importarCopia(copia, 'fusionar')
 
     expect((await listarTablasTallas()).map((t) => t.marca)).toEqual(['Mango', 'Zara'])
+  })
+
+  it('al importar, el id sale de la marca y el tipo aunque la copia diga otro', async () => {
+    await guardarTablaTallas(zara)
+    const copia = await exportarCopia()
+    const zip = unzipSync(new Uint8Array(await copia.arrayBuffer()))
+    const json = JSON.parse(strFromU8(zip['percha.json'] ?? strToU8('{}'))) as {
+      tablasTallas: { id: string }[]
+    }
+    const [tabla] = json.tablasTallas
+    if (tabla) tabla.id = 'otro-id'
+    zip['percha.json'] = strToU8(JSON.stringify(json))
+
+    await importarCopia(new Blob([zipSync(zip)]), 'fusionar')
+
+    expect((await listarTablasTallas()).map((t) => t.id)).toEqual([
+      idTablaTallas('Zara', 'pantalón'),
+    ])
   })
 
   it('una copia de antes de T10.1, sin tablas, se importa igual', async () => {

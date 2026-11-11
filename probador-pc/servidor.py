@@ -28,6 +28,7 @@ sys.path.insert(0, str(CARPETA_VTON / "catvton"))
 
 from fashn_human_parser import LABELS_TO_IDS, FashnHumanParser  # noqa: E402
 from model.pipeline import CatVTONPipeline  # noqa: E402
+from utils import resize_and_crop  # noqa: E402
 
 ORIGENES = ["https://percha.joaquinjesusbeltrangarcia.workers.dev", "http://localhost:5173"]
 MAX_BYTES = 20 * 1024 * 1024
@@ -94,7 +95,7 @@ def a_rgb(datos: bytes) -> Image.Image:
     return imagen.convert("RGB")
 
 
-def mascara(parser: FashnHumanParser, persona: Image.Image, zona: str) -> Image.Image:
+def mascara(parser: FashnHumanParser, persona: Image.Image, zona: str) -> np.ndarray:
     etiquetas = parser.predict(persona)
     if etiquetas.shape != (persona.height, persona.width):
         etiquetas = cv2.resize(etiquetas.astype(np.uint8), persona.size, interpolation=cv2.INTER_NEAREST)
@@ -102,7 +103,14 @@ def mascara(parser: FashnHumanParser, persona: Image.Image, zona: str) -> Image.
     m = np.isin(etiquetas, zona_ids).astype(np.uint8) * 255
     m = cv2.dilate(m, np.ones((15, 15), np.uint8), iterations=2)
     m[np.isin(etiquetas, [LABELS_TO_IDS[n] for n in PROTEGIDAS])] = 0
-    return Image.fromarray(m)
+    return m
+
+
+def pegar_lo_demas(nueva: Image.Image, antes: Image.Image, m: np.ndarray) -> Image.Image:
+    """Devuelve la cara, las manos y el fondo de antes: la VAE de SD los emborrona en cada pasada."""
+    suave = cv2.GaussianBlur(m, (31, 31), 0).astype(np.float32)[..., None] / 255
+    mezcla = np.asarray(nueva, np.float32) * suave + np.asarray(antes, np.float32) * (1 - suave)
+    return Image.fromarray(mezcla.clip(0, 255).astype(np.uint8))
 
 
 def probar(id_: str, persona: Image.Image, prendas: list[tuple[Image.Image, str]]) -> None:
@@ -111,18 +119,20 @@ def probar(id_: str, persona: Image.Image, prendas: list[tuple[Image.Image, str]
         vton, parser = cargar_modelos()
         prueba.estado = "probando"
         prueba.empezada = time.time()
-        actual = persona
+        actual = resize_and_crop(persona, (ANCHO, ALTO))
         for prenda, zona in prendas:
-            actual = vton(
+            m = mascara(parser, actual, zona)
+            nueva = vton(
                 image=actual,
                 condition_image=prenda,
-                mask=mascara(parser, actual, zona),
+                mask=Image.fromarray(m),
                 num_inference_steps=50,
                 guidance_scale=2.5,
                 height=ALTO,
                 width=ANCHO,
                 generator=torch.Generator(device="cuda").manual_seed(42),
             )[0]
+            actual = pegar_lo_demas(nueva, actual, m)
             prueba.hechas += 1
         salida = io.BytesIO()
         actual.save(salida, format="JPEG", quality=90)

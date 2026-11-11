@@ -402,10 +402,10 @@ export function Laboratorio({
             )}
           </section>
 
-          <details open={elegidas.length === 0} className="flex flex-col gap-3">
-            <summary className="min-h-12 cursor-pointer content-center text-lg font-semibold">
+          <section aria-labelledby="titulo-anadir" className="flex flex-col gap-3">
+            <h2 id="titulo-anadir" className="text-lg font-semibold">
               Añadir prendas
-            </summary>
+            </h2>
             {llenas && (
               <p className="text-sm text-suave">
                 Ya tienes {MAX_PRENDAS_LABORATORIO}: quita alguna para añadir otra.
@@ -442,7 +442,7 @@ export function Laboratorio({
                 )
               })}
             </ul>
-          </details>
+          </section>
         </>
       )}
     </Pantalla>

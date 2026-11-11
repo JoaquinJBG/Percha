@@ -4,6 +4,7 @@ import { resumenCorte } from '../../datos/detalles.ts'
 import type { Prenda } from '../../datos/modelo.ts'
 import { textoComposicion } from '../../etiqueta/compartido.ts'
 import { EnlacesBusqueda } from '../../etiqueta/EnlacesBusqueda.tsx'
+import { TablasTallas, tipoTallaDe } from '../../componentes/tablas-tallas/index.ts'
 import { capitalizar, ETIQUETA_CATEGORIA, nombrePrenda } from './ayudas.ts'
 import { FotoBlob } from './FotoBlob.tsx'
 
@@ -51,6 +52,8 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
       setFase('error')
     }
   }
+
+  const tipoTalla = prenda ? tipoTallaDe(prenda.categoria) : null
 
   const etiquetas: [string, string][] = prenda
     ? [
@@ -161,6 +164,10 @@ export function DetallePrenda({ prenda, onVolver, onBorrar, onEditar }: Props) {
               referencia={prenda.referencia}
               enlace={prenda.enlace}
             />
+
+            {prenda.marca && tipoTalla && (
+              <TablasTallas de={{ marca: prenda.marca, tipo: tipoTalla }} />
+            )}
 
             {fase === 'libre' || fase === 'error' ? (
               <div className="flex gap-3">

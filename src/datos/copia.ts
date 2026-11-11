@@ -7,6 +7,7 @@ import {
   camposPrendaSchema,
   outfitSchema,
   perfilSchema,
+  tablaTallasSchema,
   type FotoPrenda,
   type Outfit,
   type Perfil,
@@ -24,7 +25,7 @@ export class ErrorCopia extends Error {
 }
 
 /**
- * `reemplazar` borra prendas, outfits y perfil antes; `fusionar` añade y, si el `id` coincide, gana la
+ * `reemplazar` borra prendas, outfits, perfil y tablas de tallas antes; `fusionar` añade y, si el `id` coincide, gana la
  * copia (en el perfil, campo a campo y sin pisar con un campo vacío).
  */
 export type ModoImportar = 'reemplazar' | 'fusionar'
@@ -57,6 +58,8 @@ const manifiestoSchema = z.object({
     .extend({ fotoCara: refBlobSchema.nullable(), fotoCuerpo: refBlobSchema.nullable() })
     .nullable(),
   ajustes: ajustesSchema.pick({ modeloGemini: true }),
+  // Opcional: las copias de antes de T10.1 no las llevan.
+  tablasTallas: z.array(tablaTallasSchema).optional(),
 })
 type Manifiesto = z.input<typeof manifiestoSchema>
 
@@ -76,15 +79,16 @@ export function nombreFicheroCopia(fecha = new Date()): string {
 
 /** Todo el armario en un zip: `percha.json` y las fotos en `fotos/`. */
 export async function exportarCopia(): Promise<Blob> {
-  const [prendas, outfits, perfil, ajustes] = await db.transaction(
+  const [prendas, outfits, perfil, ajustes, tablasTallas] = await db.transaction(
     'r',
-    [db.prendas, db.outfits, db.perfil, db.ajustes],
+    [db.prendas, db.outfits, db.perfil, db.ajustes, db.tablasTallas],
     () =>
       Promise.all([
         db.prendas.toArray(),
         db.outfits.toArray(),
         db.perfil.get(FILA_UNICA),
         db.ajustes.get(FILA_UNICA),
+        db.tablasTallas.toArray(),
       ]),
   )
 
@@ -109,6 +113,7 @@ export async function exportarCopia(): Promise<Blob> {
     outfits: [],
     perfil: null,
     ajustes: { modeloGemini: (ajustes ?? AJUSTES_POR_DEFECTO).modeloGemini },
+    tablasTallas,
   }
   for (const { fotos, ...campos } of prendas) {
     const refs = []
@@ -143,15 +148,22 @@ export async function importarCopia(
   fichero: Blob,
   modo: ModoImportar,
 ): Promise<ResumenImportacion> {
-  const { prendas, outfits, perfil, modeloGemini } = leerCopia(
+  const { prendas, outfits, perfil, modeloGemini, tablasTallas } = leerCopia(
     new Uint8Array(await fichero.arrayBuffer()),
   )
 
-  await db.transaction('rw', [db.prendas, db.outfits, db.perfil, db.ajustes], async () => {
+  const tablas = [db.prendas, db.outfits, db.perfil, db.ajustes, db.tablasTallas]
+  await db.transaction('rw', tablas, async () => {
     if (modo === 'reemplazar') {
-      await Promise.all([db.prendas.clear(), db.outfits.clear(), db.perfil.clear()])
+      await Promise.all([
+        db.prendas.clear(),
+        db.outfits.clear(),
+        db.perfil.clear(),
+        db.tablasTallas.clear(),
+      ])
     }
     await db.prendas.bulkPut(prendas)
+    await db.tablasTallas.bulkPut(tablasTallas)
     await db.outfits.bulkPut(outfits)
     if (perfil) {
       const local = modo === 'fusionar' ? await db.perfil.get(FILA_UNICA) : undefined
@@ -261,5 +273,6 @@ function leerCopia(bytes: Uint8Array) {
     outfits,
     perfil,
     modeloGemini: manifiesto.ajustes.modeloGemini,
+    tablasTallas: manifiesto.tablasTallas ?? [],
   }
 }

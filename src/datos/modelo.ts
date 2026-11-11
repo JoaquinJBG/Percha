@@ -250,6 +250,60 @@ export const tallaMarcaSchema = z.object({
   talla: z.string().trim().min(1).max(20),
 })
 
+/** Medidas de una fila de la tabla de tallas (T10.1, D22), siempre en cm. */
+export const MEDIDAS_TALLA = [
+  'pecho',
+  'cintura',
+  'cadera',
+  'hombros',
+  'manga',
+  'largo',
+  'largoPierna',
+  'pie',
+] as const
+export type MedidaTalla = (typeof MEDIDAS_TALLA)[number]
+
+/** Qué medidas se enseñan y se piden para cada tipo de tabla. */
+export const MEDIDAS_POR_TIPO: Record<TipoTalla, readonly MedidaTalla[]> = {
+  'parte de arriba': ['pecho', 'cintura', 'cadera', 'hombros', 'manga', 'largo'],
+  pantalón: ['cintura', 'cadera', 'largoPierna', 'largo'],
+  calzado: ['pie'],
+}
+
+export const MEDIDA_DE = ['cuerpo', 'prenda'] as const
+export const MAX_FILAS_TABLA = 30
+
+const cmSchema = z
+  .number()
+  .positive()
+  .max(300)
+  .transform((cm) => Math.round(cm * 10) / 10)
+
+export const filaTallaSchema = z.object({
+  talla: z.string().trim().min(1).max(20),
+  ...Object.fromEntries(MEDIDAS_TALLA.map((medida) => [medida, cmSchema.optional()])),
+} as { talla: z.ZodString } & Record<MedidaTalla, z.ZodOptional<typeof cmSchema>>)
+
+/** Lo que se lee de la foto o se escribe a mano. La marca puede faltar si la guía no la dice. */
+export const datosTablaTallasSchema = z.object({
+  marca: z.string().trim().min(1).max(40),
+  tipo: z.enum(TIPOS_TALLA),
+  /** La guía de Zara da medidas del cuerpo; otras, de la prenda en plano (S4 §3). */
+  medidaDe: z.enum(MEDIDA_DE),
+  filas: z.array(filaTallaSchema).min(1).max(MAX_FILAS_TABLA),
+})
+
+/** Una por marca y tipo: guardar otra con la misma marca (sin mayúsculas) y tipo la sustituye. */
+export const tablaTallasSchema = datosTablaTallasSchema.extend({
+  id: z.string().min(1),
+  actualizadaEn: z.number().int().nonnegative(),
+})
+
+/** El `id` de la tabla de una marca y un tipo. */
+export function idTablaTallas(marca: string, tipo: TipoTalla): string {
+  return `${marca.trim().toLocaleLowerCase('es')}|${tipo}`
+}
+
 export const oficinaSchema = z.object({
   tipo: z.enum(TIPOS_OFICINA),
   viernesCasual: z.boolean(),
@@ -312,6 +366,9 @@ export type Privado = z.infer<typeof privadoSchema>
 export type Cuerpo = z.infer<typeof cuerpoSchema>
 export type Complexion = (typeof COMPLEXIONES)[number]
 export type TallaMarca = z.infer<typeof tallaMarcaSchema>
+export type FilaTalla = z.infer<typeof filaTallaSchema>
+export type DatosTablaTallas = z.infer<typeof datosTablaTallasSchema>
+export type TablaTallas = z.infer<typeof tablaTallasSchema>
 export type TipoTalla = (typeof TIPOS_TALLA)[number]
 export type Oficina = z.infer<typeof oficinaSchema>
 export type TipoOficina = (typeof TIPOS_OFICINA)[number]

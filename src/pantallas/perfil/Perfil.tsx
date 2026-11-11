@@ -1,17 +1,29 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { ESTILOS, type Estilo, type Perfil as DatosPerfil } from '../../datos/modelo.ts'
-import { guardarPerfil, leerPerfil } from '../../datos/repositorio.ts'
+import {
+  guardarFotoInterior,
+  guardarPerfil,
+  leerFotoInterior,
+  leerPerfil,
+} from '../../datos/repositorio.ts'
 import { ErrorFoto, normalizarFoto } from '../../recorte/index.ts'
+import { CuerpoPerfil } from './CuerpoPerfil.tsx'
 import { FotoPerfil } from './FotoPerfil.tsx'
+import { GuiaFotoReferencia } from './GuiaFotoReferencia.tsx'
+import { TallasPerfil } from './TallasPerfil.tsx'
+import { TrabajoPerfil } from './TrabajoPerfil.tsx'
 
 interface Props {
   leer?: () => Promise<DatosPerfil>
   guardar?: (cambios: Partial<DatosPerfil>) => Promise<DatosPerfil>
   normalizar?: (foto: Blob) => Promise<Blob>
+  /** La foto en ropa interior va aparte del perfil (D21). */
+  leerInterior?: () => Promise<Blob | null>
+  guardarInterior?: (foto: Blob | null) => Promise<Blob | null>
 }
 
-type CampoFoto = 'fotoCuerpo' | 'fotoCara'
+type CampoFoto = 'fotoCuerpo' | 'fotoCara' | 'fotoInterior'
 // Cada parte lleva su aviso, para que un error no quede tapado por el «guardado» de otra.
 type Seccion = 'lectura' | CampoFoto | 'ciudad' | 'estilos'
 interface Aviso {
@@ -22,6 +34,7 @@ interface Aviso {
 const NOMBRE_FOTO: Record<CampoFoto, string> = {
   fotoCuerpo: 'de cuerpo entero',
   fotoCara: 'de cara',
+  fotoInterior: 'en ropa interior',
 }
 
 const boton =
@@ -32,12 +45,17 @@ export function Perfil({
   leer = leerPerfil,
   guardar = guardarPerfil,
   normalizar = normalizarFoto,
+  leerInterior = leerFotoInterior,
+  guardarInterior = guardarFotoInterior,
 }: Props) {
   const [perfil, setPerfil] = useState<DatosPerfil | null>(null)
+  // `undefined` mientras se lee.
+  const [fotoInterior, setFotoInterior] = useState<Blob | null | undefined>(undefined)
   const [ciudad, setCiudad] = useState('')
   const [ocupadas, setOcupadas] = useState<Record<CampoFoto, boolean>>({
     fotoCuerpo: false,
     fotoCara: false,
+    fotoInterior: false,
   })
   const [guardandoCiudad, setGuardandoCiudad] = useState(false)
   const [avisos, setAvisos] = useState<Partial<Record<Seccion, Aviso>>>({})
@@ -64,6 +82,27 @@ export function Perfil({
     }
   }, [leer])
 
+  useEffect(() => {
+    let vigente = true
+    leerInterior().then(
+      (leida) => {
+        if (vigente) setFotoInterior(leida)
+      },
+      (error: unknown) => {
+        console.error(error)
+        if (!vigente) return
+        setFotoInterior(null)
+        avisar('fotoInterior', {
+          tipo: 'error',
+          texto: 'No se ha podido leer la foto en ropa interior.',
+        })
+      },
+    )
+    return () => {
+      vigente = false
+    }
+  }, [leerInterior])
+
   // Cada guardado solo toca su campo en pantalla, para no pisar otro cambio que siga en marcha.
   function aplicar<C extends keyof DatosPerfil>(campo: C, valor: DatosPerfil[C]) {
     setPerfil((actual) => actual && { ...actual, [campo]: valor })
@@ -71,6 +110,21 @@ export function Perfil({
 
   function avisar(seccion: Seccion, aviso: Aviso | null) {
     setAvisos((actuales) => ({ ...actuales, [seccion]: aviso ?? undefined }))
+  }
+
+  /** Para las partes que llevan su propio aviso: guarda un campo y lo pone en pantalla, o lanza. */
+  async function guardarCampo<C extends keyof DatosPerfil>(campo: C, valor: DatosPerfil[C]) {
+    const guardado = await guardar({ [campo]: valor })
+    aplicar(campo, guardado[campo])
+  }
+
+  /** Guarda o borra (`null`) una foto y la pone en pantalla; la de ropa interior va a su tabla. */
+  async function guardarFoto(campo: CampoFoto, foto: Blob | null) {
+    if (campo === 'fotoInterior') {
+      setFotoInterior(await guardarInterior(foto))
+      return
+    }
+    aplicar(campo, (await guardar({ [campo]: foto }))[campo])
   }
 
   function ocupar(campo: CampoFoto, ocupada: boolean) {
@@ -93,7 +147,7 @@ export function Perfil({
         return
       }
       try {
-        aplicar(campo, (await guardar({ [campo]: foto }))[campo])
+        await guardarFoto(campo, foto)
       } catch (error) {
         console.error(error)
         avisar(campo, {
@@ -112,7 +166,7 @@ export function Perfil({
     ocupar(campo, true)
     avisar(campo, null)
     try {
-      aplicar(campo, (await guardar({ [campo]: null }))[campo])
+      await guardarFoto(campo, null)
       avisar(campo, { tipo: 'bien', texto: `Foto ${NOMBRE_FOTO[campo]} borrada.` })
     } catch (error) {
       console.error(error)
@@ -196,7 +250,7 @@ export function Perfil({
           Tus fotos
         </h2>
         <p className="text-sm text-suave">
-          Son opcionales. Sirven para probarte los outfits con Gemini.
+          Son opcionales. Sirven para probarte los outfits con Gemini o en el probador de tu PC.
         </p>
         {avisoDe('lectura')}
         {perfil && (
@@ -223,27 +277,89 @@ export function Perfil({
         )}
         {avisoDe('fotoCuerpo')}
         {avisoDe('fotoCara')}
-
-        <div className="flex flex-col gap-1 rounded-2xl bg-white shadow-tarjeta p-4 text-sm">
-          <p className="font-medium">Para que el probador salga bien</p>
-          <ul className="list-disc pl-5 text-suave">
-            <li>De pie y de frente, con los brazos sueltos.</li>
-            <li>Que se te vea entero, de la cabeza a los pies.</li>
-            <li>Buena luz, mejor natural.</li>
-            <li>Fondo liso, sin gente ni muebles detrás.</li>
-            <li>Ropa ajustada y lisa.</li>
-            <li>Para la cara: de frente, sin gafas de sol ni gorra.</li>
-          </ul>
-        </div>
+        <p className="text-sm text-suave">
+          La de cuerpo entero es tu foto de referencia. La de cara: de frente, sin gafas de sol ni
+          gorra.
+        </p>
+        <GuiaFotoReferencia />
 
         <div className="flex flex-col gap-1 rounded-2xl border border-tinta/15 p-4 text-sm">
           <p className="font-medium">Tus fotos no salen del móvil</p>
           <p className="text-suave">
-            Se guardan solo en este móvil. Solo salen cuando tú las compartes con Gemini al probarte
-            un outfit, o si exportas la copia del armario en Ajustes.
+            Se guardan solo en este móvil. Solo salen cuando tú las compartes con Gemini o con tu PC
+            al probarte un outfit, o si exportas la copia del armario en Ajustes.
           </p>
         </div>
       </section>
+
+      <section aria-labelledby="titulo-interior" className="flex flex-col gap-3">
+        <h2 id="titulo-interior" className="font-titulo text-xl font-semibold">
+          Foto en ropa interior
+        </h2>
+        <div className="flex flex-col gap-1 rounded-2xl border border-tinta/15 p-4 text-sm">
+          <p className="font-medium">Opcional y solo para el probador de tu PC</p>
+          <p className="text-suave">
+            Con ella, tu PC ajusta mejor la ropa a tu cuerpo. Nunca se manda a Gemini ni a ninguna
+            nube, no va en la copia del armario y no vuelve al importar una. Se queda solo en este
+            móvil hasta que la borres. Hazla con la misma pose y encuadre que la de referencia.
+          </p>
+        </div>
+        {fotoInterior !== undefined && (
+          <ul className="grid grid-cols-2 gap-3">
+            <FotoPerfil
+              id="titulo-foto-interior"
+              titulo="Ropa interior"
+              foto={fotoInterior}
+              camara="environment"
+              ocupada={ocupadas.fotoInterior}
+              onElegir={(fichero) => void cambiarFoto('fotoInterior', fichero)}
+              onBorrar={() => void borrarFoto('fotoInterior')}
+            />
+          </ul>
+        )}
+        {avisoDe('fotoInterior')}
+      </section>
+
+      {perfil && (
+        <>
+          <section aria-labelledby="titulo-cuerpo" className="flex flex-col gap-3">
+            <h2 id="titulo-cuerpo" className="font-titulo text-xl font-semibold">
+              Tu cuerpo
+            </h2>
+            <p className="text-sm text-suave">
+              Todo es opcional. Servirá para ajustar los outfits y las tallas a tu cuerpo. Se queda
+              en este móvil y no se manda a Gemini; solo sale si exportas la copia en Ajustes.
+            </p>
+            <CuerpoPerfil
+              cuerpo={perfil.cuerpo}
+              guardar={(cuerpo) => guardarCampo('cuerpo', cuerpo)}
+            />
+          </section>
+
+          <section aria-labelledby="titulo-tallas" className="flex flex-col gap-3">
+            <h2 id="titulo-tallas" className="font-titulo text-xl font-semibold">
+              Tus tallas por marca
+            </h2>
+            <p className="text-sm text-suave">La talla que sueles llevar en cada marca.</p>
+            <TallasPerfil
+              tallas={perfil.tallas ?? []}
+              guardar={(tallas) => guardarCampo('tallas', tallas)}
+            />
+          </section>
+
+          <section aria-labelledby="titulo-trabajo" className="flex flex-col gap-3">
+            <h2 id="titulo-trabajo" className="font-titulo text-xl font-semibold">
+              Trabajo y temperatura
+            </h2>
+            <TrabajoPerfil
+              oficina={perfil.oficina}
+              sensacionTermica={perfil.sensacionTermica}
+              guardarOficina={(oficina) => guardarCampo('oficina', oficina)}
+              guardarSensacion={(sensacion) => guardarCampo('sensacionTermica', sensacion)}
+            />
+          </section>
+        </>
+      )}
 
       <section aria-labelledby="titulo-ciudad" className="flex flex-col gap-3">
         <h2 id="titulo-ciudad" className="font-titulo text-xl font-semibold">

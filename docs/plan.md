@@ -164,3 +164,55 @@ Sale de la investigación de moda (`docs/investigacion/reglas-outfits.md`, en la
   y una línea en el detalle. El alta masiva las guarda con lo demás.
 - **Fuera:** usar las capas para montar outfits (T6.2) y el prompt de outfits (T6.3). `largo`, `material` y
   las subcategorías cerradas (P4, P5) tampoco entran.
+
+## Fase 7 — Probador en el PC
+
+Sale del estudio [S4](spikes/s4-probador-y-etiquetas.md) §1–2 y de la decisión D19: el PC del usuario
+(RTX 3060) viste el outfit con CatVTON y Gemini pasa a ser la segunda opción. El contrato de la API entre
+Percha y el servidor está fijado por la sesión jefa (carpeta de notas de la fase 7).
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T7.1 | Probador del PC desde Percha: URL y clave en Ajustes con «Comprobar», «Pruébatelo» primero en el PC (progreso, guardar con el outfit, compartir) y Gemini si falla (D19) | T3.2 | 👀 falta probarlo con el servidor de verdad y Tailscale en el móvil |
+| T7.2 | Servidor del probador en el PC: CatVTON detrás de un adaptador con clave en `127.0.0.1:7861`, publicado con Tailscale Serve, y guía [`probador-pc.md`](probador-pc.md) | S4 | 🔨 |
+
+### T7.1 — Probador del PC desde Percha
+- **Qué:** sección «Probador en tu PC» en Ajustes (URL https de Tailscale, clave, «Comprobar», «Quitar»,
+  enlace a la guía); `src/probador/` (cliente con clave y esperas, qué prendas se mandan, seguimiento
+  cada 3 s); «Pruébatelo» con probador: `/salud` en 3 s, fotos al PC, progreso con tiempo aproximado,
+  imagen con «Guardar» (en `Outfit.prueba`) y «Compartir»; si el PC no responde, falla o está ocupado,
+  mensaje claro y «Probar con Gemini» avisando de que las fotos van a Google. Aviso de capas cuando el
+  outfit lleva más de una prenda de arriba.
+- **Fuera:** el servidor (T7.2), ver la foto guardada en otra pantalla (de momento solo va en la copia y en
+  la base), capas de verdad (cuando el servidor sepa hacerlas).
+
+## Fase 8 — Ficha completa
+
+Aprobada por el usuario el 2026-11-09 junto con las fases 9 (buscar la prenda con Gemini) y 10 (ajuste de
+talla de verdad). T8.2 absorbe la T6.5.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T8.1 | Corte y detalles por tipo (corte, tiro, largo, manga, cuello) con listas cerradas, que rellena Gemini y se corrigen a mano; marca, corte y talla sin foto de la etiqueta; filtro por corte en el armario (D20) | T6.1 | 👀 |
+| T8.2 | Perfil de cuerpo: medidas, complexión, tallas habituales por marca, oficina y sensación térmica (absorbe T6.5) | — | 👀 |
+| T8.3 | Fotos del perfil: foto de referencia ajustada con guía y pose; la de ropa interior, opcional y solo para el probador del PC (nunca a Gemini, a la nube ni a la copia) | T7.1 | 👀 falta hacerse las fotos de verdad y probarlas en el PC |
+| T8.4 | Outfits y probador usan el corte y el cuerpo: reglas (§6 de la investigación, B1–B11), prompt de Gemini y avisos del probador | T6.2, T6.3, T8.1, T8.2 | ⏳ |
+
+### T8.1 — Corte y detalles por tipo
+- **Qué:** campos opcionales `corte`, `tiro`, `largo`, `manga` y `cuello` en la prenda, con listas cerradas
+  en `src/datos/modelo.ts`; `detallesQueAplican` (`src/datos/detalles.ts`) dice cuáles van con cada tipo:
+  - pantalón y vaquero: corte (skinny, slim, regular / recto, relaxed, baggy, wide leg, balloon, bootcut,
+    flare, tapered, cargo), tiro (bajo, medio, alto) y largo (completo, tobillero, cropped); shorts, corte y
+    tiro; faldas, nada;
+  - camiseta, sudadera, jersey y polo: corte (slim, regular, relaxed, oversize, boxy), largo (cropped,
+    regular, largo) y manga (corta, larga, sin manga);
+  - camisa y sobrecamisa de arriba: corte (slim, regular, relaxed, oversize, overshirt), manga y cuello
+    (clásico, mao, cubano);
+  - abrigo y chaqueta: corte (entallado, recto, oversize, boxy, cropped) y largo (corto, cadera, medio
+    muslo, largo).
+
+  Gemini los rellena (prompt v3); lo que no vale o no aplica se quita sin perder la prenda. Sección «Corte y
+  detalles» en el formulario, junto a «Etiqueta y tienda» (marca y talla a mano). En el detalle, «Zara ·
+  balloon · 44» bajo el título y una fila por detalle. Filtro «Corte» en el armario, con los cortes que hay.
+  El alta masiva los guarda.
+- **Fuera:** usarlos en outfits y probador (T8.4), tablas de tallas (T10.1).

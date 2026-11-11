@@ -14,6 +14,9 @@ import {
 import { Armario } from './Armario.tsx'
 import { simularUrlsDeBlob } from './urlsDePrueba.ts'
 
+// Con la suite entera en paralelo, el formulario completo pasa de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 function prenda(cambios: Partial<NuevaPrenda> = {}): Prenda {
   return { ...nuevaPrenda(cambios), id: 'p1', creadaEn: 1 }
 }
@@ -59,7 +62,7 @@ function montar(inicial: Prenda, proveedor: ProveedorIA | null = crearProveedorF
     { initialEntries: ['/'] },
   )
   render(<RouterProvider router={router} />)
-  return { usuario: userEvent.setup(), router, actualizar }
+  return { usuario: userEvent.setup({ delay: null }), router, actualizar }
 }
 
 async function abrirEdicion(usuario: ReturnType<typeof userEvent.setup>, nombre: string) {
@@ -233,6 +236,26 @@ describe('datos de la etiqueta al editar', () => {
         composicion: [{ material: 'algodón', porcentaje: 100 }],
         enlace: 'https://www.zara.com/es/es/x.html',
       }),
+    )
+  })
+
+  it('volver a etiquetar con IA conserva el corte que la IA no dice y usa el que sí dice', async () => {
+    const proveedor = crearProveedorFalso({
+      etiquetas: () => ({ ...ETIQUETAS_DE_PRUEBA, corte: undefined, manga: 'corta' }),
+    })
+    const { usuario, actualizar } = montar(
+      prenda({ subcategoria: 'camiseta', corte: 'oversize', manga: 'larga' }),
+      proveedor,
+    )
+    const edicion = await abrirEdicion(usuario, 'Camiseta')
+
+    await usuario.click(within(edicion).getByRole('button', { name: 'Volver a etiquetar con IA' }))
+    await within(edicion).findByText(/Etiquetas nuevas de la IA/)
+    await usuario.click(within(edicion).getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(actualizar).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ corte: 'oversize', manga: 'corta' }),
     )
   })
 

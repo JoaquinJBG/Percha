@@ -16,6 +16,19 @@ describe('esquema para Gemini', () => {
     expect(texto).toContain(JSON.stringify([...COLORES]))
   })
 
+  it('pide corte, tiro, largo, manga y cuello como opcionales', () => {
+    const prendas = (
+      esquema.properties as {
+        prendas: { items: { properties: object; required: string[] } }
+      }
+    ).prendas.items
+    for (const campo of ['corte', 'tiro', 'largo', 'manga', 'cuello']) {
+      expect(Object.keys(prendas.properties)).toContain(campo)
+      expect(prendas.required).not.toContain(campo)
+    }
+    expect(JSON.stringify(prendas.properties)).toContain('"balloon"')
+  })
+
   it('pide las capas con la lista cerrada de papeles', () => {
     const propiedades = (esquema.properties as { prendas: { items: { properties: object } } })
       .prendas.items.properties

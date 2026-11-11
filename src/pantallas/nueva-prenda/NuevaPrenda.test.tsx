@@ -17,6 +17,9 @@ import { ErrorFoto, ErrorRecorte, type OpcionesRecorte } from '../../recorte/ind
 import { estadoDesdeTienda } from '../../etiqueta/compartido.ts'
 import { NuevaPrenda } from './NuevaPrenda.tsx'
 
+// Con la suite entera en paralelo, el formulario completo pasa de los 5 s por defecto.
+vi.setConfig({ testTimeout: 15_000 })
+
 interface Llamada {
   foto: Blob
   opciones: OpcionesRecorte | undefined
@@ -90,7 +93,7 @@ function montar({
   )
   render(<RouterProvider router={router} />)
   return {
-    usuario: userEvent.setup(),
+    usuario: userEvent.setup({ delay: null }),
     recortar,
     llamadas,
     normalizar,

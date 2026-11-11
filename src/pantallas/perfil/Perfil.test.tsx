@@ -13,8 +13,14 @@ const normalizada = (nombre: string) => new Blob([`normalizada ${nombre}`], { ty
 const ficheroFoto = (nombre = 'foto.jpg') => new File(['bytes'], nombre, { type: 'image/jpeg' })
 
 /** Un perfil en memoria que se comporta como `guardarPerfil`: mezcla los campos y limpia la ciudad. */
-function montar(inicial: Partial<DatosPerfil> = {}) {
+function montar(inicial: Partial<DatosPerfil> = {}, interiorInicial: Blob | null = null) {
   let guardado: DatosPerfil = { ...PERFIL_VACIO, ...inicial }
+  // La foto en ropa interior va aparte del perfil (D21).
+  let interior = interiorInicial
+  const guardarInterior = vi.fn((foto: Blob | null) => {
+    interior = foto
+    return Promise.resolve(interior)
+  })
   const leer = vi.fn(() => Promise.resolve(guardado))
   const guardar = vi.fn((cambios: Partial<DatosPerfil>) => {
     guardado = { ...guardado, ...cambios }
@@ -24,8 +30,24 @@ function montar(inicial: Partial<DatosPerfil> = {}) {
   const normalizar = vi.fn((foto: Blob) =>
     Promise.resolve(normalizada(foto instanceof File ? foto.name : 'blob')),
   )
-  render(<Perfil leer={leer} guardar={guardar} normalizar={normalizar} />)
-  return { usuario: userEvent.setup(), leer, guardar, normalizar, guardado: () => guardado }
+  render(
+    <Perfil
+      leer={leer}
+      guardar={guardar}
+      normalizar={normalizar}
+      leerInterior={() => Promise.resolve(interior)}
+      guardarInterior={guardarInterior}
+    />,
+  )
+  return {
+    usuario: userEvent.setup({ delay: null }),
+    leer,
+    guardar,
+    normalizar,
+    guardarInterior,
+    guardado: () => guardado,
+    interior: () => interior,
+  }
 }
 
 const tarjeta = (nombre: 'Cuerpo entero' | 'Cara') => screen.getByRole('listitem', { name: nombre })
@@ -55,7 +77,20 @@ describe('Perfil', () => {
 
     expect(await screen.findByText('Tus fotos no salen del móvil')).toBeInTheDocument()
     expect(screen.getByText(/Solo salen cuando tú las compartes con Gemini/)).toBeInTheDocument()
-    expect(screen.getByText('Fondo liso, sin gente ni muebles detrás.')).toBeInTheDocument()
+  })
+
+  it('explica cómo hacer la foto de referencia, con un dibujo de la pose', async () => {
+    const { usuario } = montar()
+
+    await usuario.click(await screen.findByText('Cómo hacer la foto de referencia'))
+
+    expect(screen.getByRole('img', { name: /de pie y de frente/i })).toBeInTheDocument()
+    expect(
+      screen.getByText('Camiseta de tirantes ajustada y leggings o mallas de correr, lisos.'),
+    ).toBeVisible()
+    expect(screen.getByText('Pies separados al ancho de los hombros.')).toBeVisible()
+    expect(screen.getByText('Móvil en vertical, a la altura del pecho.')).toBeVisible()
+    expect(screen.getByText(/A unos 3 metros/)).toBeVisible()
   })
 
   it('enseña lo que ya está guardado', async () => {
@@ -169,6 +204,45 @@ describe('Perfil', () => {
       expect(cara.getByText('Sin foto')).toBeInTheDocument()
       expect(cara.queryByRole('button', { name: 'Borrar' })).not.toBeInTheDocument()
       expect(within(tarjeta('Cuerpo entero')).getByRole('img')).toBeInTheDocument()
+    })
+  })
+
+  describe('foto en ropa interior', () => {
+    it('explica que es solo para el PC y que nunca va a Gemini ni en la copia', async () => {
+      montar()
+
+      expect(
+        await screen.findByText('Opcional y solo para el probador de tu PC'),
+      ).toBeInTheDocument()
+      expect(screen.getByText(/Nunca se manda a Gemini ni a ninguna nube/)).toBeInTheDocument()
+      expect(screen.getByText(/no va en la copia del armario/)).toBeInTheDocument()
+    })
+
+    it('se guarda aparte del perfil y se borra con un toque y su confirmación', async () => {
+      const { usuario, guardar, guardarInterior, interior } = montar()
+      const tarjetaInterior = within(await screen.findByRole('listitem', { name: 'Ropa interior' }))
+
+      await usuario.upload(tarjetaInterior.getByLabelText('Galería'), ficheroFoto('interior.jpg'))
+
+      expect(await screen.findByText('Foto en ropa interior guardada.')).toBeInTheDocument()
+      expect(guardarInterior).toHaveBeenCalledWith(normalizada('interior.jpg'))
+      expect(guardar).not.toHaveBeenCalled()
+
+      await usuario.click(tarjetaInterior.getByRole('button', { name: 'Borrar' }))
+      await usuario.click(tarjetaInterior.getByRole('button', { name: 'Sí, borrar' }))
+
+      expect(await screen.findByText('Foto en ropa interior borrada.')).toBeInTheDocument()
+      expect(interior()).toBeNull()
+      expect(tarjetaInterior.getByText('Sin foto')).toBeInTheDocument()
+      expect(guardar).not.toHaveBeenCalled()
+    })
+
+    it('enseña la que ya está guardada', async () => {
+      montar({}, normalizada('interior'))
+
+      expect(
+        within(await screen.findByRole('listitem', { name: 'Ropa interior' })).getByRole('img'),
+      ).toBeInTheDocument()
     })
   })
 

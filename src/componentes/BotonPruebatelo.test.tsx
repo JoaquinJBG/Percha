@@ -42,6 +42,8 @@ function montar({
 }: Opciones = {}) {
   const copiar = vi.fn(() => Promise.resolve(copiado))
   const leerFotoCuerpo = vi.fn(() => Promise.resolve(fotoCuerpo))
+  // Hay foto en ropa interior en el móvil: con Gemini nunca se usa (D21).
+  const leerFotoInterior = vi.fn(() => Promise.resolve(new Blob(['ropa-interior'])))
   const prendas = [nuevaPrenda({ subcategoria: 'camiseta' })].map((p, i) => ({
     ...p,
     id: String(i),
@@ -56,6 +58,8 @@ function montar({
             prendas={prendas}
             numero={2}
             leerFotoCuerpo={leerFotoCuerpo}
+            leerFotoInterior={leerFotoInterior}
+            leerProbador={sinProbador}
             preparar={preparar}
             copiar={copiar}
             compartidor={compartidor}
@@ -68,10 +72,20 @@ function montar({
     { initialEntries: ['/outfits'] },
   )
   render(<RouterProvider router={router} />)
-  return { usuario: userEvent.setup(), router, copiar, preparar, leerFotoCuerpo, prendas }
+  return {
+    usuario: userEvent.setup(),
+    router,
+    copiar,
+    preparar,
+    leerFotoCuerpo,
+    leerFotoInterior,
+    prendas,
+  }
 }
 
-const boton = () => screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 2' })
+const sinProbador = () => Promise.resolve(null)
+
+const boton = () => screen.getByRole('button', { name: 'Pruébatelo: outfit 2' })
 
 let urls: ReturnType<typeof simularUrlsDeBlob>
 
@@ -108,6 +122,25 @@ describe('BotonPruebatelo', () => {
     expect(pasos).toEqual(['copiar', 'share'])
   })
 
+  it('con Gemini usa siempre la foto de referencia, nunca la de ropa interior (D21)', async () => {
+    const { usuario, preparar, leerFotoInterior } = montar()
+
+    await usuario.click(boton())
+
+    expect(await screen.findByText(INSTRUCCION)).toBeInTheDocument()
+    expect(preparar).toHaveBeenCalledWith(foto, expect.any(Array))
+    expect(leerFotoInterior).not.toHaveBeenCalled()
+  })
+
+  it('con solo la foto en ropa interior, Gemini no la usa y pide la de referencia', async () => {
+    const { usuario, preparar } = montar({ fotoCuerpo: null })
+
+    await usuario.click(boton())
+
+    expect(await screen.findByText(/necesitas una foto tuya de cuerpo entero/)).toBeInTheDocument()
+    expect(preparar).not.toHaveBeenCalled()
+  })
+
   it('avisa de la privacidad solo la primera vez', async () => {
     const privacidad = privacidadEnMemoria()
     const { usuario, preparar } = montar({ privacidad })
@@ -133,7 +166,7 @@ describe('BotonPruebatelo', () => {
 
     await usuario.click(boton())
 
-    expect(await screen.findByText(/necesita una foto tuya de cuerpo entero/)).toBeInTheDocument()
+    expect(await screen.findByText(/necesitas una foto tuya de cuerpo entero/)).toBeInTheDocument()
     expect(preparar).not.toHaveBeenCalled()
     expect(copiar).not.toHaveBeenCalled()
     expect(share).not.toHaveBeenCalled()
@@ -211,6 +244,7 @@ describe('BotonPruebatelo', () => {
     const usuario = userEvent.setup()
     const copiar = () => Promise.resolve(true)
     const comun = {
+      leerProbador: sinProbador,
       prendas: [{ ...nuevaPrenda(), id: '1', creadaEn: 0 }],
       leerFotoCuerpo: () => Promise.resolve(null),
       copiar,
@@ -229,14 +263,14 @@ describe('BotonPruebatelo', () => {
     ])
     render(<RouterProvider router={router} />)
 
-    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 1' }))
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo: outfit 1' }))
     expect(await screen.findAllByRole('group')).toHaveLength(1)
-    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo en Gemini: outfit 2' }))
+    await usuario.click(screen.getByRole('button', { name: 'Pruébatelo: outfit 2' }))
 
     await waitFor(() => {
       expect(screen.getAllByRole('group')).toHaveLength(1)
     })
-    expect(screen.getByRole('group')).toHaveAccessibleName('Pruébatelo en Gemini: outfit 2')
+    expect(screen.getByRole('group')).toHaveAccessibleName('Pruébatelo: outfit 2')
   })
 
   it('si no se puede preparar la imagen, lo dice', async () => {

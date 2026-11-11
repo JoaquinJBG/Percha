@@ -16,9 +16,11 @@ import { imagen, nuevaPrenda, sinBlobs, vaciarBase } from './pruebas.ts'
 import {
   crearPrenda,
   guardarAjustes,
+  guardarFotoInterior,
   guardarOutfit,
   guardarPerfil,
   leerAjustes,
+  leerFotoInterior,
   leerPerfil,
   leerPrenda,
   listarOutfits,
@@ -111,6 +113,30 @@ describe('exportar e importar', () => {
     expect(await sinBlobs(await leerPrenda(conEtiqueta.id))).toEqual(await sinBlobs(conEtiqueta))
   })
 
+  it('el corte y los detalles van y vuelven; las prendas de antes no los tienen', async () => {
+    const { camiseta } = await sembrar()
+    const vaquero = await crearPrenda(
+      nuevaPrenda({
+        categoria: 'inferior',
+        subcategoria: 'vaquero',
+        corte: 'balloon',
+        tiro: 'alto',
+        largo: 'tobillero',
+      }),
+    )
+    const copia = await exportarCopia()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await leerPrenda(vaquero.id)).toMatchObject({
+      corte: 'balloon',
+      tiro: 'alto',
+      largo: 'tobillero',
+    })
+    expect((await leerPrenda(camiseta.id))?.corte).toBeUndefined()
+  })
+
   it('las capas van y vuelven', async () => {
     const sobrecamisa = await crearPrenda(
       nuevaPrenda({ categoria: 'abrigo', subcategoria: 'sobrecamisa', capas: ['exterior'] }),
@@ -152,6 +178,50 @@ describe('exportar e importar', () => {
     const leida = await leerPrenda(camiseta.id)
     expect(leida?.marca).toBeUndefined()
     expect(leida?.subcategoria).toBe('camiseta')
+  })
+
+  it('la foto del probador va con su outfit en la copia y vuelve', async () => {
+    const { camiseta } = await sembrar()
+    const prueba = imagen(7, 'image/jpeg')
+    const conPrueba = await guardarOutfit({
+      prendas: [camiseta.id],
+      estilo: 'casual',
+      ocasion: 'diario',
+      tiempo: null,
+      explicacion: 'Probado en el PC.',
+      favorito: false,
+      prueba,
+    })
+    const antes = await sinBlobs(await listarOutfits())
+    const copia = await exportarCopia()
+    const ficheros = unzipSync(new Uint8Array(await copia.arrayBuffer()))
+    const json = JSON.parse(strFromU8(ficheros['percha.json'] ?? strToU8('{}'))) as {
+      outfits: { id: string; prueba?: { ruta: string } }[]
+    }
+    const ruta = json.outfits.find((o) => o.id === conPrueba.id)?.prueba?.ruta ?? ''
+    expect(ruta).toMatch(/^fotos\/\d+\.jpg$/)
+    expect(ficheros[ruta]).toBeDefined()
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await sinBlobs(await listarOutfits())).toEqual(antes)
+  })
+
+  it('una copia de antes de T7.1, sin foto del probador, se importa igual', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      for (const outfit of json.outfits as Record<string, unknown>[]) {
+        expect(outfit).not.toHaveProperty('prueba')
+      }
+    })
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    const [outfit] = await listarOutfits()
+    expect(outfit?.prueba).toBeUndefined()
+    expect(outfit?.explicacion).toBe('Para el día a día.')
   })
 
   it('reemplazar borra lo que no estaba en la copia', async () => {
@@ -234,6 +304,8 @@ describe('la clave de Gemini', () => {
     expect(await leerAjustes()).toEqual({
       claveGemini: 'otra-clave-falsa',
       modeloGemini: 'gemini-otro',
+      urlProbador: null,
+      claveProbador: null,
     })
   })
 
@@ -245,6 +317,58 @@ describe('la clave de Gemini', () => {
     await importarCopia(copia, 'reemplazar')
 
     expect((await leerAjustes()).claveGemini).toBeNull()
+  })
+})
+
+describe('la foto en ropa interior (D21)', () => {
+  /** Una foto con bytes que no salen en ninguna otra imagen sintética, para buscarla en el zip. */
+  const interior = () =>
+    new Blob([Uint8Array.from({ length: 64 }, (_, i) => (i * 7 + 201) % 256)], {
+      type: 'image/jpeg',
+    })
+
+  function contiene(fichero: Uint8Array, buscado: Uint8Array): boolean {
+    return fichero.some((_, i) => buscado.every((byte, j) => fichero[i + j] === byte))
+  }
+
+  it('no va en la copia, ni su foto ni su nombre', async () => {
+    await sembrar()
+    await guardarPerfil({ fotoCuerpo: imagen(8, 'image/jpeg') })
+    await guardarFotoInterior(interior())
+
+    const ficheros = unzipSync(new Uint8Array(await (await exportarCopia()).arrayBuffer()))
+    const bytes = new Uint8Array(await interior().arrayBuffer())
+
+    expect(strFromU8(ficheros['percha.json'] ?? new Uint8Array())).not.toMatch(/interior/i)
+    for (const fichero of Object.values(ficheros)) expect(contiene(fichero, bytes)).toBe(false)
+    // La de referencia sí va, como siempre.
+    expect((await leerPerfil()).fotoCuerpo).not.toBeNull()
+    expect(strFromU8(ficheros['percha.json'] ?? new Uint8Array())).toMatch(/"fotoCuerpo":\{/)
+  })
+
+  it('importar nunca la trae, aunque la copia la meta a mano', async () => {
+    await sembrar()
+    const copia = await retocar(await exportarCopia(), (json) => {
+      const perfil = json.perfil as Record<string, unknown>
+      perfil.fotoInterior = { ruta: 'fotos/1.jpg', tipo: 'image/jpeg' }
+      json.privado = { fotoInterior: { ruta: 'fotos/1.jpg', tipo: 'image/jpeg' } }
+    })
+
+    await vaciarBase()
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await leerFotoInterior()).toBeNull()
+    expect(Object.keys(await leerPerfil())).not.toContain('fotoInterior')
+  })
+
+  it('importar no borra la que ya hay en el móvil, ni al reemplazar', async () => {
+    await sembrar()
+    const copia = await exportarCopia()
+    await guardarFotoInterior(interior())
+
+    await importarCopia(copia, 'reemplazar')
+
+    expect(await sinBlobs(await leerFotoInterior())).toEqual(await sinBlobs(interior()))
   })
 })
 

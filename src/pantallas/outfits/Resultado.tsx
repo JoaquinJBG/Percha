@@ -11,6 +11,8 @@ export interface AccionesResultado {
   componer: (outfits: OutfitCollage[]) => Promise<Blob>
   guardar: (outfit: NuevoOutfit) => Promise<Outfit>
   marcar: (id: string, favorito: boolean) => Promise<void>
+  /** Guarda con un outfit ya guardado la foto del probador del PC (T7.1). */
+  guardarPrueba: (id: string, prueba: Blob) => Promise<void>
   compartidor: Compartidor
 }
 
@@ -60,6 +62,7 @@ export function Resultado({
   componer,
   guardar,
   marcar,
+  guardarPrueba,
   compartidor,
   alOcupar,
 }: Props) {
@@ -92,17 +95,20 @@ export function Resultado({
     }
   }, [componer, outfits])
 
-  async function ocupar(tarea: () => Promise<void>, error: string) {
-    if (enCurso.current) return
+  /** `true` si la tarea se hizo; `false` si falló o había otra en marcha. */
+  async function ocupar(tarea: () => Promise<void>, error: string): Promise<boolean> {
+    if (enCurso.current) return false
     enCurso.current = true
     setOcupado(true)
     alOcupar?.(true)
     setMensaje(null)
     try {
       await tarea()
+      return true
     } catch (fallo) {
       console.error(fallo)
       setMensaje(error)
+      return false
     } finally {
       enCurso.current = false
       setOcupado(false)
@@ -124,9 +130,22 @@ export function Resultado({
     }, 'No se han podido guardar. Prueba otra vez.')
   }
 
+  /** La foto del probador va con el outfit: si aún no estaba guardado, se guarda con ella. */
+  function guardarConPrueba(i: number, prueba: Blob) {
+    const outfit = outfits[i]
+    if (!outfit) return Promise.resolve(false)
+    return ocupar(async () => {
+      const guardado = guardados[i]
+      const actualizado = guardado
+        ? await guardarPrueba(guardado.id, prueba).then(() => ({ ...guardado, prueba }))
+        : await guardar({ ...aNuevoOutfit(outfit, contexto, false), prueba })
+      setGuardados((antes) => Object.assign([...antes], { [i]: actualizado }))
+    }, 'No se ha podido guardar la prueba. Prueba otra vez.')
+  }
+
   function cambiarFavorito(i: number) {
     const outfit = outfits[i]
-    if (!outfit) return Promise.resolve()
+    if (!outfit) return Promise.resolve(false)
     return ocupar(async () => {
       const guardado = guardados[i]
       const actualizado = guardado
@@ -212,7 +231,11 @@ export function Resultado({
               </div>
               {/* Los botones van debajo: a su lado, el texto quedaba en una columna de una palabra por línea. */}
               <div className="flex items-center justify-end gap-2">
-                <BotonPruebatelo prendas={outfit.prendas} numero={i + 1} />
+                <BotonPruebatelo
+                  prendas={outfit.prendas}
+                  numero={i + 1}
+                  alGuardarPrueba={(prueba) => guardarConPrueba(i, prueba)}
+                />
                 <button
                   type="button"
                   onClick={() => void cambiarFavorito(i)}

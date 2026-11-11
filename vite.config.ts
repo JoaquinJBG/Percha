@@ -76,5 +76,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     exclude: [...configDefaults.exclude, 'spikes/**'],
+    // Con 800+ tests de jsdom en paralelo, los formularios que escriben con userEvent pasaban de 5 s y
+    // arrastraban a otros: menos procesos y más margen.
+    maxWorkers: '50%',
+    testTimeout: 15_000,
   },
 })

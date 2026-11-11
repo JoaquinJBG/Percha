@@ -49,6 +49,37 @@ export const OCASIONES = [
 
 export const TEMPORADAS = ['primavera', 'verano', 'otoño', 'invierno'] as const
 
+/** Corte y detalles por tipo (T8.1, D20). Qué lista vale para cada prenda lo dice `src/datos/detalles.ts`. */
+export const CORTES_PANTALON = [
+  'skinny',
+  'slim',
+  'regular / recto',
+  'relaxed',
+  'baggy',
+  'wide leg',
+  'balloon',
+  'bootcut',
+  'flare',
+  'tapered',
+  'cargo',
+] as const
+export const CORTES_CAMISETA = ['slim', 'regular', 'relaxed', 'oversize', 'boxy'] as const
+export const CORTES_CAMISA = ['slim', 'regular', 'relaxed', 'oversize', 'overshirt'] as const
+export const CORTES_ABRIGO = ['entallado', 'recto', 'oversize', 'boxy', 'cropped'] as const
+export const TIROS = ['bajo', 'medio', 'alto'] as const
+export const LARGOS_PANTALON = ['completo', 'tobillero', 'cropped'] as const
+export const LARGOS_CAMISETA = ['cropped', 'regular', 'largo'] as const
+export const LARGOS_ABRIGO = ['corto', 'cadera', 'medio muslo', 'largo'] as const
+export const MANGAS = ['corta', 'larga', 'sin manga'] as const
+export const CUELLOS = ['clásico', 'mao', 'cubano'] as const
+
+function union<T extends string>(...listas: (readonly T[])[]): [T, ...T[]] {
+  return [...new Set(listas.flat())] as [T, ...T[]]
+}
+
+export const CORTES = union(CORTES_PANTALON, CORTES_CAMISETA, CORTES_CAMISA, CORTES_ABRIGO)
+export const LARGOS = union(LARGOS_PANTALON, LARGOS_CAMISETA, LARGOS_ABRIGO)
+
 /** Papeles que puede hacer una prenda de arriba en un outfit con capas, de dentro afuera (D18). */
 export const CAPAS = ['base', 'media', 'exterior'] as const
 
@@ -60,6 +91,11 @@ export const ocasionSchema = z.enum(OCASIONES)
 export const temporadaSchema = z.enum(TEMPORADAS)
 export const nivelSchema = z.int().min(1).max(5)
 export const capaSchema = z.enum(CAPAS)
+export const corteSchema = z.enum(CORTES)
+export const tiroSchema = z.enum(TIROS)
+export const largoSchema = z.enum(LARGOS)
+export const mangaSchema = z.enum(MANGAS)
+export const cuelloSchema = z.enum(CUELLOS)
 
 /** Sin repetidos y siempre de dentro afuera, para que comparar y pintar sea estable. */
 export const capasSchema = z
@@ -129,6 +165,12 @@ export const camposPrendaSchema = z.object({
   notas: z.string(),
   // Opcional: las prendas y copias de antes no lo tienen; se deduce con `capasDe` (src/datos/capas.ts).
   capas: capasSchema.optional(),
+  // Opcionales (T8.1): solo los que aplican al tipo de prenda (`detallesQueAplican`).
+  corte: corteSchema.optional(),
+  tiro: tiroSchema.optional(),
+  largo: largoSchema.optional(),
+  manga: mangaSchema.optional(),
+  cuello: cuelloSchema.optional(),
   etiquetadaPor: z.enum(['ia', 'manual']),
   creadaEn: z.number().int().nonnegative(),
 })
@@ -154,13 +196,80 @@ export const outfitSchema = z.object({
   explicacion: z.string(),
   favorito: z.boolean(),
   creadoEn: z.number().int().nonnegative(),
+  /** La foto del probador del PC con este outfit puesto (T7.1, D19). Los de antes no la tienen. */
+  prueba: blobSchema.optional(),
 })
+
+export const COMPLEXIONES = ['atlética', 'grande', 'delgada', 'media'] as const
+export const TIPOS_TALLA = ['parte de arriba', 'pantalón', 'calzado'] as const
+export const TIPOS_OFICINA = ['conservadora', 'estándar', 'creativa'] as const
+export const SENSACIONES_TERMICAS = ['caluroso', 'normal', 'friolero'] as const
+
+/** Medidas del cuerpo que admite el perfil, con su unidad y el rango que se acepta. */
+export const MEDIDAS = {
+  altura: { unidad: 'cm', min: 100, max: 230 },
+  peso: { unidad: 'kg', min: 30, max: 250 },
+  pecho: { unidad: 'cm', min: 50, max: 200 },
+  cintura: { unidad: 'cm', min: 40, max: 200 },
+  cadera: { unidad: 'cm', min: 50, max: 200 },
+  largoPierna: { unidad: 'cm', min: 40, max: 120 },
+} as const
+export type Medida = keyof typeof MEDIDAS
+
+const medidaSchema = (medida: Medida) => {
+  const { unidad, min, max } = MEDIDAS[medida]
+  return z
+    .number()
+    .min(min, `Entre ${String(min)} y ${String(max)} ${unidad}.`)
+    .max(max, `Entre ${String(min)} y ${String(max)} ${unidad}.`)
+    .optional()
+}
+
+/**
+ * El cuerpo del usuario (T8.2). Todo es opcional: los perfiles y las copias de antes no lo tienen. Son
+ * datos personales que se quedan en el móvil; T8.4 decide qué parte va al prompt.
+ */
+export const cuerpoSchema = z.object({
+  altura: medidaSchema('altura'),
+  peso: medidaSchema('peso'),
+  pecho: medidaSchema('pecho'),
+  cintura: medidaSchema('cintura'),
+  cadera: medidaSchema('cadera'),
+  largoPierna: medidaSchema('largoPierna'),
+  complexion: z.enum(COMPLEXIONES).optional(),
+  /** Una línea libre: «hombros anchos, muslo grande». */
+  notas: z.string().trim().max(120).optional(),
+})
+
+export const MAX_TALLAS = 30
+
+/** La talla que usa en una marca para un tipo de prenda: «Zara · pantalón · 44». */
+export const tallaMarcaSchema = z.object({
+  marca: z.string().trim().min(1).max(40),
+  tipo: z.enum(TIPOS_TALLA),
+  talla: z.string().trim().min(1).max(20),
+})
+
+export const oficinaSchema = z.object({
+  tipo: z.enum(TIPOS_OFICINA),
+  viernesCasual: z.boolean(),
+})
+
+/**
+ * Lo que nunca sale del móvil (D21): la foto en ropa interior para el probador del PC. Va en su propia
+ * tabla y no en el perfil, para que ni la copia ni Gemini, que leen el perfil, puedan llevársela.
+ */
+export const privadoSchema = z.object({ fotoInterior: blobSchema.nullable() })
 
 export const perfilSchema = z.object({
   fotoCara: blobSchema.nullable(),
   fotoCuerpo: blobSchema.nullable(),
   ciudad: z.string().trim(),
   estilosFavoritos: z.array(estiloSchema),
+  cuerpo: cuerpoSchema.optional(),
+  tallas: z.array(tallaMarcaSchema).max(MAX_TALLAS).optional(),
+  oficina: oficinaSchema.optional(),
+  sensacionTermica: z.enum(SENSACIONES_TERMICAS).optional(),
 })
 
 export const ajustesSchema = z.object({
@@ -170,6 +279,19 @@ export const ajustesSchema = z.object({
     .nullable()
     .transform((clave) => (clave === '' ? null : clave)),
   modeloGemini: z.string().trim().min(1),
+  // Probador del PC (D19). Con `default` para que los ajustes guardados antes de T7.1 sigan valiendo.
+  urlProbador: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((url) => (url === '' ? null : url)),
+  claveProbador: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((clave) => (clave === '' ? null : clave)),
 })
 
 export type Categoria = z.infer<typeof categoriaSchema>
@@ -177,10 +299,23 @@ export type Estilo = z.infer<typeof estiloSchema>
 export type Ocasion = z.infer<typeof ocasionSchema>
 export type Temporada = z.infer<typeof temporadaSchema>
 export type Capa = z.infer<typeof capaSchema>
+export type Corte = z.infer<typeof corteSchema>
+export type Tiro = z.infer<typeof tiroSchema>
+export type Largo = z.infer<typeof largoSchema>
+export type Manga = z.infer<typeof mangaSchema>
+export type Cuello = z.infer<typeof cuelloSchema>
 export type FotoPrenda = z.infer<typeof fotoPrendaSchema>
 export type Prenda = z.infer<typeof prendaSchema>
 export type Outfit = z.infer<typeof outfitSchema>
 export type Perfil = z.infer<typeof perfilSchema>
+export type Privado = z.infer<typeof privadoSchema>
+export type Cuerpo = z.infer<typeof cuerpoSchema>
+export type Complexion = (typeof COMPLEXIONES)[number]
+export type TallaMarca = z.infer<typeof tallaMarcaSchema>
+export type TipoTalla = (typeof TIPOS_TALLA)[number]
+export type Oficina = z.infer<typeof oficinaSchema>
+export type TipoOficina = (typeof TIPOS_OFICINA)[number]
+export type SensacionTermica = (typeof SENSACIONES_TERMICAS)[number]
 export type Ajustes = z.infer<typeof ajustesSchema>
 export type Componente = z.infer<typeof componenteSchema>
 export type DatosEtiqueta = z.infer<typeof datosEtiquetaSchema>
@@ -197,9 +332,13 @@ export const PERFIL_VACIO: Perfil = {
   estilosFavoritos: [],
 }
 
+export const PRIVADO_VACIO: Privado = { fotoInterior: null }
+
 export const AJUSTES_POR_DEFECTO: Ajustes = {
   claveGemini: null,
   modeloGemini: MODELO_GEMINI_POR_DEFECTO,
+  urlProbador: null,
+  claveProbador: null,
 }
 
 /** Colores y estampados que proponen la IA y el formulario. El modelo admite cualquier texto. */
@@ -255,6 +394,11 @@ export const etiquetasPrendaSchema = camposPrendaSchema.pick({
   temporadas: true,
   notas: true,
   capas: true,
+  corte: true,
+  tiro: true,
+  largo: true,
+  manga: true,
+  cuello: true,
   marca: true,
   referencia: true,
   talla: true,

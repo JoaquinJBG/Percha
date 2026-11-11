@@ -122,10 +122,10 @@ describe('textos', () => {
     if (!ajuste) throw new Error('falta el ajuste')
 
     expect(textoAjuste(ajuste, { mejor: '46', alternativa: '44' })).toBe(
-      'Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm). Mejor la 46.',
+      'Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm). Mejor la 46.',
     )
     expect(textoAjuste(ajuste, { mejor: '44', alternativa: '46' })).toBe(
-      'Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm).',
+      'Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm).',
     )
   })
 
@@ -154,6 +154,6 @@ describe('textos', () => {
     const ajuste = ajusteDeTalla(tabla(), '46', { cintura: 87.5 })
     if (!ajuste) throw new Error('falta el ajuste')
 
-    expect(textoAjuste(ajuste, null)).toBe('Con la 46: te quedará holgada de cintura (+2,5 cm).')
+    expect(textoAjuste(ajuste, null)).toBe('Con la 46: te quedará holgada de cintura (+2,5 cm).')
   })
 })

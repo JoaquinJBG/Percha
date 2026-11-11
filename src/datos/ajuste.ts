@@ -169,8 +169,11 @@ const NOMBRE_CUERPO: Record<MedidaAjuste, string> = {
 
 const cm = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 })
 
+// Espacio sin salto de línea: «−2 cm» no se parte en dos renglones.
+const ESPACIO_FIJO = String.fromCharCode(0xa0)
+
 function conSigno(diferencia: number): string {
-  return `${diferencia < 0 ? '−' : '+'}${cm.format(Math.abs(diferencia))} cm`
+  return `${diferencia < 0 ? '−' : '+'}${cm.format(Math.abs(diferencia))}${ESPACIO_FIJO}cm`
 }
 
 function enumerar(partes: string[]): string {

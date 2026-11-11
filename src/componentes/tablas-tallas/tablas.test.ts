@@ -23,7 +23,7 @@ describe('línea de tallas de un outfit', () => {
       { cintura: 88, largoPierna: 80 },
     )
 
-    expect(linea).toBe('Vaquero 44: justa de cintura (−2 cm) y larga de pierna (+4 cm)')
+    expect(linea).toBe('Vaquero 44: justa de cintura (−2 cm) y larga de pierna (+4 cm)')
   })
 
   it('sin tablas, sin talla o sin medidas, null', () => {

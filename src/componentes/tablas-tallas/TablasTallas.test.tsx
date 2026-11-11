@@ -45,7 +45,12 @@ function montar(
   {
     de,
     proveedor = crearProveedorFalso(),
-  }: { de?: { marca: string; tipo: TipoTalla }; proveedor?: ProveedorIA | null } = {},
+    extra = {},
+  }: {
+    de?: { marca: string; tipo: TipoTalla }
+    proveedor?: ProveedorIA | null
+    extra?: Partial<Parameters<typeof TablasTallas>[0]>
+  } = {},
 ) {
   render(
     <MemoryRouter>
@@ -53,6 +58,8 @@ function montar(
         {...repo}
         {...(de && { de })}
         obtenerProveedor={() => Promise.resolve(proveedor)}
+        leerCuerpo={() => Promise.resolve(undefined)}
+        {...extra}
       />
     </MemoryRouter>,
   )
@@ -65,6 +72,71 @@ async function subirCaptura(usuario: ReturnType<typeof userEvent.setup>) {
     new File(['png'], 'guia.png', { type: 'image/png' }),
   )
 }
+
+describe('cómo te queda la talla (T10.2)', () => {
+  it('en el detalle: la frase con la talla de la prenda y la mejor', async () => {
+    montar(repositorio([pantalonZara]), {
+      de: { marca: 'Zara', tipo: 'pantalón' },
+      extra: {
+        prenda: { talla: '40' },
+        leerCuerpo: () => Promise.resolve({ cintura: 82, cadera: 100 }),
+      },
+    })
+
+    expect(
+      await screen.findByText(
+        'Con la 40: te quedará justa de cintura (−4 cm) y justa de cadera (−4 cm). Mejor la 42.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('en el detalle sin medidas: dice cuáles faltan y enlaza a Perfil', async () => {
+    montar(repositorio([pantalonZara]), {
+      de: { marca: 'Zara', tipo: 'pantalón' },
+      extra: { prenda: { talla: '40' }, leerCuerpo: () => Promise.resolve({ cintura: 78 }) },
+    })
+
+    expect(
+      await screen.findByText(/Apunta tu cadera en Perfil para saber cómo te queda/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ir a Perfil' })).toHaveAttribute('href', '/perfil')
+    expect(screen.getByText('Con la 40: te quedará bien de cintura.')).toBeInTheDocument()
+  })
+
+  it('en el detalle con una talla que no está en la tabla, lo dice y recomienda', async () => {
+    montar(repositorio([pantalonZara]), {
+      de: { marca: 'Zara', tipo: 'pantalón' },
+      extra: {
+        prenda: { talla: '48' },
+        leerCuerpo: () => Promise.resolve({ cintura: 82, cadera: 100 }),
+      },
+    })
+
+    expect(await screen.findByText('La talla 48 no está en la tabla.')).toBeInTheDocument()
+    expect(screen.getByText('Según la tabla, tu talla es la 42 (o la 40).')).toBeInTheDocument()
+  })
+
+  it('en Perfil: la talla de cada tabla con tus medidas, sin enlace a Perfil', async () => {
+    const leerCuerpo = vi.fn(() => Promise.resolve(undefined))
+    montar(repositorio([pantalonZara]), {
+      extra: { cuerpo: { cintura: 82, cadera: 100 }, leerCuerpo },
+    })
+
+    expect(
+      await screen.findByText('Según la tabla, tu talla es la 42 (o la 40).'),
+    ).toBeInTheDocument()
+    expect(leerCuerpo).not.toHaveBeenCalled()
+  })
+
+  it('en Perfil sin medidas: dice que las apuntes en «Tu cuerpo»', async () => {
+    montar(repositorio([pantalonZara]), { extra: { cuerpo: null } })
+
+    expect(
+      await screen.findByText(/Apunta tu cintura y tu cadera en «Tu cuerpo»/),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ir a Perfil' })).not.toBeInTheDocument()
+  })
+})
 
 describe('tablas de tallas', () => {
   it('desde una captura: la IA la lee, se revisa y se guarda', async () => {

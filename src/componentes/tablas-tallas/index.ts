@@ -1,2 +1,2 @@
 export { TablasTallas } from './TablasTallas.tsx'
-export { tipoTallaDe } from './tablas.ts'
+export { lineaAjusteOutfit, tipoTallaDe, type PrendaConTalla } from './tablas.ts'

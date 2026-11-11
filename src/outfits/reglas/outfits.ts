@@ -4,6 +4,7 @@ import { crearAzar } from './azar.ts'
 import { candidatos } from './candidatos.ts'
 import { LIMITE_EXTERIOR } from './clima.ts'
 import { armonia } from './colores.ts'
+import { puntuarConjunto } from './cuerpo.ts'
 import { afinidad } from './estilos.ts'
 import { nombreFormalidad } from './ocasiones.ts'
 import {
@@ -37,6 +38,8 @@ const YA_USADA = 1.5
 const MAX_BASE_POR_CATEGORIA = 40
 /** Y solo las mejores medias y exteriores entran en las capas de cada outfit. */
 const MAX_CAPA = 12
+/** Cuántas exteriores se prueban para la silueta de cada pareja de base y parte de abajo. */
+const MAX_EXTERIORES_SILUETA = 4
 /** Y además, siempre, los mejores abrigos de verdad. */
 const MAX_ABRIGOS = 4
 
@@ -102,7 +105,7 @@ function motivo(
   todas: readonly PrendaReglas[],
   consejo: string | null,
 ): string {
-  const { temperatura, precipitacion } = contexto
+  const { temperatura, temperaturaVestir: vestir, precipitacion } = contexto
   const partes: string[] = []
   const grados = temperatura === null ? '' : `${String(temperatura)} °C`
   const yPrecipitacion = precipitacion ? ` y ${precipitacion}` : ''
@@ -110,19 +113,21 @@ function motivo(
   const nombre = (p: PrendaReglas) => p.subcategoria.trim().toLocaleLowerCase('es') || 'otra capa'
   // «abrigo» solo si lo es; si no, su nombre: «sobrecamisa por la lluvia».
   const fuera = pila.exterior && (abrigaDeVerdad(pila.exterior) ? 'abrigo' : nombre(pila.exterior))
-  if (fuera && temperatura !== null && temperatura < LIMITE_EXTERIOR) {
+  if (fuera && vestir !== null && vestir < LIMITE_EXTERIOR) {
     partes.push(`${fuera} por ${grados}${yPrecipitacion}`)
   } else if (fuera && precipitacion) {
     partes.push(`${fuera} por la ${precipitacion}`)
   } else if (contexto.necesitaAbrigo) {
-    const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
+    const frio = vestir !== null && vestir < LIMITE_EXTERIOR
     partes.push(`sin abrigo para ${frio ? grados : `la ${precipitacion ?? 'lluvia'}`}`)
   } else if (encima) {
     partes.push(
       temperatura === null ? `con ${nombre(encima)}` : `con ${nombre(encima)} para ${grados}`,
     )
   } else if (temperatura !== null) {
-    partes.push(`${temperatura >= 24 ? 'ligero por' : 'para'} ${grados}${yPrecipitacion}`)
+    partes.push(
+      `${(vestir ?? temperatura) >= 24 ? 'ligero por' : 'para'} ${grados}${yPrecipitacion}`,
+    )
   }
 
   const base = todas.filter((p) => ['superior', 'inferior', 'vestido'].includes(p.categoria))
@@ -179,12 +184,26 @@ export function cuatroOutfits<P extends PrendaReglas>(
   const recursos = recursosDe([...medias, ...exteriores])
   const exteriorObligatoria = contexto.necesitaAbrigo && exteriores.length > 0
 
+  /**
+   * La silueta (y el cuerpo) ya cuentan al elegir la base y la parte de abajo, no solo las capas. Con la
+   * exterior obligatoria, con la mejor de las primeras exteriores: si todas son amplias, un pantalón
+   * amplio acabará en «todo amplio».
+   */
+  const silueta = ([base, inferior]: NoVacia<Candidato<P>>) => {
+    const abajo = inferior?.prenda ?? null
+    if (!exteriorObligatoria) return puntuarConjunto([base.prenda], abajo, contexto).puntos
+    return Math.max(
+      ...exteriores
+        .slice(0, MAX_EXTERIORES_SILUETA)
+        .map((e) => puntuarConjunto([base.prenda, e.prenda], abajo, contexto).puntos),
+    )
+  }
   const combinaciones: { piezas: NoVacia<Candidato<P>>; clave: string; nota: number }[] = []
   const anadir = (piezas: NoVacia<Candidato<P>>) => {
     combinaciones.push({
       piezas,
       clave: piezas.map((c) => c.prenda.id).join('+'),
-      nota: nota(piezas) + azar() * VARIEDAD,
+      nota: nota(piezas) + silueta(piezas) + azar() * VARIEDAD,
     })
   }
   const abajo = inferiores.slice(0, MAX_BASE_POR_CATEGORIA)
@@ -214,7 +233,7 @@ export function cuatroOutfits<P extends PrendaReglas>(
       for (const e of exterioresLibres) {
         opciones.push({ medias: [], exterior: e })
         for (const m of mediasLibres) if (m !== e) opciones.push({ medias: [m], exterior: e })
-        if (contexto.temperatura !== null && contexto.temperatura <= 3) {
+        if (contexto.temperaturaVestir !== null && contexto.temperaturaVestir <= 3) {
           for (const [i, m1] of mediasLibres.entries()) {
             for (const m2 of mediasLibres.slice(i + 1)) {
               if (m1 === e || m2 === e) continue

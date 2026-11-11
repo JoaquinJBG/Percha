@@ -102,6 +102,7 @@ describe('elegir outfits con IA', () => {
     expect(enviada?.semilla).toBe(3)
     expect(enviada?.tiempo).toEqual({
       temperatura: 8,
+      temperaturaVestir: 8,
       precipitacion: null,
       temporada: 'otoño',
       exterior: 'obligatoria',

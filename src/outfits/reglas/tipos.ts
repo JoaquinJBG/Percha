@@ -1,5 +1,6 @@
 import type { Capa, Estilo, Ocasion, Prenda, Temporada } from '../../datos/modelo.ts'
 import type { Precipitacion, TiempoHoy } from '../../tiempo/tipos.ts'
+import type { PerfilReglas, TipoCuerpo } from './perfil.ts'
 
 /** Lo que miran las reglas de una prenda: todo menos las fotos y los datos de alta. */
 export type PrendaReglas = Pick<
@@ -16,6 +17,11 @@ export type PrendaReglas = Pick<
   | 'temporadas'
   | 'notas'
   | 'capas'
+  | 'corte'
+  | 'tiro'
+  | 'largo'
+  | 'manga'
+  | 'cuello'
 >
 
 export interface Peticion<P extends PrendaReglas = PrendaReglas> {
@@ -26,18 +32,27 @@ export interface Peticion<P extends PrendaReglas = PrendaReglas> {
   tiempo: TiempoHoy | null
   /** Fecha `AAAA-MM-DD` para la temporada cuando no hay tiempo (si lo hay, manda `tiempo.fecha`). */
   fecha?: string
+  /** El cuerpo, la oficina y la sensación térmica del perfil, si los tiene (T8.4). */
+  perfil?: PerfilReglas
 }
 
 export interface Contexto {
   /** Sensación térmica media del día en °C, redondeada; `null` sin tiempo. */
   temperatura: number | null
+  /**
+   * La que se usa para decidir la ropa: `temperatura` más el ajuste del perfil (+2 °C si es caluroso,
+   * −2 °C si es friolero). Los textos siguen hablando de `temperatura`.
+   */
+  temperaturaVestir: number | null
+  /** Si se aplican las reglas de cuerpo (B1–B11) y cuáles; `null` sin cuerpo en el perfil. */
+  cuerpo: TipoCuerpo | null
   precipitacion: Precipitacion | null
   /** Hace falta capa exterior: sensación media por debajo de 14 °C, o lluvia o nieve sin calor. */
   necesitaAbrigo: boolean
   /** Entre 14 y 23 °C (o sin tiempo): una media o una exterior ligera es opcional. */
   terceraPieza: boolean
   temporada: Temporada | null
-  /** Rango de formalidad (1–5) que pide la ocasión. */
+  /** Rango de formalidad (1–5) que pide la ocasión (en «trabajo», según la oficina del perfil). */
   formalidad: { minima: number; maxima: number }
   estilo: Estilo
   ocasion: Ocasion

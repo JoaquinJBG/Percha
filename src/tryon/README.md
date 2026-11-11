@@ -24,3 +24,8 @@ de compartir con **solo** la imagen. Sin Web Share con ficheros ofrece «Descarg
 Si `share()` da `NotAllowedError` (el toque ya no cuenta como gesto porque preparar tardó), pide otro
 toque en «Compartir». La primera vez el aviso dice que la foto solo sale del móvil al elegir a dónde
 compartirla (`localStorage`, `percha:tryon:privacidad-vista`).
+
+**Pendiente (T8.4 lo dejó sin tocar):** `describirPrenda` podría añadir el `corte` y el `largo` de T8.1
+(«vaqueros de color azul, corte recto, tobilleros»), que es lo que más cambia cómo cae la prenda en la
+foto. Lo mismo para el probador del PC (`src/probador/`). Del cuerpo, como mucho la altura y la
+complexión, nunca las medidas.

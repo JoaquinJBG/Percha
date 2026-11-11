@@ -43,6 +43,15 @@ export type PrendaParaOutfit = Pick<
   composicion?: Componente[]
   /** Capa media o exterior ligera que hoy puede ir o no («tercera pieza»). */
   opcional?: boolean
+} & Partial<Pick<EtiquetasPrenda, 'corte' | 'tiro' | 'largo' | 'manga' | 'cuello'>>
+
+/**
+ * Lo que va del perfil a Gemini (T8.4), ya en texto corto. El cuerpo, sin medidas: altura, complexión y
+ * una línea de notas sin cifras.
+ */
+export interface PerfilParaOutfits {
+  cuerpo?: string
+  oficina?: string
 }
 
 /**
@@ -55,6 +64,8 @@ export type ExteriorHoy = 'obligatoria' | 'opcional' | 'no'
 export interface TiempoParaOutfits {
   /** Sensación térmica media en °C; `null` si no se sabe. */
   temperatura: number | null
+  /** La que usan las reglas para vestir si el perfil es caluroso o friolero (±2 °C). */
+  temperaturaVestir?: number | null
   precipitacion: Precipitacion | null
   temporada: Temporada | null
   exterior: ExteriorHoy
@@ -66,7 +77,8 @@ export interface PeticionOutfits {
   estilo: Estilo
   ocasion: Ocasion
   tiempo: TiempoParaOutfits
-  // T6.5: aquí irán el perfil de cuerpo, el tipo de oficina y la sensación térmica del usuario.
+  /** Solo si el perfil lo tiene; la sensación térmica ya va dentro de `tiempo.exterior`. */
+  perfil?: PerfilParaOutfits
   /** Otra semilla, otra tanda. */
   semilla?: number
 }

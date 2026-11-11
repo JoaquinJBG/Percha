@@ -11,6 +11,7 @@ import {
   type PrendaABuscar,
   type ResultadoEtiquetado,
   type ResultadoFicha,
+  type LecturaTablaTallas,
 } from './tipos.ts'
 
 export const ETIQUETAS_DE_PRUEBA: EtiquetasPrenda = {
@@ -41,7 +42,22 @@ export const ETIQUETA_DE_PRUEBA: DatosEtiqueta = {
   ],
 }
 
+/** Una guía de pantalones de Zara con medidas del cuerpo. */
+export const TABLA_TALLAS_DE_PRUEBA: LecturaTablaTallas = {
+  marca: 'Zara',
+  tipo: 'pantalón',
+  medidaDe: 'cuerpo',
+  filas: [
+    { talla: '38', cintura: 74, cadera: 92, largoPierna: 80 },
+    { talla: '40', cintura: 78, cadera: 96, largoPierna: 81 },
+    { talla: '42', cintura: 82, cadera: 100, largoPierna: 82 },
+    { talla: '44', cintura: 86, cadera: 104, largoPierna: 83 },
+  ],
+}
+
 export interface OpcionesProveedorFalso {
+  /** Qué lee `leerTablaTallas`; por defecto, `TABLA_TALLAS_DE_PRUEBA`. */
+  tablaTallas?: (foto: Blob) => LecturaTablaTallas
   /** Qué encuentra `buscarFicha`; por defecto, `fichaDePrueba`. */
   ficha?: (prenda: PrendaABuscar) => ResultadoFicha
   /** Qué devuelve para cada prenda; por defecto, `ETIQUETAS_DE_PRUEBA`. */
@@ -64,6 +80,8 @@ export interface ProveedorFalso extends ProveedorIA {
   readonly comprobaciones: number
   /** Las prendas recibidas por `buscarFicha`, en orden. */
   readonly fichasBuscadas: PrendaABuscar[]
+  /** Las fotos recibidas por `leerTablaTallas`, en orden. */
+  readonly tablasLeidas: Blob[]
 }
 
 // Una camiseta dibujada: así la foto de catálogo se ve en `pnpm dev` sin pedir nada fuera.
@@ -139,8 +157,10 @@ export function crearProveedorFalso({
   outfits = outfitsDePrueba,
   etiqueta = () => ETIQUETA_DE_PRUEBA,
   ficha = fichaDePrueba,
+  tablaTallas = () => TABLA_TALLAS_DE_PRUEBA,
   error,
 }: OpcionesProveedorFalso = {}): ProveedorFalso {
+  const tablasLeidas: Blob[] = []
   const fichasBuscadas: PrendaABuscar[] = []
   const lotes: PrendaAEtiquetar[][] = []
   const etiquetasLeidas: Blob[] = []
@@ -151,6 +171,7 @@ export function crearProveedorFalso({
     peticionesOutfits,
     etiquetasLeidas,
     fichasBuscadas,
+    tablasLeidas,
     get comprobaciones() {
       return comprobaciones
     },
@@ -186,6 +207,10 @@ export function crearProveedorFalso({
     buscarFicha(prenda) {
       fichasBuscadas.push(prenda)
       return error ? Promise.reject(error) : Promise.resolve(ficha(prenda))
+    },
+    leerTablaTallas(foto) {
+      tablasLeidas.push(foto)
+      return error ? Promise.reject(error) : Promise.resolve(tablaTallas(foto))
     },
     comprobarClave() {
       comprobaciones++

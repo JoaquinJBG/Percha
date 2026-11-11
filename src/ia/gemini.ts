@@ -27,7 +27,10 @@ import {
   type ProveedorIA,
   type ResultadoEtiquetado,
   type ResultadoFicha,
+  type LecturaTablaTallas,
 } from './tipos.ts'
+import { esquemaTablaTallasParaGemini, leerRespuestaTablaTallas } from './esquema-tabla-tallas.ts'
+import { INSTRUCCION_TABLA_TALLAS } from './prompt-tabla-tallas.ts'
 import { leerCandidatas } from './esquema-ficha.ts'
 import { INSTRUCCION_FICHA, textoFicha } from './prompt-ficha.ts'
 
@@ -211,6 +214,31 @@ export function crearProveedorGemini({
         ms: Math.round(performance.now() - inicio),
         modelo: MODELO_BUSQUEDA,
       }
+    },
+
+    async leerTablaTallas(
+      foto: Blob,
+      { signal }: OpcionesPeticion = {},
+    ): Promise<LecturaTablaTallas> {
+      const texto = await llamar(async (cliente) => {
+        // Como la etiqueta: los números de la guía son pequeños.
+        const { datos, tipo } = await prepararFoto(foto, LADO_MAXIMO_ETIQUETA).catch(() => {
+          throw new ErrorIA('foto')
+        })
+        const respuesta = await cliente.generateContent({
+          model: modelo,
+          contents: [{ role: 'user', parts: [{ inlineData: { data: datos, mimeType: tipo } }] }],
+          config: {
+            systemInstruction: INSTRUCCION_TABLA_TALLAS,
+            responseMimeType: 'application/json',
+            responseJsonSchema: esquemaTablaTallasParaGemini(),
+            temperature: 0,
+            ...(signal && { abortSignal: signal }),
+          },
+        })
+        return respuesta.text ?? ''
+      })
+      return leerRespuestaTablaTallas(texto)
     },
 
     async comprobarClave({ signal }: OpcionesPeticion = {}): Promise<void> {

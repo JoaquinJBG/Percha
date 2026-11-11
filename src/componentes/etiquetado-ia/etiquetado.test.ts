@@ -75,6 +75,7 @@ describe('etiquetarUna', () => {
           elegirOutfits: () => Promise.resolve([]),
           leerEtiqueta: () => Promise.resolve({}),
           buscarFicha: () => Promise.reject(new Error('no se usa')),
+          leerTablaTallas: () => Promise.reject(new Error('no se usa')),
         }),
       [foto],
       control.signal,

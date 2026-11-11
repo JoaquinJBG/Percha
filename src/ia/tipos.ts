@@ -1,4 +1,5 @@
 import type {
+  DatosTablaTallas,
   Capa,
   Componente,
   DatosEtiqueta,
@@ -111,9 +112,17 @@ export interface ProveedorIA {
    * candidatas; `[]` si no encuentra nada. Lanza `ErrorIA` si no se puede (sin cupo, de pago…).
    */
   buscarFicha(prenda: PrendaABuscar, opciones?: OpcionesPeticion): Promise<ResultadoFicha>
+  /**
+   * Lee la captura o la foto de la guía de tallas de una tienda: tipo, si son medidas del cuerpo o de la
+   * prenda, y una fila por talla en cm (T10.1). Lanza `ErrorIA` si no lee ninguna fila.
+   */
+  leerTablaTallas(foto: Blob, opciones?: OpcionesPeticion): Promise<LecturaTablaTallas>
   /** Se resuelve si la clave y el modelo valen; si no, lanza `ErrorIA`. */
   comprobarClave(opciones?: OpcionesPeticion): Promise<void>
 }
+
+/** La tabla leída de una guía de tallas: la marca falta si no salía en la captura. */
+export type LecturaTablaTallas = Omit<DatosTablaTallas, 'marca'> & { marca?: string }
 
 /** Lo que se manda para buscar una prenda: la foto y lo que se sabe de ella. */
 export type PrendaABuscar = Pick<

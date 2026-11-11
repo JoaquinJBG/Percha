@@ -24,6 +24,12 @@ Base de datos local con Dexie (IndexedDB) y exportar/importar la copia del armar
   importa (tampoco la borra al reemplazar) y Gemini nunca la ve. `leerFotoInterior()` y
   `guardarFotoInterior(foto | null)` en `repositorio.ts`.
 - `cuerpo.ts`: `resumenCuerpo(perfil)`, el cuerpo en una línea corta para un prompt.
+- **Tablas de tallas (T10.1, D22):** `tablaTallasSchema` (una por marca y tipo, `id` =
+  `idTablaTallas(marca, tipo)`, filas con medidas en cm de `MEDIDAS_TALLA`; `MEDIDAS_POR_TIPO` dice cuáles
+  se piden para cada tipo). En el repositorio, `listarTablasTallas`, `leerTablaTallas(marca, tipo)`,
+  `guardarTablaTallas(datos, anterior?)` (sustituye la de la misma marca y tipo; con `anterior`, quita la de
+  antes si cambió la marca o el tipo) y `borrarTablaTallas(id)`. Tabla `tablasTallas` de Dexie (versión 4);
+  van en la copia y las copias de antes, sin tablas, se importan igual.
 - `repositorio.ts`: `crearPrenda`, `leerPrenda`, `listarPrendas({ categoria, estilo, color })`,
   `actualizarPrenda`, `borrarPrenda`; `guardarOutfit`, `listarOutfits`, `marcarFavorito`, `guardarPrueba` (la foto del probador del PC, T7.1),
   `borrarOutfit`;

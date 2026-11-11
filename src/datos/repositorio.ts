@@ -19,6 +19,11 @@ import {
   type Outfit,
   type Perfil,
   type Prenda,
+  type TablaTallas,
+  type TipoTalla,
+  type DatosTablaTallas,
+  idTablaTallas,
+  tablaTallasSchema,
 } from './modelo.ts'
 
 export interface FiltrosPrendas {
@@ -141,4 +146,42 @@ export function guardarAjustes(cambios: Partial<Ajustes>): Promise<Ajustes> {
     await db.ajustes.put(ajustes, FILA_UNICA)
     return ajustes
   })
+}
+
+/** Todas las tablas de tallas, por marca y tipo. */
+export async function listarTablasTallas(): Promise<TablaTallas[]> {
+  const tablas = await db.tablasTallas.toArray()
+  return tablas.sort(
+    (a, b) =>
+      a.marca.localeCompare(b.marca, 'es', { sensitivity: 'base' }) ||
+      a.tipo.localeCompare(b.tipo, 'es'),
+  )
+}
+
+export function leerTablaTallas(marca: string, tipo: TipoTalla): Promise<TablaTallas | undefined> {
+  return db.tablasTallas.get(idTablaTallas(marca, tipo))
+}
+
+/**
+ * Guarda la tabla de una marca y un tipo; si ya había una, la sustituye. Si se cambia la marca o el tipo
+ * al editar, pasa `anterior` (el `id` de antes) para que no quede la vieja.
+ */
+export function guardarTablaTallas(
+  datos: DatosTablaTallas,
+  anterior?: string,
+): Promise<TablaTallas> {
+  const tabla = tablaTallasSchema.parse({
+    ...datos,
+    id: idTablaTallas(datos.marca, datos.tipo),
+    actualizadaEn: Date.now(),
+  })
+  return db.transaction('rw', db.tablasTallas, async () => {
+    if (anterior !== undefined && anterior !== tabla.id) await db.tablasTallas.delete(anterior)
+    await db.tablasTallas.put(tabla)
+    return tabla
+  })
+}
+
+export function borrarTablaTallas(id: string): Promise<void> {
+  return db.tablasTallas.delete(id)
 }

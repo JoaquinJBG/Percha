@@ -51,6 +51,10 @@ function proveedorFalsoDeDesarrollo(): ProveedorIA | null {
       await new Promise((listo) => setTimeout(listo, 1500))
       return falso.leerEtiqueta(foto, opciones)
     },
+    async leerTablaTallas(foto, opciones) {
+      await new Promise((listo) => setTimeout(listo, 1500))
+      return falso.leerTablaTallas(foto, opciones)
+    },
     async elegirOutfits(peticion, opciones) {
       opciones?.signal?.throwIfAborted()
       await new Promise<void>((listo, fallo) => {

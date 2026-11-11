@@ -216,3 +216,10 @@ talla de verdad). T8.2 absorbe la T6.5.
   balloon · 44» bajo el título y una fila por detalle. Filtro «Corte» en el armario, con los cortes que hay.
   El alta masiva los guarda.
 - **Fuera:** usarlos en outfits y probador (T8.4), tablas de tallas (T10.1).
+
+## Fase 9 — Buscar la prenda con Gemini
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| S9 | Laboratorio de grounding: pantalla oculta `/laboratorio` que busca con Gemini 2.5 Flash y Google la ficha de hasta 10 prendas, marca acierto, a medias o fallo y exporta un JSON ([informe](spikes/s9-grounding.md)) | T5.1 | 👀 |
+| T9.1 | Con foto, marca y referencia, Gemini propone 2–3 fichas con su foto y el usuario elige; se guarda el enlace y la foto de catálogo | S9 (≥ 6 de 10) | ⏳ |

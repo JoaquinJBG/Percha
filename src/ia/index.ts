@@ -9,6 +9,7 @@ export {
   ETIQUETAS_DE_PRUEBA,
   fichaDePrueba,
   outfitsDePrueba,
+  TABLA_TALLAS_DE_PRUEBA,
   type ProveedorFalso,
 } from './falso.ts'
 export {

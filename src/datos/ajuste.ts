@@ -1,4 +1,4 @@
-import type { Corte, Cuerpo, FilaTalla, Largo, TablaTallas } from './modelo.ts'
+import type { Corte, Cuerpo, FilaTalla, Largo, TablaTallas, TipoTalla } from './modelo.ts'
 
 /** Lo que se compara: los contornos y el largo de pierna, que el perfil tiene (T8.2). */
 export const MEDIDAS_AJUSTE = ['pecho', 'cintura', 'cadera', 'largoPierna'] as const
@@ -20,39 +20,43 @@ export interface Ajuste {
   faltan: MedidaAjuste[]
 }
 
-/** Con tablas del cuerpo, hasta 2 cm de diferencia es tu talla (las tiendas van de 4 en 4 cm). */
+/** Con tablas del cuerpo, menos de 2 cm de diferencia es tu talla (las tiendas van de 4 en 4 cm). */
 export const TOLERANCIA_CUERPO_CM = 2
-/** Con tablas de la prenda hay más margen: la holgura de cada corte es aproximada. */
+/** Con tablas de la prenda hay más margen (menos de 3 cm): la holgura de cada corte es aproximada. */
 export const TOLERANCIA_PRENDA_CM = 3
 
 /**
- * Holgura que se espera entre la prenda (medida en plano y doblada) y el cuerpo, según el corte (T8.1).
- * Son cifras de patronaje aproximadas: un ceñido deja ~4 cm de contorno, uno regular ~8, uno amplio ~12
- * y un oversize ~18. Sin corte, regular.
+ * Holgura de contorno (pecho en lo de arriba, cadera en pantalones) que se espera entre la prenda,
+ * medida en plano y doblada, y el cuerpo, según el corte (T8.1). Cifras de patronaje aproximadas, entre
+ * punto y tejido plano: ceñido ~6 cm, regular ~10, amplio ~14, oversize ~22. Un pantalón deja algo menos.
  */
 const HOLGURA_POR_CORTE: Partial<Record<Corte, number>> = {
   skinny: 2,
-  slim: 4,
-  entallado: 4,
-  regular: 8,
+  slim: 6,
+  entallado: 6,
+  regular: 10,
   'regular / recto': 8,
-  recto: 8,
+  recto: 10,
   tapered: 8,
   bootcut: 8,
-  cargo: 10,
-  relaxed: 12,
-  boxy: 12,
-  'wide leg': 14,
+  cargo: 12,
+  relaxed: 14,
+  boxy: 14,
+  'wide leg': 16,
   flare: 12,
-  balloon: 16,
-  oversize: 18,
-  overshirt: 14,
-  baggy: 18,
-  cropped: 10,
+  balloon: 18,
+  oversize: 22,
+  overshirt: 16,
+  baggy: 20,
+  cropped: 12,
 }
-const HOLGURA_SIN_CORTE = 8
-/** La cintura de un pantalón va sujeta (cinturilla o cinturón) aunque la pernera sea ancha. */
-const HOLGURA_MAX_CINTURA = 4
+const HOLGURA_SIN_CORTE: Record<TipoTalla, number> = {
+  'parte de arriba': 10,
+  pantalón: 8,
+  calzado: 0,
+}
+/** La cintura de un pantalón va sujeta (cinturilla o cinturón): casi sin holgura, sea cual sea el corte. */
+const HOLGURA_CINTURA_PANTALON = 2
 
 /** Un tobillero o un cropped se hacen cortos a propósito: se espera que la pierna quede así de corta. */
 const PIERNA_MAS_CORTA_CM: Partial<Record<Largo, number>> = { tobillero: 7, cropped: 12 }
@@ -62,13 +66,12 @@ export interface PrendaAjuste {
   largo?: Largo | undefined
 }
 
-function holguraEsperada(medida: MedidaAjuste, prenda: PrendaAjuste): number {
-  if (medida === 'largoPierna')
+function holguraEsperada(medida: MedidaAjuste, tipo: TipoTalla, prenda: PrendaAjuste): number {
+  if (medida === 'largoPierna') {
     return -(prenda.largo ? (PIERNA_MAS_CORTA_CM[prenda.largo] ?? 0) : 0)
-  const holgura = prenda.corte
-    ? (HOLGURA_POR_CORTE[prenda.corte] ?? HOLGURA_SIN_CORTE)
-    : HOLGURA_SIN_CORTE
-  return medida === 'cintura' ? Math.min(holgura, HOLGURA_MAX_CINTURA) : holgura
+  }
+  if (medida === 'cintura' && tipo === 'pantalón') return HOLGURA_CINTURA_PANTALON
+  return (prenda.corte ? HOLGURA_POR_CORTE[prenda.corte] : undefined) ?? HOLGURA_SIN_CORTE[tipo]
 }
 
 function redondear(cm: number): number {
@@ -103,11 +106,13 @@ export function ajusteDeTalla(
       faltan.push(medida)
       continue
     }
-    const holgura = tabla.medidaDe === 'prenda' ? holguraEsperada(medida, prenda) : 0
-    const diferencia = redondear(deLaTalla - tuya - holgura)
+    const holgura = tabla.medidaDe === 'prenda' ? holguraEsperada(medida, tabla.tipo, prenda) : 0
+    // Se compara sin redondear; solo se redondea lo que se enseña.
+    const exacta = deLaTalla - tuya - holgura
+    const diferencia = redondear(exacta)
     const esLargo = medida === 'largoPierna'
     const veredicto: Veredicto =
-      Math.abs(diferencia) < tolerancia
+      Math.abs(exacta) < tolerancia
         ? 'bien'
         : diferencia < 0
           ? esLargo
@@ -129,11 +134,13 @@ export interface Recomendacion {
 /** Quedar justo molesta más que quedar holgado: cuenta el doble al elegir. */
 const PESO_JUSTA = 2
 
+/** La media por medida: una talla con menos medidas en la tabla no sale ganando por tener menos. */
 function puntos(ajuste: Ajuste): number {
-  return ajuste.medidas.reduce(
-    (suma, { diferencia }) => suma + (diferencia < 0 ? -diferencia * PESO_JUSTA : diferencia),
+  const suma = ajuste.medidas.reduce(
+    (total, { diferencia }) => total + (diferencia < 0 ? -diferencia * PESO_JUSTA : diferencia),
     0,
   )
+  return suma / ajuste.medidas.length
 }
 
 /**
@@ -148,8 +155,9 @@ export function tallaRecomendada(
   const candidatas = tabla.filas
     .map((fila) => ajusteDeTalla(tabla, fila.talla, cuerpo, prenda))
     .filter((ajuste): ajuste is Ajuste => ajuste !== null && ajuste.medidas.length > 0)
-    .map((ajuste) => ({ talla: ajuste.talla, puntos: puntos(ajuste) }))
-    .sort((a, b) => a.puntos - b.puntos)
+    .map((ajuste, orden) => ({ talla: ajuste.talla, puntos: puntos(ajuste), orden }))
+    // En empate, la mayor (las tablas van de menor a mayor): mejor holgada que justa.
+    .sort((a, b) => a.puntos - b.puntos || b.orden - a.orden)
   const [mejor, segunda] = candidatas
   return mejor ? { mejor: mejor.talla, alternativa: segunda?.talla ?? null } : null
 }

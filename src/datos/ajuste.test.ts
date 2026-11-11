@@ -71,31 +71,58 @@ describe('ajuste de una talla con una tabla del cuerpo', () => {
 })
 
 describe('ajuste con una tabla de la prenda', () => {
-  const prenda = tabla({
+  const camiseta = tabla({
+    tipo: 'parte de arriba',
     medidaDe: 'prenda',
-    filas: [{ talla: 'M', pecho: 108, cintura: 90, largoPierna: 76 }],
+    filas: [{ talla: 'M', pecho: 108, cintura: 104 }],
+  })
+  const vaquero = tabla({
+    medidaDe: 'prenda',
+    filas: [{ talla: '42', cintura: 84, largoPierna: 76 }],
   })
 
   it('descuenta la holgura del corte: un slim de pecho 108 a un pecho de 100 queda bien', () => {
-    const slim = ajusteDeTalla(prenda, 'M', { pecho: 100 }, { corte: 'slim' })
-    const oversize = ajusteDeTalla(prenda, 'M', { pecho: 100 }, { corte: 'oversize' })
+    const slim = ajusteDeTalla(camiseta, 'M', { pecho: 100 }, { corte: 'slim' })
+    const oversize = ajusteDeTalla(camiseta, 'M', { pecho: 100 }, { corte: 'oversize' })
 
-    expect(slim?.medidas[0]).toEqual({ medida: 'pecho', veredicto: 'holgada', diferencia: 4 })
-    expect(oversize?.medidas[0]).toEqual({ medida: 'pecho', veredicto: 'justa', diferencia: -10 })
+    expect(slim?.medidas[0]).toEqual({ medida: 'pecho', veredicto: 'bien', diferencia: 2 })
+    expect(oversize?.medidas[0]).toEqual({ medida: 'pecho', veredicto: 'justa', diferencia: -14 })
   })
 
-  it('sin corte se toma regular; la cintura de un pantalón ancho sigue sujeta', () => {
-    expect(ajusteDeTalla(prenda, 'M', { pecho: 100 })?.medidas[0]?.veredicto).toBe('bien')
+  it('sin corte, regular; en lo de arriba la cintura lleva la misma holgura que el pecho', () => {
+    expect(ajusteDeTalla(camiseta, 'M', { pecho: 98 })?.medidas[0]?.veredicto).toBe('bien')
     expect(
-      ajusteDeTalla(prenda, 'M', { cintura: 86 }, { corte: 'baggy' })?.medidas[0]?.veredicto,
+      ajusteDeTalla(camiseta, 'M', { cintura: 100 }, { corte: 'oversize' })?.medidas[0],
+    ).toEqual({ medida: 'cintura', veredicto: 'justa', diferencia: -18 })
+  })
+
+  it('la cintura de un pantalón va casi sin holgura, aunque sea baggy', () => {
+    expect(ajusteDeTalla(vaquero, '42', { cintura: 82 })?.medidas[0]).toEqual({
+      medida: 'cintura',
+      veredicto: 'bien',
+      diferencia: 0,
+    })
+    expect(
+      ajusteDeTalla(vaquero, '42', { cintura: 82 }, { corte: 'baggy' })?.medidas[0]?.veredicto,
     ).toBe('bien')
   })
 
   it('un tobillero se espera más corto que la pierna', () => {
     expect(
-      ajusteDeTalla(prenda, 'M', { largoPierna: 83 }, { largo: 'tobillero' })?.medidas[0],
+      ajusteDeTalla(vaquero, '42', { largoPierna: 83 }, { largo: 'tobillero' })?.medidas[0],
     ).toEqual({ medida: 'largoPierna', veredicto: 'bien', diferencia: 0 })
-    expect(ajusteDeTalla(prenda, 'M', { largoPierna: 83 })?.medidas[0]?.veredicto).toBe('corta')
+    expect(ajusteDeTalla(vaquero, '42', { largoPierna: 83 })?.medidas[0]?.veredicto).toBe('corta')
+  })
+})
+
+describe('límites de la tolerancia', () => {
+  it('se compara sin redondear: 1,8 cm es «bien» aunque se enseñe 2', () => {
+    expect(ajusteDeTalla(tabla(), '44', { cintura: 84.2 })?.medidas[0]).toEqual({
+      medida: 'cintura',
+      veredicto: 'bien',
+      diferencia: 2,
+    })
+    expect(ajusteDeTalla(tabla(), '44', { cintura: 84 })?.medidas[0]?.veredicto).toBe('holgada')
   })
 })
 
@@ -105,6 +132,26 @@ describe('talla recomendada', () => {
       mejor: '46',
       alternativa: '44',
     })
+  })
+
+  it('una talla con menos medidas en la tabla no gana por eso', () => {
+    const conHuecos = tabla({
+      filas: [
+        { talla: '42', cadera: 101 },
+        { talla: '44', cintura: 88, cadera: 104 },
+      ],
+    })
+    expect(tallaRecomendada(conHuecos, { cintura: 88, cadera: 104 })?.mejor).toBe('44')
+  })
+
+  it('en empate gana la mayor', () => {
+    const empate = tabla({
+      filas: [
+        { talla: '40', cintura: 84 },
+        { talla: '42', cintura: 88 },
+      ],
+    })
+    expect(tallaRecomendada(empate, { cintura: 86 })?.mejor).toBe('42')
   })
 
   it('sin medidas en común, null; con una sola talla, sin alternativa', () => {

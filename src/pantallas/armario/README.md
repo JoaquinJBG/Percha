@@ -9,7 +9,8 @@ Pantalla Armario: lista de prendas con filtros, detalle y borrar.
 - `RejillaPrendas.tsx`: rejilla de 3 columnas agrupada por categoría.
 - `DetallePrenda.tsx`: fotos, «Zara · balloon · 44» bajo el título (marca, corte y talla), etiquetas en solo
   lectura (con corte, tiro, largo, manga y cuello si los hay; con marca, referencia, talla y composición si las
-  hay, y los enlaces de búsqueda de `src/etiqueta/`), «Editar» y borrar con confirmación.
+  hay, y los enlaces de búsqueda de `src/etiqueta/`), «Editar» y borrar con confirmación. Con marca, la
+  tabla de tallas de su marca y tipo (`TablasTallas`, T10.1) y cómo te queda su talla (T10.2).
 - `EditarPrenda.tsx`: `FormularioPrenda` con la prenda, guarda con `actualizarPrenda` y tiene «Volver a
   etiquetar con IA» (las notas del usuario se quedan si la IA no trae ninguna, y el corte y los detalles que la
   IA no dice se quedan si valen para el tipo). Va en la URL

@@ -69,7 +69,10 @@ describe('Perfil', () => {
     render(<RouterProvider router={router} />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Perfil' })).toBeInTheDocument()
-    expect(await screen.findByRole('listitem', { name: 'Cuerpo entero' })).toBeInTheDocument()
+    // Lee la base de verdad: con la suite entera en paralelo, 1 s se queda corto.
+    expect(
+      await screen.findByRole('listitem', { name: 'Cuerpo entero' }, { timeout: 5000 }),
+    ).toBeInTheDocument()
   })
 
   it('avisa de la privacidad y da consejos para el probador', async () => {

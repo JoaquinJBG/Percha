@@ -59,8 +59,9 @@ export function traducirError(error: unknown, modelo: string): unknown {
       return new ErrorIA('clave-mala', { estado })
     }
     if (estado === 404) return new ErrorIA('modelo', { modelo, estado })
-    // Lo que no es gratis (p. ej. la búsqueda en Gemini 3) da 429 y pide facturación (D12).
-    if (estado === 429 && /billing|plan/i.test(texto)) return new ErrorIA('de-pago', { estado })
+    // Todo 429 dice «check your plan and billing»; lo que no es gratis (p. ej. la búsqueda en Gemini 3,
+    // D12) se distingue porque el límite gratis es 0.
+    if (estado === 429 && /limit:\s*0\b/i.test(texto)) return new ErrorIA('de-pago', { estado })
     if (estado === 429) return new ErrorIA('sin-cupo', { estado })
     if (estado >= 500) return new ErrorIA('no-disponible', { estado })
     return new ErrorIA('otro', { estado })

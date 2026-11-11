@@ -29,7 +29,8 @@ interface Props {
   descargar?: (texto: string, nombre: string) => void
 }
 
-const DE_AJUSTES: TipoErrorIA[] = ['sin-clave', 'clave-mala', 'modelo']
+// El modelo de búsqueda es fijo: si no existe, en Ajustes no hay nada que cambiar.
+const DE_AJUSTES: TipoErrorIA[] = ['sin-clave', 'clave-mala']
 
 const boton =
   'min-h-12 rounded-xl px-4 font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oliva'

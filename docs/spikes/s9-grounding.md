@@ -29,7 +29,8 @@ T9.1 lo convierte en «Buscar la ficha» dentro de la app; si no, se queda la b�
     página);
   - lo que buscó (`webSearchQueries`), los tokens y el tiempo.
 - **Errores** (`ErrorIA`):
-  - nuevo `de-pago` para el 429 que pide facturación: es lo que pasaría si la búsqueda no fuera gratis;
+  - nuevo `de-pago` para el 429 con límite gratis 0 (`limit: 0`): es lo que pasaría si la búsqueda no fuera
+    gratis. Todo 429 dice «check your plan and billing», así que eso no sirve para distinguirlo;
   - `sin-cupo` para el 429 normal;
   - los de siempre para clave mala, sin red y JSON que no se entiende (`respuesta`).
 - **Pantalla `/laboratorio`** (`src/pantallas/laboratorio/`):

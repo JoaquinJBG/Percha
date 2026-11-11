@@ -99,8 +99,19 @@ describe('buscar la ficha con Gemini y la búsqueda de Google', () => {
   it.each([
     ['sin cupo', errorDeApi(429, '{"error":{"status":"RESOURCE_EXHAUSTED"}}'), 'sin-cupo'],
     [
-      'de pago',
-      errorDeApi(429, '{"error":{"message":"Quota exceeded, check your plan and billing"}}'),
+      'sin cupo aunque hable de facturación',
+      errorDeApi(
+        429,
+        '{"error":{"message":"You exceeded your current quota, please check your plan and billing details. Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 10"}}',
+      ),
+      'sin-cupo',
+    ],
+    [
+      'de pago (límite gratis 0)',
+      errorDeApi(
+        429,
+        '{"error":{"message":"You exceeded your current quota, please check your plan and billing details. Quota exceeded for metric: generativelanguage.googleapis.com/grounding_free_tier_requests, limit: 0"}}',
+      ),
       'de-pago',
     ],
     ['sin red', new TypeError('Failed to fetch'), 'sin-red'],

@@ -27,6 +27,8 @@ Pantalla Outfits: estilo, ocasión y tiempo de hoy → 4 outfits en un collage 2
   probador del PC en Ajustes, lo viste allí (`src/probador/`, D19); si no, tu foto de cuerpo entero y las
   prendas en una imagen, a Gemini por la hoja de compartir (`src/tryon/`, D13). «Guardar» la foto del PC
   la mete en el outfit con `guardarPrueba` (si el outfit aún no estaba guardado, se guarda con ella).
+  Bajo la prueba del PC, una línea «Tallas · …» con cómo te quedan las prendas que tienen marca, talla y
+  tabla (T10.2); se calcula en el móvil y no va a Gemini.
 - Todo se inyecta por props para los tests (`listar`, `componer`, `guardar`, `marcar`, `guardarPrueba`,
   `compartidor`,
   `almacenEleccion`, `propsTiempo`, `hoy`).

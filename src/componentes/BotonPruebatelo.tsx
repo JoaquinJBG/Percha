@@ -1,7 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { Prenda } from '../datos/modelo.ts'
-import { leerFotoInterior as leerFotoInteriorGuardada, leerPerfil } from '../datos/repositorio.ts'
+import {
+  leerFotoInterior as leerFotoInteriorGuardada,
+  leerPerfil,
+  listarTablasTallas,
+} from '../datos/repositorio.ts'
+import { lineaAjusteOutfit } from './tablas-tallas/index.ts'
 import { fotoDe } from '../outfits/collage/index.ts'
 import {
   crearClienteProbador,
@@ -36,7 +41,9 @@ export interface AvisoPrivacidad {
 }
 
 /** Lo que hace falta de cada prenda: lo de Gemini y su nivel de abrigo, para elegir la capa de fuera. */
-export type PrendaPruebatelo = PrendaTryOn & Pick<Prenda, 'abrigo'>
+export type PrendaPruebatelo = PrendaTryOn &
+  Pick<Prenda, 'abrigo'> &
+  Partial<Pick<Prenda, 'marca' | 'talla' | 'corte' | 'largo'>>
 
 interface Props {
   prendas: readonly PrendaPruebatelo[]
@@ -56,6 +63,8 @@ interface Props {
   copiar?: (texto: string) => Promise<boolean>
   compartidor?: CompartidorTryOn
   privacidad?: AvisoPrivacidad
+  /** La línea de tallas bajo la prueba del PC (T10.2); por defecto, con las tablas y tu perfil. */
+  leerAjuste?: (prendas: readonly PrendaPruebatelo[]) => Promise<string | null>
 }
 
 type Guardado = 'no' | 'guardando' | 'si' | 'error'
@@ -116,6 +125,12 @@ const compartidorPorDefecto: CompartidorTryOn = typeof navigator === 'undefined'
 const PRIVACIDAD =
   'Tu foto solo sale del móvil cuando eliges a dónde compartirla: Percha no la sube a ningún sitio.'
 const INSTRUCCION = 'En Gemini, toca la sugerencia del teclado para pegar el texto y envía.'
+/** Las medidas no salen del móvil: la línea se calcula aquí con las tablas guardadas (D23). */
+async function ajusteConTablas(prendas: readonly PrendaPruebatelo[]): Promise<string | null> {
+  const [tablas, perfil] = await Promise.all([listarTablasTallas(), leerPerfil()])
+  return lineaAjusteOutfit(prendas, tablas, perfil.cuerpo)
+}
+
 const AVISO_GOOGLE = 'Con Gemini, tu foto y las de las prendas van a Google.'
 const AVISO_CAPAS =
   'En tu PC solo se viste la prenda de fuera; para ver todas las capas, prueba con Gemini.'
@@ -171,7 +186,23 @@ export function BotonPruebatelo({
   copiar = copiarTexto,
   compartidor = compartidorPorDefecto,
   privacidad = privacidadLocal,
+  leerAjuste = ajusteConTablas,
 }: Props) {
+  const [lineaAjuste, setLineaAjuste] = useState<string | null>(null)
+  useEffect(() => {
+    let vigente = true
+    leerAjuste(prendas).then(
+      (linea) => {
+        if (vigente) setLineaAjuste(linea)
+      },
+      () => {
+        // Sin tablas o sin perfil no hay línea de tallas: la prueba se enseña igual.
+      },
+    )
+    return () => {
+      vigente = false
+    }
+  }, [leerAjuste, prendas])
   const [estado, setEstado] = useState<Estado>({ fase: 'quieto' })
   const [copiadoAMano, setCopiadoAMano] = useState<boolean | null>(null)
   // El estado tarda un render en verse: esto evita dos `share()` o dos pruebas seguidas.
@@ -566,6 +597,7 @@ export function BotonPruebatelo({
             alt={`Tú con el outfit ${String(numero)}, vestido en tu PC`}
             className="mx-auto max-h-[45dvh] w-auto rounded-xl bg-white object-contain"
           />
+          {lineaAjuste && <p>Tallas · {lineaAjuste}</p>}
           {avisoCapas && <p>{avisoCapas}</p>}
           <div className="grid grid-cols-2 gap-2">
             {alGuardarPrueba && (

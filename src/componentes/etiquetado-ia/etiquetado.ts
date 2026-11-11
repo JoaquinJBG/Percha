@@ -23,6 +23,7 @@ const TIPOS_ERROR: TipoErrorIA[] = [
   'no-disponible',
   'respuesta',
   'foto',
+  'de-pago',
   'otro',
 ]
 
@@ -49,6 +50,10 @@ function proveedorFalsoDeDesarrollo(): ProveedorIA | null {
     async leerEtiqueta(foto, opciones) {
       await new Promise((listo) => setTimeout(listo, 1500))
       return falso.leerEtiqueta(foto, opciones)
+    },
+    async leerTablaTallas(foto, opciones) {
+      await new Promise((listo) => setTimeout(listo, 1500))
+      return falso.leerTablaTallas(foto, opciones)
     },
     async elegirOutfits(peticion, opciones) {
       opciones?.signal?.throwIfAborted()

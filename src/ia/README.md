@@ -14,7 +14,16 @@ todo desde `src/ia/index.ts`.
     foto va a 1536 px (la letra es pequeña). Prompt en `prompt-etiqueta.ts` y esquema en
     `esquema-etiqueta.ts`: para Gemini todo es obligatorio y «no se ve» es vacío; al leer se quitan los
     vacíos y un campo raro no tira el resto.
+  - `leerTablaTallas(foto, { signal }?)` (T10.1): lee la captura de la guía de tallas de una tienda.
+    Devuelve `{ marca?, tipo, medidaDe, filas }` con las medidas en cm (pulgadas convertidas). Prompt en
+    `prompt-tabla-tallas.ts` y esquema en `esquema-tabla-tallas.ts`: para Gemini todo es obligatorio y «no
+    está» es 0; al leer se quitan filas sin talla o sin medidas, tallas repetidas y medidas imposibles. Sin
+    ninguna fila, `ErrorIA('respuesta')`. El falso devuelve `TABLA_TALLAS_DE_PRUEBA`.
   - `comprobarClave({ signal }?)`: se resuelve si la clave y el modelo valen.
+  - `buscarFicha(prenda, { signal }?)` (S9): con la búsqueda de Google en `MODELO_BUSQUEDA`
+    (`gemini-2.5-flash`), hasta 3 candidatas de ficha (nombre, tienda, enlace, foto), las fuentes de Google,
+    lo que buscó, tokens y tiempo. Sin esquema (2.5 no lo admite con búsqueda): el JSON va en el texto y se
+    valida en `esquema-ficha.ts`. `ErrorIA('de-pago')` si Google pide facturación.
 - `proveedorDesdeAjustes()`: el proveedor Gemini con la clave y el modelo guardados. Sin clave, sus llamadas
   lanzan `ErrorIA('sin-clave')`.
 - `crearProveedorGemini({ clave, modelo })`: usa `@google/genai` (se carga al primer uso), salida JSON

@@ -11,6 +11,7 @@ import { ErrorFoto, normalizarFoto } from '../../recorte/index.ts'
 import { CuerpoPerfil } from './CuerpoPerfil.tsx'
 import { FotoPerfil } from './FotoPerfil.tsx'
 import { GuiaFotoReferencia } from './GuiaFotoReferencia.tsx'
+import { TablasTallas } from '../../componentes/tablas-tallas/index.ts'
 import { TallasPerfil } from './TallasPerfil.tsx'
 import { TrabajoPerfil } from './TrabajoPerfil.tsx'
 
@@ -345,6 +346,8 @@ export function Perfil({
               tallas={perfil.tallas ?? []}
               guardar={(tallas) => guardarCampo('tallas', tallas)}
             />
+            <h3 className="mt-2 font-semibold">Tablas de tallas de las tiendas</h3>
+            <TablasTallas cuerpo={perfil.cuerpo ?? null} />
           </section>
 
           <section aria-labelledby="titulo-trabajo" className="flex flex-col gap-3">

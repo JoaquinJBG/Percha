@@ -196,7 +196,7 @@ talla de verdad). T8.2 absorbe la T6.5.
 | T8.1 | Corte y detalles por tipo (corte, tiro, largo, manga, cuello) con listas cerradas, que rellena Gemini y se corrigen a mano; marca, corte y talla sin foto de la etiqueta; filtro por corte en el armario (D20) | T6.1 | 👀 |
 | T8.2 | Perfil de cuerpo: medidas, complexión, tallas habituales por marca, oficina y sensación térmica (absorbe T6.5) | — | 👀 |
 | T8.3 | Fotos del perfil: foto de referencia ajustada con guía y pose; la de ropa interior, opcional y solo para el probador del PC (nunca a Gemini, a la nube ni a la copia) | T7.1 | 👀 falta hacerse las fotos de verdad y probarlas en el PC |
-| T8.4 | Outfits y probador usan el corte y el cuerpo: reglas (§6 de la investigación, B1–B11), prompt de Gemini y avisos del probador | T6.2, T6.3, T8.1, T8.2 | ⏳ |
+| T8.4 | Outfits y probador usan el corte y el cuerpo: reglas (§6 de la investigación, B1–B11), prompt de Gemini y avisos del probador | T6.2, T6.3, T8.1, T8.2 | 👀 sin avisos del probador (nota en `src/tryon/README.md`) |
 
 ### T8.1 — Corte y detalles por tipo
 - **Qué:** campos opcionales `corte`, `tiro`, `largo`, `manga` y `cuello` en la prenda, con listas cerradas
@@ -216,3 +216,45 @@ talla de verdad). T8.2 absorbe la T6.5.
   balloon · 44» bajo el título y una fila por detalle. Filtro «Corte» en el armario, con los cortes que hay.
   El alta masiva los guarda.
 - **Fuera:** usarlos en outfits y probador (T8.4), tablas de tallas (T10.1).
+
+## Fase 9 — Buscar la prenda con Gemini
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| S9 | Laboratorio de grounding: pantalla oculta `/laboratorio` que busca con Gemini 2.5 Flash y Google la ficha de hasta 10 prendas, marca acierto, a medias o fallo y exporta un JSON ([informe](spikes/s9-grounding.md)) | T5.1 | 👀 |
+| T9.1 | Con foto, marca y referencia, Gemini propone 2–3 fichas con su foto y el usuario elige; se guarda el enlace y la foto de catálogo | S9 (≥ 6 de 10) | ⏳ |
+
+## Fase 10 — Ajuste de talla de verdad
+
+Sale de [S4](spikes/s4-probador-y-etiquetas.md) §3, pasos 4–6: la tabla de tallas de la tienda en cm y
+cruzarla con las medidas del perfil (T8.2). Percha no descarga nada de la tienda: la captura la hace el usuario.
+
+| ID | Tarea | Depende de | Estado |
+|---|---|---|---|
+| T10.1 | Tabla de tallas por foto: captura de la guía → Gemini → JSON en cm, guardada por marca y tipo; se ve, se edita y se borra en el detalle de la prenda y en Perfil, y va en la copia (D22) | T8.1 | 👀 |
+| T10.2 | Cruce con tus medidas («te quedará justa de cintura y larga de pierna») en la ficha, en Perfil y bajo la prueba del PC (D23) | T8.2, T10.1 | 👀 |
+
+### T10.1 — Tabla de tallas por foto
+- **Qué:**
+  - `leerTablaTallas(foto)` en `ProveedorIA`: marca (si sale), tipo (parte de arriba, pantalón, calzado),
+    si son medidas del cuerpo o de la prenda, y una fila por talla con pecho, cintura, cadera, hombros,
+    manga, largo, largo de pierna y pie en cm. Pasa pulgadas a cm; un rango es su punto medio.
+  - Tabla `tablasTallas` de Dexie (versión 4), una por marca (sin mayúsculas) y tipo. Va en la copia.
+  - `TablasTallas` (`src/componentes/tablas-tallas/`): «Añadir desde foto» o «Escribirla a mano», revisar
+    antes de guardar, ver, editar y borrar. En el detalle de una prenda con marca, la de su marca y tipo;
+    en Perfil, todas.
+- **Fuera:** comparar con las medidas del usuario (T10.2).
+
+### T10.2 — Cruce de la tabla de tallas con tus medidas
+- **Qué:**
+  - `ajusteDeTalla(tabla, talla, cuerpo, prenda?)` y `tallaRecomendada(tabla, cuerpo, prenda?)` en
+    `src/datos/ajuste.ts`, puras y con tests;
+  - por cada medida comparable (pecho, cintura, cadera, largo de pierna), dice justa, bien, holgada, corta o
+    larga, con la diferencia en cm;
+  - con tablas del cuerpo, ±2 cm; con tablas de la prenda, se descuenta la holgura del corte (T8.1) y ±3 cm;
+  - la frase («Con la 44: te quedará justa de cintura (−2 cm) y larga de pierna (+4 cm). Mejor la 46.») sale
+    en el detalle de la prenda;
+  - en Perfil sale la talla recomendada de cada tabla, y bajo la prueba del PC una línea «Tallas · …»;
+  - si faltan medidas, dice cuáles.
+- **Fuera:** el largo total de la prenda y los hombros, que el perfil no tiene; avisos dentro de Gemini.
+

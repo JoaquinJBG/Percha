@@ -2,7 +2,14 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { NuevaPrenda, NuevoOutfit, Outfit, Prenda } from '../../datos/modelo.ts'
+import {
+  PERFIL_VACIO,
+  type NuevaPrenda,
+  type NuevoOutfit,
+  type Outfit,
+  type Perfil,
+  type Prenda,
+} from '../../datos/modelo.ts'
 import { nuevaPrenda } from '../../datos/pruebas.ts'
 import { crearProveedorFalso, ErrorIA, type ProveedorIA } from '../../ia/index.ts'
 import { crearContexto } from '../../outfits/reglas/index.ts'
@@ -83,6 +90,7 @@ interface Opciones {
   repo?: ReturnType<typeof repositorio>
   compartidor?: Compartidor
   conTiempo?: boolean
+  perfil?: Perfil | Error
 }
 
 const collage = new Blob(['jpeg'], { type: 'image/jpeg' })
@@ -94,7 +102,11 @@ function montar({
   repo = repositorio(),
   compartidor = {},
   conTiempo = false,
+  perfil = PERFIL_VACIO,
 }: Opciones = {}) {
+  const leerPerfil = vi.fn(() =>
+    perfil instanceof Error ? Promise.reject(perfil) : Promise.resolve(perfil),
+  )
   const listar = vi.fn(() => Promise.resolve(prendas))
   const componer = vi.fn(() => Promise.resolve(collage))
   const propsTiempo = conTiempo
@@ -114,6 +126,7 @@ function montar({
           <Outfits
             {...(elegir === 'reglas' ? {} : { elegir })}
             listar={listar}
+            leerPerfil={leerPerfil}
             almacenEleccion={eleccion}
             propsTiempo={propsTiempo}
             hoy={() => new Date(2026, 10, 3, 0, 30)}
@@ -148,6 +161,35 @@ async function generar(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.click(screen.getByRole('button', { name: /^Generar/ }))
   return screen.findByRole('img', { name: /Collage/ })
 }
+
+describe('Outfits con el perfil', () => {
+  it('pasa a las reglas el cuerpo, la oficina y la sensación térmica, sin las fotos', async () => {
+    const elegir = selectorFalso()
+    const perfil: Perfil = {
+      ...PERFIL_VACIO,
+      fotoCara: new Blob(['cara']),
+      cuerpo: { altura: 176, complexion: 'grande' },
+      oficina: { tipo: 'creativa', viernesCasual: false },
+      sensacionTermica: 'friolero',
+    }
+    const { usuario } = montar({ elegir, perfil })
+    await generar(usuario)
+    const [peticion] = elegir.mock.calls[0] ?? []
+    expect(peticion?.perfil).toEqual({
+      cuerpo: { altura: 176, complexion: 'grande' },
+      oficina: { tipo: 'creativa', viernesCasual: false },
+      sensacionTermica: 'friolero',
+    })
+  })
+
+  it('si el perfil no se puede leer, genera igual sin él', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const elegir = selectorFalso()
+    const { usuario } = montar({ elegir, perfil: new Error('sin base') })
+    await generar(usuario)
+    expect(elegir.mock.calls[0]?.[0].perfil).toBeUndefined()
+  })
+})
 
 describe('Outfits', () => {
   it('genera con el selector inyectado y enseña el collage con los 4 motivos', async () => {

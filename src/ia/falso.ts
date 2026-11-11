@@ -8,7 +8,10 @@ import {
   type PrendaParaOutfit,
   type PropuestaOutfit,
   type ProveedorIA,
+  type PrendaABuscar,
   type ResultadoEtiquetado,
+  type ResultadoFicha,
+  type LecturaTablaTallas,
 } from './tipos.ts'
 
 export const ETIQUETAS_DE_PRUEBA: EtiquetasPrenda = {
@@ -39,7 +42,24 @@ export const ETIQUETA_DE_PRUEBA: DatosEtiqueta = {
   ],
 }
 
+/** Una guía de pantalones de Zara con medidas del cuerpo. */
+export const TABLA_TALLAS_DE_PRUEBA: LecturaTablaTallas = {
+  marca: 'Zara',
+  tipo: 'pantalón',
+  medidaDe: 'cuerpo',
+  filas: [
+    { talla: '38', cintura: 74, cadera: 92, largoPierna: 80 },
+    { talla: '40', cintura: 78, cadera: 96, largoPierna: 81 },
+    { talla: '42', cintura: 82, cadera: 100, largoPierna: 82 },
+    { talla: '44', cintura: 86, cadera: 104, largoPierna: 83 },
+  ],
+}
+
 export interface OpcionesProveedorFalso {
+  /** Qué lee `leerTablaTallas`; por defecto, `TABLA_TALLAS_DE_PRUEBA`. */
+  tablaTallas?: (foto: Blob) => LecturaTablaTallas
+  /** Qué encuentra `buscarFicha`; por defecto, `fichaDePrueba`. */
+  ficha?: (prenda: PrendaABuscar) => ResultadoFicha
   /** Qué devuelve para cada prenda; por defecto, `ETIQUETAS_DE_PRUEBA`. */
   etiquetas?: (prenda: PrendaAEtiquetar, indice: number) => EtiquetasPrenda | null
   /** Qué outfits propone; por defecto, `outfitsDePrueba`. */
@@ -58,6 +78,41 @@ export interface ProveedorFalso extends ProveedorIA {
   /** Las fotos recibidas por `leerEtiqueta`, en orden. */
   readonly etiquetasLeidas: Blob[]
   readonly comprobaciones: number
+  /** Las prendas recibidas por `buscarFicha`, en orden. */
+  readonly fichasBuscadas: PrendaABuscar[]
+  /** Las fotos recibidas por `leerTablaTallas`, en orden. */
+  readonly tablasLeidas: Blob[]
+}
+
+// Una camiseta dibujada: así la foto de catálogo se ve en `pnpm dev` sin pedir nada fuera.
+const FOTO_DE_PRUEBA = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160"><rect width="120" height="160" fill="#f4f1ea"/><path d="M35 30l25-10 25 10 20 20-15 15-10-8v73H40V57l-10 8-15-15z" fill="#6b7a3a"/></svg>',
+)}`
+
+/** Lo que encuentra el falso: dos candidatas con la marca y el tipo de la prenda, la primera con foto. */
+export function fichaDePrueba(prenda: PrendaABuscar): ResultadoFicha {
+  const nombre = [prenda.subcategoria || prenda.categoria, prenda.marca].filter(Boolean).join(' ')
+  return {
+    candidatas: [
+      {
+        nombre: `${nombre} (prueba)`,
+        enlace: 'https://example.com/ficha-1',
+        foto: FOTO_DE_PRUEBA,
+        tienda: prenda.marca ?? 'Tienda de prueba',
+      },
+      {
+        nombre: `${nombre} parecida`,
+        enlace: 'https://example.com/ficha-2',
+        foto: null,
+        tienda: null,
+      },
+    ],
+    fuentes: [{ titulo: 'example.com', enlace: 'https://example.com/' }],
+    busquedas: [nombre],
+    tokens: { entrada: 1200, salida: 150, total: 1350 },
+    ms: 1500,
+    modelo: 'falso',
+  }
 }
 
 /**
@@ -101,8 +156,12 @@ export function crearProveedorFalso({
   etiquetas = () => ETIQUETAS_DE_PRUEBA,
   outfits = outfitsDePrueba,
   etiqueta = () => ETIQUETA_DE_PRUEBA,
+  ficha = fichaDePrueba,
+  tablaTallas = () => TABLA_TALLAS_DE_PRUEBA,
   error,
 }: OpcionesProveedorFalso = {}): ProveedorFalso {
+  const tablasLeidas: Blob[] = []
+  const fichasBuscadas: PrendaABuscar[] = []
   const lotes: PrendaAEtiquetar[][] = []
   const etiquetasLeidas: Blob[] = []
   const peticionesOutfits: PeticionOutfits[] = []
@@ -111,6 +170,8 @@ export function crearProveedorFalso({
     lotes,
     peticionesOutfits,
     etiquetasLeidas,
+    fichasBuscadas,
+    tablasLeidas,
     get comprobaciones() {
       return comprobaciones
     },
@@ -142,6 +203,14 @@ export function crearProveedorFalso({
     leerEtiqueta(foto) {
       etiquetasLeidas.push(foto)
       return error ? Promise.reject(error) : Promise.resolve(etiqueta(foto))
+    },
+    buscarFicha(prenda) {
+      fichasBuscadas.push(prenda)
+      return error ? Promise.reject(error) : Promise.resolve(ficha(prenda))
+    },
+    leerTablaTallas(foto) {
+      tablasLeidas.push(foto)
+      return error ? Promise.reject(error) : Promise.resolve(tablaTallas(foto))
     },
     comprobarClave() {
       comprobaciones++

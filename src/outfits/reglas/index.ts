@@ -3,6 +3,13 @@ export { comprobarOutfit, cuatroOutfits, CUANTOS_OUTFITS } from './outfits.ts'
 export { armonia, esNeutro } from './colores.ts'
 export { estilosAfines } from './estilos.ts'
 export { FORMALIDAD_POR_OCASION } from './ocasiones.ts'
+export {
+  ajusteTermico,
+  formalidadTrabajo,
+  tipoCuerpo,
+  type PerfilReglas,
+  type TipoCuerpo,
+} from './perfil.ts'
 export type {
   Ajuste,
   Candidato,

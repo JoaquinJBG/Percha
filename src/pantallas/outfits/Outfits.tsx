@@ -2,14 +2,23 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Link } from 'react-router'
 import { Pantalla } from '../../componentes/Pantalla.tsx'
 import { TiempoHoy } from '../../componentes/TiempoHoy.tsx'
-import { ESTILOS, OCASIONES, type Estilo, type Ocasion, type Prenda } from '../../datos/modelo.ts'
+import {
+  ESTILOS,
+  OCASIONES,
+  type Estilo,
+  type Ocasion,
+  type Perfil,
+  type Prenda,
+} from '../../datos/modelo.ts'
 import {
   guardarOutfit,
   guardarPrueba as guardarPruebaOutfit,
+  leerPerfil as leerPerfilGuardado,
   listarPrendas,
   marcarFavorito,
 } from '../../datos/repositorio.ts'
 import { crearCollage } from '../../outfits/collage/index.ts'
+import type { PerfilReglas } from '../../outfits/reglas/index.ts'
 import type { TiempoHoy as DatosTiempo } from '../../tiempo/index.ts'
 import { fechaLocal } from './fecha.ts'
 import { crearAlmacenEleccionLocal, type AlmacenEleccion, type Eleccion } from './eleccion.ts'
@@ -21,6 +30,8 @@ interface Props extends Partial<AccionesResultado> {
   /** Quién elige los outfits: por defecto las reglas; la app pasa `outfitsConIAoReglas`. */
   elegir?: SelectorOutfits
   listar?: () => Promise<Prenda[]>
+  /** El perfil, para que los outfits tengan en cuenta el cuerpo, la oficina y si es friolero. */
+  leerPerfil?: () => Promise<Perfil>
   almacenEleccion?: AlmacenEleccion
   propsTiempo?: Omit<ComponentProps<typeof TiempoHoy>, 'alCambiar'>
   hoy?: () => Date
@@ -43,6 +54,21 @@ type Estado =
 const almacenPorDefecto = crearAlmacenEleccionLocal()
 const compartidorPorDefecto = typeof navigator === 'undefined' ? {} : navigator
 
+/** Solo lo que miran las reglas; si el perfil no se puede leer, los outfits salen igual, sin él. */
+async function leerPerfilSinFallar(leer: () => Promise<Perfil>): Promise<PerfilReglas | null> {
+  try {
+    const { cuerpo, oficina, sensacionTermica } = await leer()
+    return {
+      ...(cuerpo && { cuerpo }),
+      ...(oficina && { oficina }),
+      ...(sensacionTermica && { sensacionTermica }),
+    }
+  } catch (fallo) {
+    console.warn('No se pudo leer el perfil para los outfits', fallo)
+    return null
+  }
+}
+
 function conMayuscula(texto: string): string {
   return texto.charAt(0).toLocaleUpperCase('es') + texto.slice(1)
 }
@@ -50,6 +76,7 @@ function conMayuscula(texto: string): string {
 export function Outfits({
   elegir = outfitsPorReglas,
   listar = listarPrendas,
+  leerPerfil = leerPerfilGuardado,
   almacenEleccion = almacenPorDefecto,
   propsTiempo,
   hoy = () => new Date(),
@@ -88,9 +115,10 @@ export function Outfits({
       anterior: antes.fase === 'listo' ? antes : antes.fase === 'generando' ? antes.anterior : null,
     }))
     try {
-      const prendas = await listar()
+      const [prendas, perfil] = await Promise.all([listar(), leerPerfilSinFallar(leerPerfil)])
       const fecha = tiempo?.fecha ?? fechaLocal(hoy())
-      const resultado = await elegir({ prendas, ...eleccion, tiempo, fecha }, intento, {
+      const peticion = { prendas, ...eleccion, tiempo, fecha, ...(perfil && { perfil }) }
+      const resultado = await elegir(peticion, intento, {
         signal,
         alPreguntarIA: () => {
           if (signal.aborted) return

@@ -1,6 +1,7 @@
 import { capasDe } from '../../datos/capas.ts'
 import { abrigoDeArriba, LIMITE_EXTERIOR, rangoArriba } from './clima.ts'
 import { armonia, claridad, esEstampada, tono } from './colores.ts'
+import { puntuarConjunto } from './cuerpo.ts'
 import { normalizar, palabras } from './texto.ts'
 import type { Contexto, PrendaReglas } from './tipos.ts'
 
@@ -103,6 +104,8 @@ export function capasDeLaPila<P extends PrendaReglas>(pila: Pila<P>): P[] {
 export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): string | null {
   const capas = capasDeLaPila(pila)
   const { temperatura, ocasion } = contexto
+  // Decide la de vestir (con el ajuste del perfil); los textos dicen la de verdad.
+  const vestir = contexto.temperaturaVestir
 
   for (let i = 1; i < capas.length; i++) {
     // C1 con un nivel de margen: el `abrigo` de una gabardina y el de un jersey no se miden igual.
@@ -113,8 +116,7 @@ export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): s
   if (capas.length > 4) return 'demasiadas capas'
   if (capas.length === 4) {
     const cuartaFina = pila.medias.some((m) => m.abrigo <= 2)
-    if (temperatura === null || temperatura > 3 || !cuartaFina)
-      return 'cuatro capas solo con 3 °C o menos'
+    if (vestir === null || vestir > 3 || !cuartaFina) return 'cuatro capas solo con 3 °C o menos'
   }
   if (pila.medias.some((m) => es(LARGO, m))) return 'un abrigo largo va siempre fuera'
   // C13: camiseta + camisa abierta + sobrecamisa (o cazadora) + abrigo; en la app se vio que la resta
@@ -145,7 +147,7 @@ export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): s
   }
   const gordas = capas.filter((c) => (es(PUNTO, c) || es(CAPUCHA, c)) && !esChalecoDePunto(c))
   if (gordas.length > 1) return 'dos jerséis o sudaderas, uno encima de otro'
-  const frio = temperatura !== null && temperatura < LIMITE_EXTERIOR
+  const frio = vestir !== null && vestir < LIMITE_EXTERIOR
   if (pila.exterior?.categoria === 'superior' && recursos.hayAbrigo) {
     if (contexto.precipitacion)
       return `con ${contexto.precipitacion} lo de fuera tiene que ser un abrigo`
@@ -153,8 +155,8 @@ export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): s
   }
   if (
     pila.exterior &&
-    temperatura !== null &&
-    temperatura < FRIO_DE_ABRIGO &&
+    vestir !== null &&
+    vestir < FRIO_DE_ABRIGO &&
     recursos.hayAbrigoDeVerdad &&
     !abrigaDeVerdad(pila.exterior)
   ) {
@@ -201,14 +203,14 @@ export function fallaPila(pila: Pila, contexto: Contexto, recursos: Recursos): s
   if (
     pila.exterior &&
     esChalecoDePunto(pila.exterior) &&
-    temperatura !== null &&
-    temperatura < LIMITE_EXTERIOR
+    vestir !== null &&
+    vestir < LIMITE_EXTERIOR
   ) {
     return 'un chaleco de punto no abriga como exterior'
   }
 
-  if (temperatura !== null) {
-    const [minimo, maximo] = rangoArriba(temperatura)
+  if (temperatura !== null && vestir !== null) {
+    const [minimo, maximo] = rangoArriba(vestir)
     const abrigo = abrigoDeArriba(capas)
     if (abrigo > maximo) return `demasiado abrigo arriba para ${String(temperatura)} °C`
     if (abrigo < minimo - 1 && recursos.puedeAbrigarse)
@@ -232,8 +234,8 @@ export function puntuarPila(
   const capas = capasDeLaPila(pila)
   let puntos = 0
 
-  if (contexto.temperatura !== null) {
-    const [minimo, maximo] = rangoArriba(contexto.temperatura)
+  if (contexto.temperaturaVestir !== null) {
+    const [minimo, maximo] = rangoArriba(contexto.temperaturaVestir)
     const abrigo = abrigoDeArriba(capas)
     if (abrigo >= minimo && abrigo <= maximo) puntos += 1
     else puntos -= abrigo < minimo - 1 ? 3 : 1
@@ -242,7 +244,7 @@ export function puntuarPila(
   for (let i = 1; i < capas.length; i++) {
     if ((capas[i]?.abrigo ?? 0) < (capas[i - 1]?.abrigo ?? 0)) puntos -= 1
   }
-  const { temperatura } = contexto
+  const temperatura = contexto.temperaturaVestir
   if (
     pila.exterior &&
     temperatura !== null &&
@@ -277,5 +279,11 @@ export function puntuarPila(
   ) {
     consejo = 'lo de fuera, abierto'
   }
-  return { puntos, consejo }
+  // Silueta y cuerpo (T8.4): con la parte de abajo que acompaña a la pila.
+  const conjunto = puntuarConjunto(
+    capas,
+    resto.find((p) => p.categoria === 'inferior') ?? null,
+    contexto,
+  )
+  return { puntos: puntos + conjunto.puntos, consejo: consejo ?? conjunto.consejo }
 }

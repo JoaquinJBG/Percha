@@ -31,6 +31,7 @@ interface Opciones {
   fotoInterior?: Blob | null
   esperar?: (ms: number, signal?: AbortSignal) => Promise<void>
   compartidor?: CompartidorTryOn
+  leerAjuste?: () => Promise<string | null>
 }
 
 function montar({
@@ -42,6 +43,7 @@ function montar({
   fotoInterior = null,
   esperar = sinEsperas,
   compartidor = { share: vi.fn(() => Promise.resolve()), canShare: () => true },
+  leerAjuste = () => Promise.resolve(null),
 }: Opciones = {}) {
   const servidor = servidorFalso(opciones)
   const alGuardarPrueba = vi.fn(() => Promise.resolve(true))
@@ -64,6 +66,7 @@ function montar({
             copiar={() => Promise.resolve(true)}
             compartidor={compartidor}
             privacidad={{ visto: () => true, marcar: () => undefined }}
+            leerAjuste={leerAjuste}
           />
         ),
       },
@@ -106,6 +109,30 @@ afterEach(() => {
 })
 
 describe('BotonPruebatelo con el probador del PC', () => {
+  it('bajo la prueba, una línea con cómo te quedan las tallas', async () => {
+    const leerAjuste = vi.fn(() =>
+      Promise.resolve('Vaquero 44: justa de cintura (−2 cm) y larga de pierna (+4 cm)'),
+    )
+    const { usuario } = montar({ leerAjuste })
+
+    await usuario.click(boton())
+    await screen.findByRole('img', { name: /vestido en tu PC/ })
+
+    expect(
+      screen.getByText('Tallas · Vaquero 44: justa de cintura (−2 cm) y larga de pierna (+4 cm)'),
+    ).toBeInTheDocument()
+    expect(leerAjuste).toHaveBeenCalledWith(expect.arrayContaining([expect.anything()]))
+  })
+
+  it('sin datos de tallas no hay línea', async () => {
+    const { usuario } = montar()
+
+    await usuario.click(boton())
+    await screen.findByRole('img', { name: /vestido en tu PC/ })
+
+    expect(screen.queryByText(/^Tallas ·/)).not.toBeInTheDocument()
+  })
+
   it('se viste en el PC y deja guardar y compartir la imagen', async () => {
     const share = vi.fn(() => Promise.resolve())
     const { usuario, servidor, alGuardarPrueba, preparar } = montar({

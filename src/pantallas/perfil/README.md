@@ -17,6 +17,10 @@ ciudad por defecto y estilos favoritos.
   todo, el perfil se queda sin `cuerpo`.
 - `TallasPerfil.tsx` (T8.2): tallas por marca y tipo. Una marca (sin distinguir mayúsculas) y un tipo
   tienen una sola talla: añadirla otra vez la cambia. Como mucho `MAX_TALLAS`.
+- Debajo, «Tablas de tallas de las tiendas» (T10.1): `TablasTallas` de `src/componentes/tablas-tallas/`
+  con todas las tablas guardadas. El mismo componente sale en el detalle de una prenda con marca, solo con
+  la de su marca y tipo. Bajo cada tabla, la talla que te recomienda con las medidas de «Tu cuerpo» que hay
+  en pantalla (T10.2), o qué medidas faltan.
 - `TrabajoPerfil.tsx` (T8.2): tipo de oficina, viernes casual y sensación térmica; se guardan al tocarlos
   y se desmarcan con otro toque.
 - `comun.ts` y `LineaAviso.tsx`: clases y el aviso de cada parte.

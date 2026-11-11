@@ -1,10 +1,12 @@
 import type {
+  DatosTablaTallas,
   Capa,
   Componente,
   DatosEtiqueta,
   Estilo,
   EtiquetasPrenda,
   Ocasion,
+  Prenda,
   Temporada,
 } from '../datos/modelo.ts'
 import type { Precipitacion } from '../tiempo/tipos.ts'
@@ -43,6 +45,15 @@ export type PrendaParaOutfit = Pick<
   composicion?: Componente[]
   /** Capa media o exterior ligera que hoy puede ir o no («tercera pieza»). */
   opcional?: boolean
+} & Partial<Pick<EtiquetasPrenda, 'corte' | 'tiro' | 'largo' | 'manga' | 'cuello'>>
+
+/**
+ * Lo que va del perfil a Gemini (T8.4), ya en texto corto. El cuerpo, sin medidas: altura, complexión y
+ * una línea de notas sin cifras.
+ */
+export interface PerfilParaOutfits {
+  cuerpo?: string
+  oficina?: string
 }
 
 /**
@@ -55,6 +66,8 @@ export type ExteriorHoy = 'obligatoria' | 'opcional' | 'no'
 export interface TiempoParaOutfits {
   /** Sensación térmica media en °C; `null` si no se sabe. */
   temperatura: number | null
+  /** La que usan las reglas para vestir si el perfil es caluroso o friolero (±2 °C). */
+  temperaturaVestir?: number | null
   precipitacion: Precipitacion | null
   temporada: Temporada | null
   exterior: ExteriorHoy
@@ -66,7 +79,8 @@ export interface PeticionOutfits {
   estilo: Estilo
   ocasion: Ocasion
   tiempo: TiempoParaOutfits
-  // T6.5: aquí irán el perfil de cuerpo, el tipo de oficina y la sensación térmica del usuario.
+  /** Solo si el perfil lo tiene; la sensación térmica ya va dentro de `tiempo.exterior`. */
+  perfil?: PerfilParaOutfits
   /** Otra semilla, otra tanda. */
   semilla?: number
 }
@@ -93,6 +107,44 @@ export interface ProveedorIA {
    * devolver `{}`. La foto no se guarda en ningún sitio. Lanza `ErrorIA` si no se puede leer.
    */
   leerEtiqueta(foto: Blob, opciones?: OpcionesPeticion): Promise<DatosEtiqueta>
+  /**
+   * Busca con Google (grounding) la ficha de la prenda en su tienda: el laboratorio S9. Hasta 3
+   * candidatas; `[]` si no encuentra nada. Lanza `ErrorIA` si no se puede (sin cupo, de pago…).
+   */
+  buscarFicha(prenda: PrendaABuscar, opciones?: OpcionesPeticion): Promise<ResultadoFicha>
+  /**
+   * Lee la captura o la foto de la guía de tallas de una tienda: tipo, si son medidas del cuerpo o de la
+   * prenda, y una fila por talla en cm (T10.1). Lanza `ErrorIA` si no lee ninguna fila.
+   */
+  leerTablaTallas(foto: Blob, opciones?: OpcionesPeticion): Promise<LecturaTablaTallas>
   /** Se resuelve si la clave y el modelo valen; si no, lanza `ErrorIA`. */
   comprobarClave(opciones?: OpcionesPeticion): Promise<void>
+}
+
+/** La tabla leída de una guía de tallas: la marca falta si no salía en la captura. */
+export type LecturaTablaTallas = Omit<DatosTablaTallas, 'marca'> & { marca?: string }
+
+/** Lo que se manda para buscar una prenda: la foto y lo que se sabe de ella. */
+export type PrendaABuscar = Pick<
+  Prenda,
+  'fotos' | 'categoria' | 'subcategoria' | 'colores' | 'marca' | 'referencia' | 'corte'
+>
+
+export interface CandidataFicha {
+  nombre: string
+  enlace: string
+  /** La foto de catálogo; se pinta con `<img>`, Percha nunca la descarga. */
+  foto: string | null
+  tienda: string | null
+}
+
+export interface ResultadoFicha {
+  candidatas: CandidataFicha[]
+  /** Las páginas que Google dio a Gemini (enlaces de Google que redirigen a la página). */
+  fuentes: { titulo: string; enlace: string }[]
+  /** Lo que buscó en Google. */
+  busquedas: string[]
+  tokens: { entrada: number | null; salida: number | null; total: number | null }
+  ms: number
+  modelo: string
 }
